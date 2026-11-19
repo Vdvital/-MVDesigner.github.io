@@ -215,3 +215,9 @@ dialog::backdrop{background:#000a}
 .promo-tag.only{padding:9px 10px;font-size:11px;letter-spacing:1.4px}
 .staff-login{display:block;margin-top:8px;color:var(--muted);font-size:12px}
 @media(max-width:700px){.staff-bar{padding:8px 16px}}
+/* orçamento em PDF */
+.pdf-ready{margin-top:10px;border:1.5px solid #25d366;background:#25d3660f;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;animation:drop .2s ease}
+.pdf-title{margin:0;font-size:14px;overflow-wrap:anywhere}
+.pdf-actions{display:flex;flex-direction:column;gap:6px}
+.pdf-actions .btn-wa{margin:0}
+.btn-pdf{display:block;text-align:center;border:1.5px solid var(--ink);border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:14px;background:#fff}
