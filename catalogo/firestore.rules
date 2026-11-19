@@ -48,6 +48,17 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
     }
 
+    // ---------------- Orçamentos ----------------
+    // Abertos pelo link (id aleatório, impossível de adivinhar); ninguém lista todos.
+    match /quotes/{id} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && (isAdmin() || ownsCatalog(request.resource.data.slug) || isTeamOf(request.resource.data.slug));
+      allow update, delete: if isAdmin();
+    }
+
     // ---------------- Catálogo público (sem preços) ----------------
     match /catalogs/{slug} {
       allow read: if true;
