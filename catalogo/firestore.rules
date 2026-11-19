@@ -1,0 +1,40 @@
+rules_version = '2';
+// Regras de segurança do Firestore para o Catálogo Online.
+// Cole no Console do Firebase → Firestore Database → Regras → Publicar.
+// TROQUE o e-mail abaixo pelo(s) mesmo(s) e-mail(s) de "admins" em config.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function bootstrapAdmin() {
+      return signedIn() && request.auth.token.email in ['admin@catalogo.com'];
+    }
+
+    // Perfis: só o próprio usuário e o administrador leem. Só o admin cria/edita/exclui.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAdmin()
+        || (request.auth.uid == uid && bootstrapAdmin() && request.resource.data.role == 'admin');
+      allow update: if isAdmin()
+        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']));
+      allow delete: if isAdmin();
+    }
+
+    // Catálogos: leitura pública (o próprio site decide se está no ar).
+    // O dono só altera loja e produtos, e só enquanto o acesso estiver ativo.
+    match /catalogs/{slug} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        signedIn() && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['store', 'products', 'updatedAt'])
+        && resource.data.active == true
+        && (resource.data.expiresAt == null || resource.data.expiresAt > request.time.toMillis())
+      );
+    }
+  }
+}

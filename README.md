@@ -29,6 +29,10 @@ Os projetos Nexo e Alva são **estudos conceituais**, reaproveitados do reposit�
 - Formulário que prepara uma mensagem para WhatsApp; o visitante confirma o envio no WhatsApp. Não há servidor de formulário ou armazenamento de dados.
 - Respeita a preferência de movimento reduzido e oferece navegação por teclado.
 
+## Catálogo online
+
+A pasta `catalogo/` tem um sistema de catálogos com painel de administrador, controle de tempo de acesso, importação do Excel e fotos do Google Drive. Veja `catalogo/LEIA-ME.md`.
+
 ## Prévia local
 
 Abra `index.html` no navegador ou rode `python3 -m http.server 8080` nesta pasta e acesse `http://localhost:8080`.

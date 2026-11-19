@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
+<title>Painel do Administrador | Catálogo Online</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="admin.html">mv<span>administração</span></a>
+  <div class="who"><span class="pill admin">ADMIN</span><span class="email" id="me-email"></span><button class="btn sm ghost" id="logout">Sair</button></div>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
+    <div><h1>Usuários e acessos</h1><p>Crie contas e controle por quanto tempo cada catálogo fica no ar.</p></div>
+  </div>
+
+  <section class="stats" aria-label="Resumo">
+    <div class="stat"><small>Usuários</small><strong id="st-total">0</strong></div>
+    <div class="stat"><small>Ativos</small><strong id="st-active" style="color:var(--ok)">0</strong></div>
+    <div class="stat"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong></div>
+    <div class="stat"><small>Vencidos / bloqueados</small><strong id="st-off" style="color:var(--bad)">0</strong></div>
+  </section>
+
+  <div class="grid-2">
+    <!-- CRIAR USUÁRIO (somente admin) -->
+    <section class="card" aria-labelledby="new-title">
+      <h2 id="new-title">Criar usuário</h2>
+      <p class="sub">Só o administrador pode criar contas.</p>
+      <form id="new-user" autocomplete="off">
+        <div class="field"><label for="nu-name">Nome da loja ou cliente</label><input id="nu-name" required maxlength="80" placeholder="Ex.: Casa & Cia Utilidades"></div>
+        <div class="field"><label for="nu-email">E-mail de login</label><input id="nu-email" type="email" required placeholder="cliente@email.com"></div>
+        <div class="field">
+          <label for="nu-pass">Senha inicial</label>
+          <div class="link-box"><input id="nu-pass" required minlength="6" autocomplete="new-password"><button type="button" class="btn sm" id="gen-pass">Gerar</button></div>
+        </div>
+        <div class="field">
+          <label for="nu-slug">Endereço do catálogo</label>
+          <input id="nu-slug" required maxlength="40" placeholder="casa-e-cia">
+          <p class="hint" id="slug-preview"></p>
+        </div>
+        <div class="field">
+          <label>Tempo de acesso</label>
+          <div class="quick" id="nu-quick" role="group" aria-label="Tempo de acesso">
+            <button type="button" data-days="7">7 dias</button>
+            <button type="button" data-days="30" class="on">30 dias</button>
+            <button type="button" data-days="90">90 dias</button>
+            <button type="button" data-days="180">6 meses</button>
+            <button type="button" data-days="365">1 ano</button>
+            <button type="button" data-days="0">Sem limite</button>
+          </div>
+          <label for="nu-until" style="margin-top:10px">ou até a data</label>
+          <input id="nu-until" type="date">
+        </div>
+        <button class="btn primary" style="width:100%" id="nu-submit">Criar usuário</button>
+      </form>
+    </section>
+
+    <!-- LISTA DE USUÁRIOS -->
+    <section class="card" aria-labelledby="list-title">
+      <h2 id="list-title">Usuários cadastrados</h2>
+      <p class="sub">Renove, bloqueie ou remova o acesso a qualquer momento.</p>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Buscar por nome, e-mail ou endereço" aria-label="Buscar usuário">
+        <select id="filter" aria-label="Filtrar por situação">
+          <option value="">Todas as situações</option>
+          <option value="ativo">Ativos</option>
+          <option value="expirando">Vencem em 7 dias</option>
+          <option value="expirado">Vencidos</option>
+          <option value="bloqueado">Bloqueados</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Usuário</th><th>Acesso</th><th>Catálogo</th><th>Último login</th><th><span class="sr-only">Ações</span></th></tr></thead>
+          <tbody id="users"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Tempo de acesso -->
+<dialog id="dlg-time" aria-labelledby="dlg-time-title">
+  <form method="dialog" id="time-form">
+    <h2 id="dlg-time-title">Tempo de acesso</h2>
+    <p class="hint" id="time-current" style="margin:-8px 0 16px"></p>
+    <label>Adicionar tempo</label>
+    <div class="quick" id="time-quick">
+      <button type="button" data-add="7">+7 dias</button>
+      <button type="button" data-add="30">+30 dias</button>
+      <button type="button" data-add="90">+90 dias</button>
+      <button type="button" data-add="365">+1 ano</button>
+      <button type="button" data-add="0">Sem limite</button>
+    </div>
+    <div class="field" style="margin-top:14px"><label for="time-date">Ou definir a data final</label><input id="time-date" type="date"></div>
+    <p class="hint" id="time-preview"></p>
+    <div class="dialog-actions"><button class="btn ghost" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="save" id="time-save">Salvar</button></div>
+  </form>
+</dialog>
+
+<!-- Senha -->
+<dialog id="dlg-pass" aria-labelledby="dlg-pass-title">
+  <form method="dialog" id="pass-form">
+    <h2 id="dlg-pass-title">Nova senha</h2>
+    <div class="field"><label for="new-pass">Nova senha para <span id="pass-who"></span></label><input id="new-pass" minlength="6" autocomplete="new-password"></div>
+    <div class="dialog-actions"><button class="btn ghost" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="save">Salvar senha</button></div>
+  </form>
+</dialog>
+
+<script src="config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
