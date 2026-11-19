@@ -218,6 +218,15 @@
 
     async getCatalogBySlug(slug) { return stripPublic(this._catBySlug(slug)); },
 
+    async saveQuote(q) {
+      const all = this._read("cat_quotes", {});
+      const id = "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      all[id] = { ...q, createdAt: Date.now() };
+      this._write("cat_quotes", all);
+      return id;
+    },
+    async getQuote(id) { return this._read("cat_quotes", {})[id] || null; },
+
     async getPrices(slug) {
       const me = await this.current();
       if (!me) return null;
@@ -411,6 +420,18 @@
       return s.exists ? stripPublic(s.data()) : null;
     },
 
+    async saveQuote(q) {
+      await this._ready;
+      const u = this.auth.currentUser;
+      if (!u) throw new Error("Faça login novamente.");
+      const ref = await this.db.collection("quotes").add({ ...q, createdBy: u.uid, createdAt: Date.now() });
+      return ref.id;
+    },
+    async getQuote(id) {
+      const s = await this.db.collection("quotes").doc(id).get();
+      return s.exists ? s.data() : null;
+    },
+
     async getPrices(slug) {
       await this._ready;
       if (!this.auth.currentUser) return null;
@@ -443,7 +464,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

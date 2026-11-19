@@ -281,7 +281,7 @@
     if (canSee) {
       // equipe: monta o orçamento com preços e escolhe o contato no WhatsApp
       $("#cart-send").disabled = false;
-      $("#cart-send").textContent = "Gerar orçamento em PDF";
+      $("#cart-send").textContent = "Enviar orçamento ao meu WhatsApp";
     } else {
       $("#cart-send").disabled = !wa;
       $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
@@ -354,31 +354,54 @@
       "", `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`
     ].filter((l) => l !== null).join("\n").trim();
   }
-  async function makePdf(name) {
+  const quoteItems = () => Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: unitPrice(byCode.get(c)) }));
+  const sellerInfo = () => ({ name: viewer.name, role: DB.ROLE_LABEL[viewer.role] || "Vendedor", whatsapp: myWa });
+
+  /** Guarda o orçamento e abre o WhatsApp do vendedor com a mensagem e o link do PDF. */
+  async function sendQuote(name, win) {
     const btn = $("#cart-send");
-    btn.disabled = true; btn.textContent = "Gerando PDF…";
+    btn.disabled = true; btn.textContent = "Enviando…";
+    const number = Orcamento.newNumber();
     try {
-      const number = Orcamento.newNumber();
-      const items = Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: unitPrice(byCode.get(c)) }));
-      const out = await Orcamento.build({
-        store, client: name, obs: $("#c-obs").value.trim(), items, number,
-        seller: { name: viewer.name, role: DB.ROLE_LABEL[viewer.role] || "Vendedor", whatsapp: myWa }
+      const items = quoteItems().map(({ p, qty, unit }) => ({
+        code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "",
+        price: p.price ?? null, promoPrice: p.promoPrice ?? null, qty, unit
+      }));
+      const id = await DB.saveQuote({
+        slug, number, client: name, obs: $("#c-obs").value.trim(), items,
+        store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36" },
+        seller: sellerInfo()
       });
+      const link = new URL(`orcamento.html?id=${encodeURIComponent(id)}`, location.href).href;
+      const msg = `${quoteSummary(name, number)}\n\n📄 *PDF do orçamento:*\n${link}`;
+      const url = `https://wa.me/${myWa}?text=${encodeURIComponent(msg)}`;
+      if (win && !win.closed) win.location.href = url; else location.href = url;
+      U.toast("Orçamento enviado para o seu WhatsApp.");
+    } catch (err) {
+      if (win && !win.closed) win.close();
+      U.toast("Não foi possível salvar o orçamento: " + err.message, "err");
+    }
+    btn.disabled = false; btn.textContent = "Enviar orçamento ao meu WhatsApp";
+    makePdf(name, number); // também deixa o PDF pronto para baixar/compartilhar daqui
+  }
+
+  async function makePdf(name, number) {
+    try {
+      const items = quoteItems();
+      const out = await Orcamento.build({ store, client: name, obs: $("#c-obs").value.trim(), items, number, seller: sellerInfo() });
       if (pdf && pdf.url) URL.revokeObjectURL(pdf.url);
       const file = new File([out.blob], out.filename, { type: "application/pdf" });
       pdf = { file, url: URL.createObjectURL(out.blob), summary: quoteSummary(name, number) };
       const canShareFile = !!(navigator.canShare && navigator.canShare({ files: [file] }));
       $("#pdf-share").hidden = !canShareFile;
       $("#pdf-download").href = pdf.url; $("#pdf-download").download = out.filename;
-      $("#pdf-wa").href = `https://wa.me/${myWa}?text=${encodeURIComponent(pdf.summary)}`;
       $("#pdf-name").textContent = out.filename;
       $("#pdf-tip").textContent = canShareFile
-        ? "Toque em \"Enviar PDF\" e escolha o WhatsApp para mandar o arquivo."
-        : "Baixe o PDF e anexe na conversa do WhatsApp (clipe → Documento).";
+        ? "O link do PDF já foi para o seu WhatsApp. Se quiser mandar o arquivo direto, toque em \"Enviar PDF\"."
+        : "O link do PDF já foi para o seu WhatsApp. Se quiser, baixe o arquivo aqui.";
       $("#pdf-ready").hidden = false;
       $("#pdf-ready").scrollIntoView({ block: "nearest" });
     } catch (err) { U.toast(err.message, "err"); }
-    btn.disabled = false; btn.textContent = "Gerar orçamento em PDF";
   }
   $("#pdf-share").onclick = async () => {
     if (!pdf) return;
@@ -391,15 +414,18 @@
     const name = $("#c-name").value.trim();
     if (!name) { $("#c-name").focus(); return U.toast(canSee ? "Informe o nome do cliente." : "Informe seu nome.", "err"); }
     if (canSee) {
+      const typed = $("#my-wa").value.replace(/\D/g, "");
+      if (!myWa && typed.length < 10) { $("#my-wa").focus(); return U.toast("Informe seu WhatsApp com DDD.", "err"); }
+      // abre a aba do WhatsApp já no clique (navegadores bloqueiam abrir depois de esperar)
+      const win = window.open("", "_blank");
       if (!myWa) {
-        const n = $("#my-wa").value.replace(/\D/g, "");
-        if (n.length < 10) { $("#my-wa").focus(); return U.toast("Informe seu WhatsApp com DDD.", "err"); }
+        const n = typed;
         myWa = intl(n);
         if (DB.TEAM.includes(viewer.role)) { try { await DB.setMyWhatsapp(n); } catch { /* segue mesmo sem salvar */ } }
         $("#my-wa-box").hidden = true;
         $("#cart-hint").textContent = `O orçamento vai para o seu WhatsApp: ${fmtPhone(myWa)}.`;
       }
-      await makePdf(name);
+      await sendQuote(name, win);
       return;
     }
     try { localStorage.setItem("cat_cliente", name); } catch { /* ignore */ }
