@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
+<title>Meu catálogo | Catálogo Online</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="painel.html">mv<span>meu catálogo</span></a>
+  <div class="who"><span class="email" id="me-email"></span><a class="btn sm" id="open-catalog" target="_blank" rel="noopener">Ver catálogo</a><button class="btn sm ghost" id="logout">Sair</button></div>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
+    <div><h1 id="hello">Olá!</h1><p>Monte seu catálogo: capa, produtos pelo Excel e fotos pelo Google Drive.</p></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="stack">
+      <!-- ACESSO -->
+      <section class="card" aria-labelledby="acc-title">
+        <h2 id="acc-title">Seu acesso</h2>
+        <p class="sub">Link para enviar aos seus clientes.</p>
+        <div class="access-box"><div><small class="hint" style="margin:0">Tempo restante</small><strong id="acc-days">—</strong></div><span id="acc-pill"></span></div>
+        <div class="field" style="margin-top:14px">
+          <label for="cat-link">Link do catálogo</label>
+          <div class="link-box"><input id="cat-link" readonly><button class="btn sm" id="copy-link">Copiar</button></div>
+        </div>
+        <a class="btn" style="width:100%" id="share-wa" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+      </section>
+
+      <!-- LOJA E CAPA -->
+      <section class="card" aria-labelledby="store-title">
+        <h2 id="store-title">Capa e dados da loja</h2>
+        <p class="sub">Aparecem no topo do catálogo.</p>
+        <form id="store-form">
+          <div class="field">
+            <label id="cover-label">Capa do catálogo</label>
+            <div class="cover-drop" id="cover-drop" tabindex="0" role="button" aria-labelledby="cover-label">
+              <span id="cover-text">Clique ou arraste uma imagem<br><small>Ideal: 1600 × 600 px</small></span>
+              <img id="cover-img" alt="" hidden>
+            </div>
+            <input type="file" id="cover-file" accept="image/*" hidden>
+            <button type="button" class="btn sm ghost danger" id="cover-remove" style="margin-top:8px" hidden>Remover capa</button>
+          </div>
+          <div class="field"><label for="s-name">Nome da loja</label><input id="s-name" maxlength="80"></div>
+          <div class="field"><label for="s-about">Frase de apresentação</label><textarea id="s-about" rows="2" maxlength="220" placeholder="Ex.: Atacado de utilidades domésticas com entrega para todo o Brasil"></textarea></div>
+          <div class="row">
+            <div class="field"><label for="s-wa">WhatsApp (com DDD)</label><input id="s-wa" inputmode="tel" placeholder="11 99999-9999"></div>
+            <div class="field"><label for="s-ig">Instagram</label><input id="s-ig" placeholder="@sualoja"></div>
+          </div>
+          <div class="field"><label for="s-accent">Cor de destaque</label><input id="s-accent" type="color" style="height:44px;padding:4px"></div>
+          <button class="btn primary" style="width:100%">Salvar dados da loja</button>
+        </form>
+      </section>
+
+      <!-- GOOGLE DRIVE -->
+      <section class="card" aria-labelledby="drive-title">
+        <h2 id="drive-title">Fotos pelo Google Drive</h2>
+        <p class="sub">O sistema puxa a foto certa pelo código do produto.</p>
+        <ol class="steps-list">
+          <li>Crie uma pasta no Google Drive e coloque as fotos.</li>
+          <li>Nomeie cada foto com o <b>código</b>: <code>1020.jpg</code>. Mais fotos: <code>1020_2.jpg</code>.</li>
+          <li>Compartilhe a pasta como <b>“Qualquer pessoa com o link – Leitor”</b>.</li>
+          <li>Cole o link da pasta abaixo e clique em buscar.</li>
+        </ol>
+        <div class="field" style="margin-top:14px"><label for="drive-link">Link da pasta do Drive</label><input id="drive-link" placeholder="https://drive.google.com/drive/folders/..."></div>
+        <button class="btn primary" style="width:100%" id="drive-sync">Buscar fotos do Drive</button>
+        <p class="progress" id="drive-status" role="status"></p>
+      </section>
+    </div>
+
+    <!-- PRODUTOS -->
+    <section class="card" aria-labelledby="prod-title">
+      <h2 id="prod-title">Produtos <span class="hint" id="prod-count" style="font-weight:500"></span></h2>
+      <p class="sub">Importe pelo Excel (.xlsx, .xls ou .csv) ou cadastre um a um.</p>
+      <div class="toolbar">
+        <label class="btn primary" style="margin:0;color:#111" for="xls-file">Importar Excel</label>
+        <input type="file" id="xls-file" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn" id="xls-export">Exportar Excel</button>
+        <button class="btn ghost" id="xls-model">Baixar modelo</button>
+        <button class="btn ghost" id="add-product">+ Produto</button>
+      </div>
+      <div class="toolbar">
+        <input id="p-search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar produto">
+        <select id="p-filter" aria-label="Filtrar produtos">
+          <option value="">Todos</option><option value="promo">Em promoção</option><option value="nophoto">Sem foto</option>
+        </select>
+      </div>
+      <div class="products" id="products"></div>
+    </section>
+  </div>
+</main>
+
+<!-- Importação -->
+<dialog id="dlg-import" aria-labelledby="imp-title">
+  <form method="dialog">
+    <h2 id="imp-title">Importar planilha</h2>
+    <p id="imp-info" class="hint" style="margin:-8px 0 16px"></p>
+    <label><input type="radio" name="imp-mode" value="merge" checked style="width:auto"> Atualizar e adicionar (mantém os outros produtos)</label>
+    <label style="margin-top:8px"><input type="radio" name="imp-mode" value="replace" style="width:auto"> Substituir todos os produtos</label>
+    <div class="dialog-actions"><button class="btn ghost" value="cancel">Cancelar</button><button class="btn primary" value="ok">Importar</button></div>
+  </form>
+</dialog>
+
+<!-- Editar produto -->
+<dialog id="dlg-prod" aria-labelledby="pe-title">
+  <form method="dialog" id="prod-form">
+    <h2 id="pe-title">Produto</h2>
+    <div class="row">
+      <div class="field"><label for="pe-code">Código</label><input id="pe-code" required maxlength="40"></div>
+      <div class="field"><label for="pe-cat">Categoria</label><input id="pe-cat" maxlength="60" list="cats"></div>
+    </div>
+    <datalist id="cats"></datalist>
+    <div class="field"><label for="pe-name">Nome</label><input id="pe-name" maxlength="120"></div>
+    <div class="field"><label for="pe-desc">Descrição</label><textarea id="pe-desc" rows="2" maxlength="600"></textarea></div>
+    <div class="row">
+      <div class="field"><label for="pe-price">Preço</label><input id="pe-price" inputmode="decimal" placeholder="89,90"></div>
+      <div class="field"><label for="pe-promo">Preço promocional</label><input id="pe-promo" inputmode="decimal" placeholder="69,90"></div>
+    </div>
+    <div class="field"><label for="pe-img">Link de imagem (opcional)</label><input id="pe-img" placeholder="Usado só se não houver foto no Drive"><p class="hint" id="pe-drive"></p></div>
+    <div class="dialog-actions">
+      <button class="btn ghost danger" value="delete" id="pe-delete" formnovalidate style="margin-right:auto">Excluir</button>
+      <button class="btn ghost" value="cancel" formnovalidate>Cancelar</button>
+      <button class="btn primary" value="save">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script src="js/painel.js"></script>
+</body>
+</html>
