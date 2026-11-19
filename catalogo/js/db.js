@@ -117,6 +117,12 @@
 
     async logout() { sessionStorage.removeItem("cat_session"); },
 
+    async setMyWhatsapp(whatsapp) {
+      const me = await this.current();
+      if (!me) throw new Error("Faça login novamente.");
+      return this.updateUser(me.uid, { whatsapp });
+    },
+
     async current() {
       const uid = sessionStorage.getItem("cat_session");
       return this._public(this._users().find((x) => x.uid === uid));
@@ -174,9 +180,9 @@
     },
 
     /* equipe da loja */
-    async createMember(owner, { name, email, password, role }) {
+    async createMember(owner, { name, email, password, role, whatsapp }) {
       if (!TEAM.includes(role)) throw new Error("Tipo de conta inválido.");
-      return this._addAccount({ name, email: email.trim().toLowerCase(), role, slug: owner.slug, ownerUid: owner.uid,
+      return this._addAccount({ name, email: email.trim().toLowerCase(), role, whatsapp: whatsapp || "", slug: owner.slug, ownerUid: owner.uid,
         expiresAt: null, active: true, createdAt: Date.now(), lastLogin: null }, password);
     },
     async listMembers(owner) { return this._users().filter((u) => u.ownerUid === owner.uid).map((u) => this._public(u)); },
@@ -296,6 +302,13 @@
 
     async logout() { await this.auth.signOut(); },
 
+    async setMyWhatsapp(whatsapp) {
+      await this._ready;
+      const u = this.auth.currentUser;
+      if (!u) throw new Error("Faça login novamente.");
+      await this._users().doc(u.uid).update({ whatsapp });
+    },
+
     async current() { await this._ready; return this._profile(this.auth.currentUser); },
 
     async listUsers() {
@@ -358,11 +371,11 @@
     },
 
     /* equipe da loja */
-    async createMember(owner, { name, email, password, role }) {
+    async createMember(owner, { name, email, password, role, whatsapp }) {
       if (!TEAM.includes(role)) throw new Error("Tipo de conta inválido.");
       email = email.trim().toLowerCase();
       const uid = await this._newAuth(email, password);
-      const profile = { name, email, role, slug: owner.slug, ownerUid: owner.uid, expiresAt: null, active: true, createdAt: Date.now(), lastLogin: null };
+      const profile = { name, email, role, whatsapp: whatsapp || "", slug: owner.slug, ownerUid: owner.uid, expiresAt: null, active: true, createdAt: Date.now(), lastLogin: null };
       await this._users().doc(uid).set(profile);
       return { uid, ...profile };
     },
@@ -430,7 +443,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
+   "setMyWhatsapp", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

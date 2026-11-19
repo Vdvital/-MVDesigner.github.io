@@ -65,6 +65,9 @@
   const intl = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
   const sellers = (store.sellers || []).map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
   const wa = intl(store.whatsapp) || (sellers[0] && sellers[0].wa) || "";
+  // WhatsApp de quem monta o orçamento: o do próprio vendedor/representante (ou o da loja, para o dono)
+  let myWa = !canSee ? "" : intl(viewer.whatsapp) || (viewer.role === "user" ? intl(store.whatsapp) : "");
+  const fmtPhone = (n) => n.replace(/^55/, "").replace(/^(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3");
   const waLink = (text, num = wa) => `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
   $("#hero-links").innerHTML =
     (wa ? `<a href="${waLink("Olá! Vi o catálogo e gostaria de fazer um pedido.")}" target="_blank" rel="noopener">WhatsApp</a>` : "") +
@@ -254,6 +257,7 @@
 
   function updateCart() {
     const codes = Object.keys(cart);
+    if ($("#pdf-ready")) $("#pdf-ready").hidden = true; // carrinho mudou: gerar de novo
     const count = codes.reduce((n, c) => n + cart[c], 0);
     $("#cart-count").textContent = count; $("#cart-count").hidden = !count;
     $("#cart-float-count").textContent = count; $("#cart-float").hidden = !count;
@@ -277,14 +281,17 @@
     if (canSee) {
       // equipe: monta o orçamento com preços e escolhe o contato no WhatsApp
       $("#cart-send").disabled = false;
-      $("#cart-send").textContent = "Enviar orçamento pelo WhatsApp";
+      $("#cart-send").textContent = "Gerar orçamento em PDF";
     } else {
       $("#cart-send").disabled = !wa;
       $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
     }
   }
   if (canSee) {
-    $("#cart-hint").textContent = "Orçamento com preços. Você escolhe o contato no WhatsApp.";
+    $("#cart-hint").textContent = myWa
+      ? `O orçamento vai para o seu WhatsApp: ${fmtPhone(myWa)}.`
+      : "Cadastre seu WhatsApp para receber o orçamento.";
+    $("#my-wa-box").hidden = !!myWa;
     $("#c-name-label").textContent = "Nome do cliente";
     $("#cart-title").textContent = "Orçamento";
   }
@@ -330,26 +337,69 @@
   if (!canSee) { try { $("#c-name").value = localStorage.getItem("cat_cliente") || ""; } catch { /* ignore */ } }
   $("#cart-clear").onclick = () => { if (confirm("Esvaziar o carrinho?")) { cart = {}; persist(); updateCart(); } };
 
-  $("#cart-form").addEventListener("submit", (e) => {
+  /* ---------- orçamento em PDF (equipe) ---------- */
+  let pdf = null; // { file, url, summary }
+  function quoteSummary(name, number) {
+    let total = 0;
+    const rows = Object.keys(cart).map((c) => {
+      const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
+      if (unit != null) total += unit * q;
+      return `• ${q}x — Cód. ${c} — ${p.name || ""}${unit != null ? ` — ${U.money(unit * q)}` : " (sem preço)"}`;
+    });
+    const obs = $("#c-obs").value.trim();
+    return [
+      `*Orçamento ${number} — ${store.name || "Catálogo"}*`, `Cliente: ${name}`, "",
+      ...rows, "", `*Total: ${U.money(total)}*`,
+      obs ? `Obs.: ${obs}` : null,
+      "", `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`
+    ].filter((l) => l !== null).join("\n").trim();
+  }
+  async function makePdf(name) {
+    const btn = $("#cart-send");
+    btn.disabled = true; btn.textContent = "Gerando PDF…";
+    try {
+      const number = Orcamento.newNumber();
+      const items = Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: unitPrice(byCode.get(c)) }));
+      const out = await Orcamento.build({
+        store, client: name, obs: $("#c-obs").value.trim(), items, number,
+        seller: { name: viewer.name, role: DB.ROLE_LABEL[viewer.role] || "Vendedor", whatsapp: myWa }
+      });
+      if (pdf && pdf.url) URL.revokeObjectURL(pdf.url);
+      const file = new File([out.blob], out.filename, { type: "application/pdf" });
+      pdf = { file, url: URL.createObjectURL(out.blob), summary: quoteSummary(name, number) };
+      const canShareFile = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+      $("#pdf-share").hidden = !canShareFile;
+      $("#pdf-download").href = pdf.url; $("#pdf-download").download = out.filename;
+      $("#pdf-wa").href = `https://wa.me/${myWa}?text=${encodeURIComponent(pdf.summary)}`;
+      $("#pdf-name").textContent = out.filename;
+      $("#pdf-tip").textContent = canShareFile
+        ? "Toque em \"Enviar PDF\" e escolha o WhatsApp para mandar o arquivo."
+        : "Baixe o PDF e anexe na conversa do WhatsApp (clipe → Documento).";
+      $("#pdf-ready").hidden = false;
+      $("#pdf-ready").scrollIntoView({ block: "nearest" });
+    } catch (err) { U.toast(err.message, "err"); }
+    btn.disabled = false; btn.textContent = "Gerar orçamento em PDF";
+  }
+  $("#pdf-share").onclick = async () => {
+    if (!pdf) return;
+    try { await navigator.share({ files: [pdf.file], title: pdf.file.name, text: pdf.summary.split("\n")[0].replace(/\*/g, "") }); }
+    catch (e) { if (e.name !== "AbortError") U.toast("Não foi possível compartilhar. Use \"Baixar PDF\".", "err"); }
+  };
+
+  $("#cart-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = $("#c-name").value.trim();
     if (!name) { $("#c-name").focus(); return U.toast(canSee ? "Informe o nome do cliente." : "Informe seu nome.", "err"); }
     if (canSee) {
-      let total = 0;
-      const rows = Object.keys(cart).map((c) => {
-        const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
-        if (unit != null) total += unit * q;
-        return `• ${q}x — Cód. ${c} — ${p.name || ""}${unit != null ? `\n   ${U.money(unit)} un. = ${U.money(unit * q)}` : " (sem preço)"}`;
-      });
-      const obs = $("#c-obs").value.trim();
-      const msg = [
-        `*Orçamento — ${store.name || "Catálogo"}*`, `Cliente: ${name}`, "",
-        ...rows, "", `*Total: ${U.money(total)}*`,
-        obs ? `Obs.: ${obs}` : null,
-        "", `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`
-      ].filter((l) => l !== null).join("\n").trim();
-      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      if (!window.open(url, "_blank")) location.href = url;
+      if (!myWa) {
+        const n = $("#my-wa").value.replace(/\D/g, "");
+        if (n.length < 10) { $("#my-wa").focus(); return U.toast("Informe seu WhatsApp com DDD.", "err"); }
+        myWa = intl(n);
+        if (DB.TEAM.includes(viewer.role)) { try { await DB.setMyWhatsapp(n); } catch { /* segue mesmo sem salvar */ } }
+        $("#my-wa-box").hidden = true;
+        $("#cart-hint").textContent = `O orçamento vai para o seu WhatsApp: ${fmtPhone(myWa)}.`;
+      }
+      await makePdf(name);
       return;
     }
     try { localStorage.setItem("cat_cliente", name); } catch { /* ignore */ }

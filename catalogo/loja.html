@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <title>Catálogo</title>
-<link rel="stylesheet" href="css/loja.css?v=202611191423">
+<link rel="stylesheet" href="css/loja.css?v=202611191448">
 </head>
 <body>
 <div id="loading" class="state"><div class="spinner" aria-hidden="true"></div><p>Carregando catálogo…</p></div>
@@ -123,19 +123,30 @@
     <div class="total" id="cart-total-row" hidden><span>Total</span><strong id="cart-total"></strong></div>
     <p class="hint" id="cart-hint">Envie a lista e o vendedor responde com os preços pelo WhatsApp.</p>
     <label for="c-name" id="c-name-label">Seu nome</label><input id="c-name" autocomplete="name" maxlength="80" required>
+    <div id="my-wa-box" hidden><label for="my-wa">Seu WhatsApp (recebe o orçamento)</label><input id="my-wa" inputmode="tel" placeholder="11 99999-9999"></div>
     <div id="seller-box" hidden>
       <label>Falar com</label>
       <div class="sellers" id="seller-list" role="radiogroup" aria-label="Escolha o vendedor"></div>
     </div>
     <label for="c-obs">Observação (opcional)</label><textarea id="c-obs" rows="2" maxlength="400" placeholder="Cidade, forma de pagamento…"></textarea>
     <button class="btn-wa" id="cart-send">Consultar preço pelo WhatsApp</button>
+    <div class="pdf-ready" id="pdf-ready" hidden>
+      <p class="pdf-title"><span aria-hidden="true">📄</span> <b id="pdf-name">Orçamento.pdf</b></p>
+      <p class="hint" id="pdf-tip"></p>
+      <div class="pdf-actions">
+        <button type="button" class="btn-wa" id="pdf-share">Enviar PDF</button>
+        <a class="btn-pdf" id="pdf-download" href="#" download>Baixar PDF</a>
+        <a class="btn-pdf" id="pdf-wa" target="_blank" rel="noopener">Resumo no meu WhatsApp</a>
+      </div>
+    </div>
     <button type="button" class="link" id="cart-clear">Esvaziar carrinho</button>
   </form>
 </dialog>
 
-<script src="config.js?v=202611191423"></script>
-<script src="js/db.js?v=202611191423"></script>
-<script src="js/common.js?v=202611191423"></script>
-<script src="js/loja.js?v=202611191423"></script>
+<script src="config.js?v=202611191448"></script>
+<script src="js/db.js?v=202611191448"></script>
+<script src="js/common.js?v=202611191448"></script>
+<script src="js/orcamento.js?v=202611191448"></script>
+<script src="js/loja.js?v=202611191448"></script>
 </body>
 </html>
