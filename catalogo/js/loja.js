@@ -65,6 +65,9 @@
   const intl = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
   const sellers = (store.sellers || []).map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
   const wa = intl(store.whatsapp) || (sellers[0] && sellers[0].wa) || "";
+  // WhatsApp de quem monta o orçamento: o do próprio vendedor/representante (ou o da loja, para o dono)
+  let myWa = !canSee ? "" : intl(viewer.whatsapp) || (viewer.role === "user" ? intl(store.whatsapp) : "");
+  const fmtPhone = (n) => n.replace(/^55/, "").replace(/^(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3");
   const waLink = (text, num = wa) => `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
   $("#hero-links").innerHTML =
     (wa ? `<a href="${waLink("Olá! Vi o catálogo e gostaria de fazer um pedido.")}" target="_blank" rel="noopener">WhatsApp</a>` : "") +
@@ -284,7 +287,10 @@
     }
   }
   if (canSee) {
-    $("#cart-hint").textContent = "Orçamento com preços. Você escolhe o contato no WhatsApp.";
+    $("#cart-hint").textContent = myWa
+      ? `O orçamento vai para o seu WhatsApp: ${fmtPhone(myWa)}.`
+      : "Cadastre seu WhatsApp para receber o orçamento.";
+    $("#my-wa-box").hidden = !!myWa;
     $("#c-name-label").textContent = "Nome do cliente";
     $("#cart-title").textContent = "Orçamento";
   }
@@ -330,11 +336,19 @@
   if (!canSee) { try { $("#c-name").value = localStorage.getItem("cat_cliente") || ""; } catch { /* ignore */ } }
   $("#cart-clear").onclick = () => { if (confirm("Esvaziar o carrinho?")) { cart = {}; persist(); updateCart(); } };
 
-  $("#cart-form").addEventListener("submit", (e) => {
+  $("#cart-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = $("#c-name").value.trim();
     if (!name) { $("#c-name").focus(); return U.toast(canSee ? "Informe o nome do cliente." : "Informe seu nome.", "err"); }
     if (canSee) {
+      if (!myWa) {
+        const n = $("#my-wa").value.replace(/\D/g, "");
+        if (n.length < 10) { $("#my-wa").focus(); return U.toast("Informe seu WhatsApp com DDD.", "err"); }
+        myWa = intl(n);
+        if (DB.TEAM.includes(viewer.role)) { try { await DB.setMyWhatsapp(n); } catch { /* segue mesmo sem salvar */ } }
+        $("#my-wa-box").hidden = true;
+        $("#cart-hint").textContent = `O orçamento vai para o seu WhatsApp: ${fmtPhone(myWa)}.`;
+      }
       let total = 0;
       const rows = Object.keys(cart).map((c) => {
         const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
@@ -348,7 +362,7 @@
         obs ? `Obs.: ${obs}` : null,
         "", `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`
       ].filter((l) => l !== null).join("\n").trim();
-      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      const url = `https://wa.me/${myWa}?text=${encodeURIComponent(msg)}`;
       if (!window.open(url, "_blank")) location.href = url;
       return;
     }

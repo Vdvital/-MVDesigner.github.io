@@ -40,10 +40,10 @@ service cloud.firestore {
             && catalogActive(me().slug));
 
       allow update: if isAdmin()
-        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']))
-        // a loja só bloqueia/desbloqueia ou renomeia a própria equipe
+        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin', 'whatsapp']))
+        // a loja só bloqueia/desbloqueia, renomeia ou troca o WhatsApp da própria equipe
         || (signedIn() && resource.data.ownerUid == request.auth.uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'name']));
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'name', 'whatsapp']));
 
       allow delete: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
     }

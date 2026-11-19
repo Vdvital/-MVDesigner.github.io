@@ -46,9 +46,10 @@
     $("#team-list").innerHTML = members.length ? members.map((m) => `
       <li data-uid="${esc(m.uid)}">
         <div><b>${esc(m.name)}</b> <span class="pill ${m.active === false ? "bloqueado" : "ativo"}">${DB.ROLE_LABEL[m.role]}${m.active === false ? " · bloqueado" : ""}</span>
-          <div class="hint" style="margin:2px 0 0">${esc(m.email)} · último login: ${U.dateTime(m.lastLogin)}</div></div>
+          <div class="hint" style="margin:2px 0 0">${esc(m.email)} · ${m.whatsapp ? "WhatsApp " + esc(m.whatsapp) : "<span style='color:var(--warn)'>sem WhatsApp</span>"} · último login: ${U.dateTime(m.lastLogin)}</div></div>
         <div class="team-actions">
           <button class="btn sm" data-act="toggle">${m.active === false ? "Desbloquear" : "Bloquear"}</button>
+          <button class="btn sm" data-act="wa">WhatsApp</button>
           <button class="btn sm" data-act="pass">Senha</button>
           <button class="btn sm danger" data-act="del" aria-label="Excluir ${esc(m.name)}">Excluir</button>
         </div>
@@ -57,13 +58,15 @@
   $("#team-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = $("#tm-name").value.trim(), email = $("#tm-email").value.trim(), password = $("#tm-pass").value;
+    const whatsapp = $("#tm-wa").value.replace(/\D/g, "");
+    if (whatsapp && whatsapp.length < 10) return toast("WhatsApp incompleto: use DDD + número.", "err");
     if (!name || !/^\S+@\S+\.\S+$/.test(email)) return toast("Preencha nome e um e-mail válido.", "err");
     if (password.length < 6) return toast("A senha precisa ter pelo menos 6 caracteres.", "err");
     const btn = $("#tm-submit"); btn.disabled = true;
     try {
-      await DB.createMember(me, { name, email, password, role: tmRole });
+      await DB.createMember(me, { name, email, password, role: tmRole, whatsapp });
       toast(`${DB.ROLE_LABEL[tmRole]} criado. Envie o login: ${email.toLowerCase()}`);
-      $("#tm-name").value = ""; $("#tm-email").value = ""; $("#tm-pass").value = "";
+      $("#tm-name").value = ""; $("#tm-email").value = ""; $("#tm-pass").value = ""; $("#tm-wa").value = "";
       await loadTeam();
     } catch (err) { toast(err.message, "err"); }
     btn.disabled = false;
@@ -78,6 +81,13 @@
       } else if (b.dataset.act === "del") {
         if (!confirm(`Excluir a conta de ${m.name}?`)) return;
         await DB.deleteMember(me, m.uid); toast("Conta excluída.");
+      } else if (b.dataset.act === "wa") {
+        const v = prompt(`WhatsApp de ${m.name} (DDD + número):`, m.whatsapp || "");
+        if (v === null) return;
+        const n = v.replace(/\D/g, "");
+        if (n && n.length < 10) return toast("WhatsApp incompleto: use DDD + número.", "err");
+        await DB.updateMember(me, m.uid, { whatsapp: n });
+        toast("WhatsApp atualizado.");
       } else if (b.dataset.act === "pass") {
         if (DB.mode === "firebase") {
           if (!confirm(`Enviar e-mail de redefinição de senha para ${m.email}?`)) return;

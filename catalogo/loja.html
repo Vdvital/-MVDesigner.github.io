@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <title>Catálogo</title>
-<link rel="stylesheet" href="css/loja.css?v=202611191423">
+<link rel="stylesheet" href="css/loja.css?v=202611191439">
 </head>
 <body>
 <div id="loading" class="state"><div class="spinner" aria-hidden="true"></div><p>Carregando catálogo…</p></div>
@@ -123,6 +123,7 @@
     <div class="total" id="cart-total-row" hidden><span>Total</span><strong id="cart-total"></strong></div>
     <p class="hint" id="cart-hint">Envie a lista e o vendedor responde com os preços pelo WhatsApp.</p>
     <label for="c-name" id="c-name-label">Seu nome</label><input id="c-name" autocomplete="name" maxlength="80" required>
+    <div id="my-wa-box" hidden><label for="my-wa">Seu WhatsApp (recebe o orçamento)</label><input id="my-wa" inputmode="tel" placeholder="11 99999-9999"></div>
     <div id="seller-box" hidden>
       <label>Falar com</label>
       <div class="sellers" id="seller-list" role="radiogroup" aria-label="Escolha o vendedor"></div>
@@ -133,9 +134,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611191423"></script>
-<script src="js/db.js?v=202611191423"></script>
-<script src="js/common.js?v=202611191423"></script>
-<script src="js/loja.js?v=202611191423"></script>
+<script src="config.js?v=202611191439"></script>
+<script src="js/db.js?v=202611191439"></script>
+<script src="js/common.js?v=202611191439"></script>
+<script src="js/loja.js?v=202611191439"></script>
 </body>
 </html>
