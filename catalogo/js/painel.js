@@ -49,11 +49,26 @@
     $("#s-wa").value = store.whatsapp || "";
     $("#s-ig").value = store.instagram || "";
     $("#s-accent").value = store.accent || "#ff6a36";
+    $("#sellers").innerHTML = "";
+    (store.sellers || []).forEach(addSellerRow);
     $("#drive-link").value = store.driveFolderId ? `https://drive.google.com/drive/folders/${store.driveFolderId}` : "";
     showCover();
     const wa = `Confira nosso catálogo: ${link}`;
     $("#share-wa").href = `https://wa.me/?text=${encodeURIComponent(wa)}`;
   };
+  function addSellerRow(v = {}) {
+    const row = document.createElement("div");
+    row.className = "seller";
+    row.innerHTML = `<input class="sl-name" maxlength="40" placeholder="Nome (ex.: Ana)" aria-label="Nome do vendedor">
+      <input class="sl-wa" inputmode="tel" placeholder="11 99999-9999" aria-label="WhatsApp do vendedor">
+      <button type="button" class="btn sm ghost danger" aria-label="Tirar vendedor">×</button>`;
+    row.querySelector(".sl-name").value = v.name || "";
+    row.querySelector(".sl-wa").value = v.whatsapp || "";
+    row.querySelector("button").onclick = () => row.parentNode.removeChild(row);
+    $("#sellers").appendChild(row);
+  }
+  $("#add-seller").onclick = () => { addSellerRow(); $("#sellers .seller:last-child .sl-name").focus(); };
+
   function showCover() {
     const img = $("#cover-img");
     img.hidden = !store.cover; $("#cover-text").hidden = !!store.cover; $("#cover-remove").hidden = !store.cover;
@@ -86,6 +101,12 @@
     store.whatsapp = $("#s-wa").value.replace(/\D/g, "");
     store.instagram = $("#s-ig").value.trim().replace(/^@/, "");
     store.accent = $("#s-accent").value;
+    store.sellers = U.$$("#sellers .seller").map((r) => ({
+      name: r.querySelector(".sl-name").value.trim(),
+      whatsapp: r.querySelector(".sl-wa").value.replace(/\D/g, "")
+    })).filter((x) => x.whatsapp.length >= 10);
+    const bad = U.$$("#sellers .sl-wa").some((i) => i.value.trim() && i.value.replace(/\D/g, "").length < 10);
+    if (bad) toast("Algum WhatsApp de vendedor está incompleto (use DDD + número) e não foi salvo.", "err");
     await save("Dados da loja salvos!");
   });
 
