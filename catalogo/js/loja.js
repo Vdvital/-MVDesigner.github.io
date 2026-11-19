@@ -65,7 +65,7 @@
   let activeCat = "", shown = PAGE;
   const chips = $("#chips");
   chips.innerHTML = ["", ...cats].map((c) => `<button aria-pressed="${c === "" ? "true" : "false"}" data-cat="${esc(c)}">${c ? esc(c) : "Todos"}</button>`).join("");
-  if (!cats.length) { $(".chips-wrap").hidden = true; $("#tab-categorias").hidden = true; }
+  if (!cats.length) { chips.hidden = true; $("#tab-categorias").hidden = true; }
 
   $("#cat-grid").innerHTML = cats.map((c) => {
     const items = products.filter((p) => p.category === c);
@@ -81,7 +81,6 @@
     activeCat = c; shown = PAGE;
     $$("#chips button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.cat === c)));
     $("#all-label").textContent = c || "Produtos";
-    $("#promo-section").hidden = !promos.length || !!c;
     render();
   }
   chips.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setCategory(b.dataset.cat); });
@@ -96,7 +95,8 @@
     $$(".tabs [role=tab]").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === v)));
     $("#view-produtos").hidden = v !== "produtos";
     $("#view-categorias").hidden = v !== "categorias";
-    $(".chips-wrap").hidden = v !== "produtos" || !cats.length;
+    $(".chips-wrap").hidden = v !== "produtos";
+    if (v !== "produtos") { panel.hidden = true; toggle.setAttribute("aria-expanded", "false"); }
   }
   $(".tabs").addEventListener("click", (e) => { const t = e.target.closest("[role=tab]"); if (t) showView(t.dataset.view); });
 
@@ -104,10 +104,85 @@
   const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   $("#q").addEventListener("input", () => { shown = PAGE; showView("produtos"); render(); });
 
+  /* ---------- filtro de preço ---------- */
+  const priced = products.map(unitPrice).filter((v) => v != null);
+  const pf = { min: null, max: null, sort: "", promo: false };
+  const panel = $("#price-panel"), toggle = $("#filter-toggle");
+  toggle.onclick = () => {
+    const open = panel.hidden;
+    panel.hidden = !open; toggle.setAttribute("aria-expanded", String(open));
+  };
+  if (!promos.length) $(".pp-check").hidden = true;
+
+  // Faixas automáticas a partir dos preços do catálogo
+  const STEPS = [10, 20, 30, 50, 100, 150, 200, 300, 500, 1000, 2000, 5000, 10000];
+  let ranges = [];
+  if (priced.length > 1) {
+    const lo = Math.min(...priced), hi = Math.max(...priced);
+    const inside = STEPS.filter((s) => s > lo && s < hi);
+    const pick = inside.length <= 3 ? inside : [0.25, 0.5, 0.75].map((f) => inside[Math.round(f * (inside.length - 1))]);
+    const bounds = [...new Set(pick)];
+    ranges = bounds.map((b, i) => [i ? bounds[i - 1] : null, b]).concat(bounds.length ? [[bounds[bounds.length - 1], null]] : []);
+    ranges = ranges.filter(([a, b]) => priced.some((v) => (a == null || v >= a) && (b == null || v <= b)));
+  }
+  const rangeLabel = ([a, b]) => (a == null ? `Até ${U.money(b)}` : b == null ? `Acima de ${U.money(a)}` : `${U.money(a)} a ${U.money(b)}`);
+  $("#pp-ranges").innerHTML = ranges.map((r, i) => `<button type="button" aria-pressed="false" data-range="${i}">${rangeLabel(r).replace(/,00/g, "")}</button>`).join("");
+  if (!ranges.length) $("#pp-ranges").hidden = true;
+  if (!priced.length) { toggle.hidden = true; }
+
+  const fmtInput = (v) => (v == null ? "" : String(v).replace(".", ","));
+  function syncRangeButtons() {
+    $$("#pp-ranges [data-range]").forEach((b) => {
+      const [a, c] = ranges[b.dataset.range];
+      b.setAttribute("aria-pressed", String(a === pf.min && c === pf.max));
+    });
+  }
+  function applyFilters() {
+    const n = (pf.min != null || pf.max != null ? 1 : 0) + (pf.sort ? 1 : 0) + (pf.promo ? 1 : 0);
+    $("#filter-count").textContent = n; $("#filter-count").hidden = !n;
+    toggle.classList.toggle("on", !!n);
+    syncRangeButtons(); shown = PAGE; render();
+  }
+  $("#pp-ranges").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-range]"); if (!b) return;
+    const [a, c] = ranges[b.dataset.range];
+    const same = a === pf.min && c === pf.max;
+    pf.min = same ? null : a; pf.max = same ? null : c;
+    $("#pp-min").value = fmtInput(pf.min); $("#pp-max").value = fmtInput(pf.max);
+    applyFilters();
+  });
+  ["#pp-min", "#pp-max"].forEach((s) => $(s).addEventListener("input", () => {
+    pf.min = U.parseMoney($("#pp-min").value); pf.max = U.parseMoney($("#pp-max").value);
+    applyFilters();
+  }));
+  $("#pp-sort").onchange = (e) => { pf.sort = e.target.value; applyFilters(); };
+  $("#pp-promo").onchange = (e) => { pf.promo = e.target.checked; applyFilters(); };
+  $("#pp-clear").onclick = () => {
+    Object.assign(pf, { min: null, max: null, sort: "", promo: false });
+    $("#pp-min").value = ""; $("#pp-max").value = ""; $("#pp-sort").value = ""; $("#pp-promo").checked = false;
+    applyFilters();
+  };
+
   function render() {
     const q = norm($("#q").value.trim());
-    const list = products.filter((p) => (!activeCat || p.category === activeCat) &&
-      (!q || norm(p.code).includes(q) || norm(p.name).includes(q) || norm(p.description).includes(q)));
+    const lo = pf.min, hi = pf.max;
+    const list = products.filter((p) => {
+      if (activeCat && p.category !== activeCat) return false;
+      if (q && !(norm(p.code).includes(q) || norm(p.name).includes(q) || norm(p.description).includes(q))) return false;
+      if (pf.promo && !U.discount(p)) return false;
+      if (lo != null || hi != null) {
+        const v = unitPrice(p);
+        if (v == null || (lo != null && v < lo) || (hi != null && v > hi)) return false;
+      }
+      return true;
+    });
+    const price = (p) => unitPrice(p) ?? Infinity;
+    if (pf.sort === "asc") list.sort((a, b) => price(a) - price(b));
+    if (pf.sort === "desc") list.sort((a, b) => (unitPrice(b) ?? -1) - (unitPrice(a) ?? -1));
+    if (pf.sort === "off") list.sort((a, b) => U.discount(b) - U.discount(a));
+    if (pf.sort === "name") list.sort((a, b) => String(a.name).localeCompare(String(b.name), "pt-BR"));
+    const filtering = lo != null || hi != null || pf.promo;
+    $("#promo-section").hidden = !promos.length || !!activeCat || filtering || !!q;
     $("#grid").innerHTML = list.slice(0, shown).map(card).join("");
     $("#count").textContent = `${list.length} ${list.length === 1 ? "item" : "itens"}`;
     $("#empty").hidden = list.length > 0;

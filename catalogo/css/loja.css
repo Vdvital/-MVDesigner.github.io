@@ -26,7 +26,7 @@ button,input{font:inherit;color:inherit}
 /* filtros */
 .filters{position:sticky;top:0;z-index:10;background:#f6f5f2ee;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .filters-inner{max-width:1240px;margin:0 auto;padding:12px 24px 8px;display:flex;gap:12px;align-items:center}
-.filters input{flex:1;max-width:420px;border:1px solid var(--line);background:#fff;border-radius:99px;padding:10px 16px;min-width:0}
+.filters #q{flex:1;max-width:420px;border:1px solid var(--line);background:#fff;border-radius:99px;padding:10px 16px;min-width:0}
 .tabs{display:flex;background:#ebe9e4;border-radius:99px;padding:4px;gap:2px}
 .tabs button{border:0;background:none;border-radius:99px;padding:8px 16px;font-weight:700;font-size:14px;cursor:pointer;color:var(--muted)}
 .tabs button[aria-selected=true]{background:#fff;color:var(--ink);box-shadow:0 1px 4px #0001}
@@ -159,7 +159,7 @@ dialog::backdrop{background:#000a}
 @media(max-width:700px){
   .hero{min-height:230px}.hero-inner{padding:30px 16px 22px}
   .filters-inner{flex-wrap:wrap;padding:10px 16px 6px;gap:8px}
-  .filters input{order:3;flex:1 0 100%;max-width:none}
+  .filters #q{order:3;flex:1 0 100%;max-width:none}
   .cart-btn span{display:none}
   .chips-wrap{padding:0 16px 8px}
   .cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -179,3 +179,29 @@ dialog::backdrop{background:#000a}
 .sellers{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
 .sellers button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer}
 .sellers button[aria-checked=true]{border-color:#25d366;background:#25d3661a;color:#0d6b37}
+/* filtro de preço */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.chips-wrap{display:flex;gap:8px;align-items:center}
+.chips-wrap .chips{flex:1;min-width:0}
+.filter-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--ink);background:#fff;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:800;cursor:pointer}
+.filter-btn.on,.filter-btn[aria-expanded=true]{background:var(--ink);color:#fff}
+.filter-btn .badge{min-width:18px;height:18px;font-size:10px}
+.price-panel{border-top:1px solid var(--line);background:#fff;animation:drop .2s ease}
+@keyframes drop{from{opacity:0;transform:translateY(-6px)}}
+.pp-inner{max-width:1240px;margin:0 auto;padding:14px 24px 16px;display:flex;gap:28px;align-items:flex-end;flex-wrap:wrap}
+.pp-group{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pp-label{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.pp-ranges{display:flex;flex-wrap:wrap;gap:6px}
+.pp-ranges button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.pp-ranges button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#111}
+.pp-minmax{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.pp-minmax input,.pp-group select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font:inherit;width:110px}
+.pp-group select{width:200px}
+.pp-check{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer}
+.pp-check input{width:18px;height:18px;accent-color:var(--promo)}
+@media(max-width:700px){
+  .pp-inner{padding:12px 16px 14px;gap:16px}
+  .pp-group,.pp-group select{width:100%}
+  .pp-minmax{width:100%}
+  .pp-minmax input{flex:1;width:auto;min-width:0}
+}

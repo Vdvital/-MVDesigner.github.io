@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <title>Catálogo</title>
-<link rel="stylesheet" href="css/loja.css?v=202611191241">
+<link rel="stylesheet" href="css/loja.css?v=202611191319">
 </head>
 <body>
 <div id="loading" class="state"><div class="spinner" aria-hidden="true"></div><p>Carregando catálogo…</p></div>
@@ -34,7 +34,38 @@
         <span>Carrinho</span><b class="badge" id="cart-count" hidden>0</b>
       </button>
     </div>
-    <div class="chips-wrap"><div class="chips" id="chips" role="group" aria-label="Filtrar por categoria"></div></div>
+    <div class="chips-wrap">
+      <button class="filter-btn" id="filter-toggle" aria-expanded="false" aria-controls="price-panel">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Filtros <b class="badge" id="filter-count" hidden>0</b>
+      </button>
+      <div class="chips" id="chips" role="group" aria-label="Filtrar por categoria"></div>
+    </div>
+    <div class="price-panel" id="price-panel" hidden>
+      <div class="pp-inner">
+        <div class="pp-group">
+          <span class="pp-label" id="pp-range-label">Faixa de preço</span>
+          <div class="pp-ranges" id="pp-ranges" role="group" aria-labelledby="pp-range-label"></div>
+          <div class="pp-minmax">
+            <label class="sr-only" for="pp-min">Preço mínimo</label><input id="pp-min" inputmode="decimal" placeholder="R$ mín.">
+            <span aria-hidden="true">até</span>
+            <label class="sr-only" for="pp-max">Preço máximo</label><input id="pp-max" inputmode="decimal" placeholder="R$ máx.">
+          </div>
+        </div>
+        <div class="pp-group">
+          <label class="pp-label" for="pp-sort">Ordenar por</label>
+          <select id="pp-sort">
+            <option value="">Padrão do catálogo</option>
+            <option value="asc">Menor preço</option>
+            <option value="desc">Maior preço</option>
+            <option value="off">Maior desconto</option>
+            <option value="name">Nome (A–Z)</option>
+          </select>
+          <label class="pp-check"><input type="checkbox" id="pp-promo"> Só promoções</label>
+        </div>
+        <button class="link" id="pp-clear">Limpar filtros</button>
+      </div>
+    </div>
   </nav>
   <main class="content">
     <div id="view-produtos" role="tabpanel" aria-labelledby="tab-produtos">
@@ -98,9 +129,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611191241"></script>
-<script src="js/db.js?v=202611191241"></script>
-<script src="js/common.js?v=202611191241"></script>
-<script src="js/loja.js?v=202611191241"></script>
+<script src="config.js?v=202611191319"></script>
+<script src="js/db.js?v=202611191319"></script>
+<script src="js/common.js?v=202611191319"></script>
+<script src="js/loja.js?v=202611191319"></script>
 </body>
 </html>
