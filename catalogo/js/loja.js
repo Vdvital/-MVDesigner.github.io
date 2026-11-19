@@ -16,10 +16,11 @@
 
   const store = cat.store || {};
   const products = (cat.products || []).filter((p) => p.code);
+  const byCode = new Map(products.map((p) => [String(p.code), p]));
   document.title = store.name || "Catálogo";
   if (store.accent) document.documentElement.style.setProperty("--accent", store.accent);
 
-  /* capa */
+  /* ---------- capa ---------- */
   const hero = $("#hero");
   if (store.cover) hero.style.backgroundImage = `url("${store.cover}")`; else hero.classList.add("no-cover");
   $("#store-name").textContent = store.name || "Catálogo";
@@ -32,38 +33,74 @@
     (store.instagram ? `<a href="https://instagram.com/${encodeURIComponent(store.instagram)}" target="_blank" rel="noopener">@${esc(store.instagram)}</a>` : "");
   if (wa) { const f = $("#wa-float"); f.hidden = false; f.href = waLink("Olá! Vi o catálogo e tenho uma dúvida."); }
 
-  /* card do produto */
-  const priceHtml = (p) => {
-    const off = U.discount(p);
-    if (off) return `<div class="price"><span class="old">${U.money(p.price)}</span><span class="now promo">${U.money(p.promoPrice)}</span></div>`;
-    const v = p.price ?? p.promoPrice;
-    return v != null ? `<div class="price"><span class="now">${U.money(v)}</span></div>` : `<div class="price"><span class="code">Consulte</span></div>`;
+  /* ---------- preço ---------- */
+  const unitPrice = (p) => (U.discount(p) ? p.promoPrice : p.price ?? p.promoPrice ?? null);
+  const priceHtml = (p, id = "") => {
+    const off = U.discount(p), attr = id ? ` id="${id}"` : "";
+    if (off) return `<div class="price"${attr}><span class="old">${U.money(p.price)}</span><span class="now promo">${U.money(p.promoPrice)}</span></div>`;
+    const v = unitPrice(p);
+    return `<div class="price"${attr}>${v != null ? `<span class="now">${U.money(v)}</span>` : `<span class="code">Consulte</span>`}</div>`;
   };
   const tag = (p) => { const off = U.discount(p); return off ? `<span class="promo-tag"><small>PROMO</small>-${off}%</span>` : ""; };
-  const card = (p) => `
-    <button class="item${U.discount(p) ? " is-promo" : ""}" data-code="${esc(p.code)}">
-      ${tag(p)}
-      ${U.imgTag(p, 500, "ph")}
-      <div class="body"><span class="code">Cód. ${esc(p.code)}</span><span class="name">${esc(p.name || "Produto")}</span>${priceHtml(p)}</div>
-    </button>`;
 
-  /* promoções */
+  /* ---------- card ---------- */
+  const card = (p) => `
+    <article class="item${U.discount(p) ? " is-promo" : ""}">
+      ${tag(p)}
+      <button class="open" data-code="${esc(p.code)}" aria-label="Ver detalhes de ${esc(p.name || p.code)}">
+        ${U.imgTag(p, 500, "ph")}
+        <div class="body"><span class="code">Cód. ${esc(p.code)}</span><span class="name">${esc(p.name || "Produto")}</span>${priceHtml(p)}</div>
+      </button>
+      <button class="add" data-add="${esc(p.code)}">+ Adicionar</button>
+    </article>`;
+
+  /* ---------- promoções ---------- */
   const promos = products.filter((p) => U.discount(p));
   if (promos.length) { $("#promo-section").hidden = false; $("#promo-row").innerHTML = promos.map(card).join(""); }
 
-  /* categorias e busca */
+  /* ---------- categorias ---------- */
   const cats = [...new Set(products.map((p) => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   let activeCat = "", shown = PAGE;
-  $("#chips").innerHTML = ["", ...cats].map((c) => `<button aria-pressed="${c === "" ? "true" : "false"}" data-cat="${esc(c)}">${c ? esc(c) : "Todos"}</button>`).join("");
-  if (!cats.length) $("#chips").hidden = true;
-  $("#chips").addEventListener("click", (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    activeCat = b.dataset.cat; shown = PAGE;
-    $$("#chips button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  const chips = $("#chips");
+  chips.innerHTML = ["", ...cats].map((c) => `<button aria-pressed="${c === "" ? "true" : "false"}" data-cat="${esc(c)}">${c ? esc(c) : "Todos"}</button>`).join("");
+  if (!cats.length) { $(".chips-wrap").hidden = true; $("#tab-categorias").hidden = true; }
+
+  $("#cat-grid").innerHTML = cats.map((c) => {
+    const items = products.filter((p) => p.category === c);
+    const withImg = items.find((p) => p.images?.length || p.imageUrl) || items[0];
+    const promo = items.filter((p) => U.discount(p)).length;
+    return `<button class="cat-card" data-cat="${esc(c)}">
+      ${U.imgTag(withImg, 400, "cat-img")}
+      <span class="cat-info"><b>${esc(c)}</b><small>${items.length} ${items.length === 1 ? "produto" : "produtos"}${promo ? ` · <em>${promo} em promoção</em>` : ""}</small></span>
+    </button>`;
+  }).join("");
+
+  function setCategory(c) {
+    activeCat = c; shown = PAGE;
+    $$("#chips button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.cat === c)));
+    $("#all-label").textContent = c || "Produtos";
+    $("#promo-section").hidden = !promos.length || !!c;
     render();
+  }
+  chips.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setCategory(b.dataset.cat); });
+  $("#cat-grid").addEventListener("click", (e) => {
+    const b = e.target.closest(".cat-card"); if (!b) return;
+    setCategory(b.dataset.cat); showView("produtos");
+    $("#all-title").scrollIntoView({ behavior: "smooth", block: "start" });
   });
+
+  /* ---------- abas ---------- */
+  function showView(v) {
+    $$(".tabs [role=tab]").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+    $("#view-produtos").hidden = v !== "produtos";
+    $("#view-categorias").hidden = v !== "categorias";
+    $(".chips-wrap").hidden = v !== "produtos" || !cats.length;
+  }
+  $(".tabs").addEventListener("click", (e) => { const t = e.target.closest("[role=tab]"); if (t) showView(t.dataset.view); });
+
+  /* ---------- busca e lista ---------- */
   const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  $("#q").addEventListener("input", () => { shown = PAGE; render(); });
+  $("#q").addEventListener("input", () => { shown = PAGE; showView("produtos"); render(); });
 
   function render() {
     const q = norm($("#q").value.trim());
@@ -77,15 +114,102 @@
   $("#more").onclick = () => { shown += PAGE; render(); };
   render();
 
-  /* detalhe */
+  /* ---------- carrinho ---------- */
+  const KEY = "cat_cart_" + slug;
+  let cart = {};
+  try { cart = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { cart = {}; }
+  Object.keys(cart).forEach((c) => { if (!byCode.has(c)) delete cart[c]; }); // remove itens que saíram do catálogo
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch { /* navegador sem armazenamento */ } };
+
+  function addToCart(code, qty = 1, btn) {
+    cart[code] = Math.min(9999, (cart[code] || 0) + qty);
+    persist(); updateCart();
+    U.toast(`Adicionado ao carrinho (${cart[code]})`);
+    if (btn) { btn.classList.add("added"); btn.textContent = "✓ Adicionado"; setTimeout(() => { btn.classList.remove("added"); btn.textContent = "+ Adicionar"; }, 1200); }
+    ["#cart-open", "#cart-float"].forEach((s) => { const el = $(s); el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); });
+  }
+
+  function updateCart() {
+    const codes = Object.keys(cart);
+    const count = codes.reduce((n, c) => n + cart[c], 0);
+    $("#cart-count").textContent = count; $("#cart-count").hidden = !count;
+    $("#cart-float-count").textContent = count; $("#cart-float").hidden = !count;
+    let total = 0, noPrice = false;
+    $("#cart-list").innerHTML = codes.map((c) => {
+      const p = byCode.get(c), unit = unitPrice(p);
+      if (unit == null) noPrice = true; else total += unit * cart[c];
+      return `<li data-code="${esc(c)}">
+        ${U.imgTag(p, 160, "c-img")}
+        <div class="c-info"><small>Cód. ${esc(c)}</small><b>${esc(p.name || "Produto")}</b>
+          <span>${unit != null ? U.money(unit) + " un." : "Consulte"}</span>
+          <div class="qty sm"><button type="button" data-step="-1" aria-label="Diminuir">−</button><input type="number" min="1" value="${cart[c]}" aria-label="Quantidade de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Aumentar">+</button></div>
+        </div>
+        <div class="c-side"><strong>${unit != null ? U.money(unit * cart[c]) : ""}</strong><button type="button" class="link" data-remove aria-label="Remover ${esc(p.name || c)}">Remover</button></div>
+      </li>`;
+    }).join("");
+    $("#cart-empty").hidden = codes.length > 0;
+    $("#cart-form").hidden = !codes.length;
+    $("#cart-total").textContent = U.money(total) + (noPrice ? " +" : "");
+    $("#cart-note").hidden = !noPrice;
+    $("#cart-send").disabled = !wa;
+    $("#cart-send").textContent = wa ? "Enviar pedido pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
+  }
+
+  $("#cart-list").addEventListener("click", (e) => {
+    const li = e.target.closest("li"); if (!li) return;
+    const c = li.dataset.code;
+    if (e.target.closest("[data-remove]")) delete cart[c];
+    else if (e.target.closest("[data-step]")) {
+      cart[c] += Number(e.target.closest("[data-step]").dataset.step);
+      if (cart[c] < 1) delete cart[c];
+    } else return;
+    persist(); updateCart();
+  });
+  $("#cart-list").addEventListener("change", (e) => {
+    if (e.target.tagName !== "INPUT") return;
+    const c = e.target.closest("li").dataset.code, n = Math.floor(Number(e.target.value));
+    if (n >= 1) cart[c] = Math.min(9999, n); else delete cart[c];
+    persist(); updateCart();
+  });
+
+  const drawer = $("#cart");
+  const openCart = () => { updateCart(); drawer.showModal(); };
+  $("#cart-open").onclick = openCart;
+  $("#cart-float").onclick = openCart;
+  $("#cart-close").onclick = () => drawer.close();
+  drawer.addEventListener("click", (e) => { if (e.target === drawer) drawer.close(); });
+  try { $("#c-name").value = localStorage.getItem("cat_cliente") || ""; } catch { /* ignore */ }
+  $("#cart-clear").onclick = () => { if (confirm("Esvaziar o carrinho?")) { cart = {}; persist(); updateCart(); } };
+
+  $("#cart-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("#c-name").value.trim();
+    if (!name) { $("#c-name").focus(); return U.toast("Informe seu nome.", "err"); }
+    try { localStorage.setItem("cat_cliente", name); } catch { /* ignore */ }
+    let total = 0;
+    const lines = Object.keys(cart).map((c) => {
+      const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
+      if (unit != null) total += unit * q;
+      return `• ${q}x Cód. ${c} — ${p.name || ""}${unit != null ? ` (${U.money(unit)} = ${U.money(unit * q)})` : " (consultar preço)"}`;
+    });
+    const obs = $("#c-obs").value.trim();
+    const msg = [`*Pedido — ${store.name || "Catálogo"}*`, `Cliente: ${name}`, "", ...lines, "", `*Total: ${U.money(total)}*`, obs ? `\nObs.: ${obs}` : ""].join("\n").trim();
+    window.open(waLink(msg), "_blank", "noopener");
+  });
+  updateCart();
+
+  /* ---------- detalhe ---------- */
   const dlg = $("#detail");
-  const byCode = new Map(products.map((p) => [String(p.code), p]));
+  let current = null;
   document.addEventListener("click", (e) => {
-    const b = e.target.closest(".item[data-code]"); if (!b) return;
-    open(byCode.get(b.dataset.code));
+    const add = e.target.closest("[data-add]");
+    if (add) return addToCart(add.dataset.add, 1, add);
+    const b = e.target.closest(".open[data-code]");
+    if (b) open(byCode.get(b.dataset.code));
   });
   function open(p) {
     if (!p) return;
+    current = p;
     const imgs = p.images && p.images.length ? p.images : [];
     const showImg = (i) => {
       $("#d-main").innerHTML = tag(p) + (imgs.length
@@ -99,13 +223,22 @@
     showImg(0);
     $("#d-code").textContent = `Cód. ${p.code}${p.category ? " · " + p.category : ""}`;
     $("#d-name").textContent = p.name || "Produto";
-    $("#d-price").outerHTML = priceHtml(p).replace('class="price"', 'class="price" id="d-price"');
+    $("#d-price").outerHTML = priceHtml(p, "d-price");
     $("#d-desc").textContent = p.description || "";
+    $("#d-qty").value = 1;
     const waBtn = $("#d-wa");
     waBtn.hidden = !wa;
-    if (wa) waBtn.href = waLink(`Olá! Tenho interesse no produto:\nCód. ${p.code} — ${p.name || ""}\n${location.href.split("#")[0]}`);
+    if (wa) waBtn.href = waLink(`Olá! Tenho uma dúvida sobre o produto:\nCód. ${p.code} — ${p.name || ""}\n${location.href.split("#")[0]}`);
     dlg.showModal();
   }
+  $$(".d-buy [data-q]").forEach((b) => b.onclick = () => {
+    const i = $("#d-qty"); i.value = Math.max(1, (Number(i.value) || 1) + Number(b.dataset.q));
+  });
+  $("#d-add").onclick = () => {
+    if (!current) return;
+    addToCart(String(current.code), Math.max(1, Math.floor(Number($("#d-qty").value) || 1)));
+    dlg.close();
+  };
   $("#d-close").onclick = () => dlg.close();
   dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
 
