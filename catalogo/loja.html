@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <title>Catálogo</title>
-<link rel="stylesheet" href="css/loja.css">
+<link rel="stylesheet" href="css/loja.css?v=202611191241">
 </head>
 <body>
 <div id="loading" class="state"><div class="spinner" aria-hidden="true"></div><p>Carregando catálogo…</p></div>
@@ -85,18 +85,22 @@
     <p class="empty" id="cart-empty">Seu carrinho está vazio.</p>
   </div>
   <form class="drawer-foot" id="cart-form" hidden>
-    <div class="total"><span>Total</span><strong id="cart-total"></strong></div>
-    <p class="hint" id="cart-note" hidden>Itens sem preço serão confirmados pela loja.</p>
+    <div class="total"><span>Total estimado</span><strong id="cart-total"></strong></div>
+    <p class="hint">O vendedor confirma preços e disponibilidade pelo WhatsApp.</p>
     <label for="c-name">Seu nome</label><input id="c-name" autocomplete="name" maxlength="80" required>
-    <label for="c-obs">Observação (opcional)</label><textarea id="c-obs" rows="2" maxlength="400" placeholder="Endereço, forma de pagamento…"></textarea>
-    <button class="btn-wa" id="cart-send">Enviar pedido pelo WhatsApp</button>
+    <div id="seller-box" hidden>
+      <label>Falar com</label>
+      <div class="sellers" id="seller-list" role="radiogroup" aria-label="Escolha o vendedor"></div>
+    </div>
+    <label for="c-obs">Observação (opcional)</label><textarea id="c-obs" rows="2" maxlength="400" placeholder="Cidade, forma de pagamento…"></textarea>
+    <button class="btn-wa" id="cart-send">Consultar preço pelo WhatsApp</button>
     <button type="button" class="link" id="cart-clear">Esvaziar carrinho</button>
   </form>
 </dialog>
 
-<script src="config.js"></script>
-<script src="js/db.js"></script>
-<script src="js/common.js"></script>
-<script src="js/loja.js"></script>
+<script src="config.js?v=202611191241"></script>
+<script src="js/db.js?v=202611191241"></script>
+<script src="js/common.js?v=202611191241"></script>
+<script src="js/loja.js?v=202611191241"></script>
 </body>
 </html>

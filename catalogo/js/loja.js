@@ -26,8 +26,10 @@
   $("#store-name").textContent = store.name || "Catálogo";
   $("#foot-name").textContent = store.name || "";
   $("#store-about").textContent = store.about || "";
-  const wa = store.whatsapp ? (store.whatsapp.length <= 11 ? "55" + store.whatsapp : store.whatsapp) : "";
-  const waLink = (text) => `https://wa.me/${wa}?text=${encodeURIComponent(text)}`;
+  const intl = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
+  const sellers = (store.sellers || []).map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
+  const wa = intl(store.whatsapp) || (sellers[0] && sellers[0].wa) || "";
+  const waLink = (text, num = wa) => `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
   $("#hero-links").innerHTML =
     (wa ? `<a href="${waLink("Olá! Vi o catálogo e gostaria de fazer um pedido.")}" target="_blank" rel="noopener">WhatsApp</a>` : "") +
     (store.instagram ? `<a href="https://instagram.com/${encodeURIComponent(store.instagram)}" target="_blank" rel="noopener">@${esc(store.instagram)}</a>` : "");
@@ -149,11 +151,25 @@
     }).join("");
     $("#cart-empty").hidden = codes.length > 0;
     $("#cart-form").hidden = !codes.length;
-    $("#cart-total").textContent = U.money(total) + (noPrice ? " +" : "");
-    $("#cart-note").hidden = !noPrice;
+    $("#cart-total").textContent = total ? U.money(total) + (noPrice ? " +" : "") : "A consultar";
     $("#cart-send").disabled = !wa;
-    $("#cart-send").textContent = wa ? "Enviar pedido pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
+    $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
   }
+
+  /* vendedores: o cliente escolhe com quem falar */
+  let sellerIdx = 0;
+  if (sellers.length > 1) {
+    $("#seller-box").hidden = false;
+    $("#seller-list").innerHTML = sellers.map((s, i) =>
+      `<button type="button" role="radio" aria-checked="${i === 0}" data-seller="${i}">${esc(s.name)}</button>`).join("");
+    $("#seller-list").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-seller]"); if (!b) return;
+      sellerIdx = Number(b.dataset.seller);
+      $$("#seller-list [data-seller]").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+    });
+  }
+  const sellerWa = () => (sellers.length ? sellers[sellerIdx].wa : wa);
+  const sellerName = () => (sellers.length ? sellers[sellerIdx].name : "");
 
   $("#cart-list").addEventListener("click", (e) => {
     const li = e.target.closest("li"); if (!li) return;
@@ -186,15 +202,18 @@
     const name = $("#c-name").value.trim();
     if (!name) { $("#c-name").focus(); return U.toast("Informe seu nome.", "err"); }
     try { localStorage.setItem("cat_cliente", name); } catch { /* ignore */ }
-    let total = 0;
-    const lines = Object.keys(cart).map((c) => {
-      const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
-      if (unit != null) total += unit * q;
-      return `• ${q}x Cód. ${c} — ${p.name || ""}${unit != null ? ` (${U.money(unit)} = ${U.money(unit * q)})` : " (consultar preço)"}`;
-    });
+    const lines = Object.keys(cart).map((c) => `• ${cart[c]}x — Cód. ${c} — ${byCode.get(c).name || ""}`);
     const obs = $("#c-obs").value.trim();
-    const msg = [`*Pedido — ${store.name || "Catálogo"}*`, `Cliente: ${name}`, "", ...lines, "", `*Total: ${U.money(total)}*`, obs ? `\nObs.: ${obs}` : ""].join("\n").trim();
-    window.open(waLink(msg), "_blank", "noopener");
+    const hi = sellerName() ? `Olá, ${sellerName()}!` : "Olá!";
+    const msg = [
+      `${hi} Gostaria de *consultar o preço* destes produtos do catálogo *${store.name || ""}*:`, "",
+      ...lines, "",
+      `Cliente: ${name}`,
+      obs ? `Obs.: ${obs}` : "",
+      location.href.split("#")[0]
+    ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n").trim();
+    const url = waLink(msg, sellerWa());
+    if (!window.open(url, "_blank")) location.href = url;
   });
   updateCart();
 

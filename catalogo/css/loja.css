@@ -176,3 +176,6 @@ dialog::backdrop{background:#000a}
   .d-gallery{border-right:0;border-bottom:1px solid var(--line)}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.sellers{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.sellers button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer}
+.sellers button[aria-checked=true]{border-color:#25d366;background:#25d3661a;color:#0d6b37}

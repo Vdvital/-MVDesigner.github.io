@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/app.css?v=202611191241">
 </head>
 <body>
 <header class="topbar">
@@ -49,6 +49,12 @@
           <div class="row">
             <div class="field"><label for="s-wa">WhatsApp (com DDD)</label><input id="s-wa" inputmode="tel" placeholder="11 99999-9999"></div>
             <div class="field"><label for="s-ig">Instagram</label><input id="s-ig" placeholder="@sualoja"></div>
+          </div>
+          <div class="field">
+            <label>Vendedores no WhatsApp</label>
+            <p class="hint" style="margin:0 0 8px">Ao clicar em "Consultar preço", o cliente escolhe com quem falar. Sem vendedores, a lista vai para o WhatsApp da loja.</p>
+            <div id="sellers"></div>
+            <button type="button" class="btn sm" id="add-seller">+ Adicionar vendedor</button>
           </div>
           <div class="field"><label for="s-accent">Cor de destaque</label><input id="s-accent" type="color" style="height:44px;padding:4px"></div>
           <button class="btn primary" style="width:100%">Salvar dados da loja</button>
@@ -128,9 +134,9 @@
   </form>
 </dialog>
 
-<script src="config.js"></script>
-<script src="js/db.js"></script>
-<script src="js/common.js"></script>
-<script src="js/painel.js"></script>
+<script src="config.js?v=202611191241"></script>
+<script src="js/db.js?v=202611191241"></script>
+<script src="js/common.js?v=202611191241"></script>
+<script src="js/painel.js?v=202611191241"></script>
 </body>
 </html>
