@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611191319">
+<link rel="stylesheet" href="css/app.css?v=202611191327">
 </head>
 <body>
 <header class="topbar">
@@ -28,6 +28,29 @@
           <div class="link-box"><input id="cat-link" readonly><button class="btn sm" id="copy-link">Copiar</button></div>
         </div>
         <a class="btn" style="width:100%" id="share-wa" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+      </section>
+
+      <!-- EQUIPE -->
+      <section class="card" aria-labelledby="team-title">
+        <h2 id="team-title">Vendedores e representantes</h2>
+        <p class="sub">Só quem tem conta vê os preços. Os clientes veem o catálogo sem valores.</p>
+        <form id="team-form" autocomplete="off">
+          <div class="field">
+            <label>Tipo de conta</label>
+            <div class="quick" id="tm-role" role="radiogroup" aria-label="Tipo de conta">
+              <button type="button" role="radio" aria-checked="true" class="on" data-role="seller">Vendedor</button>
+              <button type="button" role="radio" aria-checked="false" data-role="rep">Representante</button>
+            </div>
+          </div>
+          <div class="field"><label for="tm-name">Nome</label><input id="tm-name" maxlength="60" required placeholder="Ex.: Ana Souza"></div>
+          <div class="field"><label for="tm-email">E-mail de login</label><input id="tm-email" type="email" required placeholder="ana@email.com"></div>
+          <div class="field">
+            <label for="tm-pass">Senha inicial</label>
+            <div class="link-box"><input id="tm-pass" minlength="6" required autocomplete="new-password"><button type="button" class="btn sm" id="tm-gen">Gerar</button></div>
+          </div>
+          <button class="btn primary" style="width:100%" id="tm-submit">Criar conta</button>
+        </form>
+        <ul class="team-list" id="team-list"></ul>
       </section>
 
       <!-- LOJA E CAPA -->
@@ -134,9 +157,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611191319"></script>
-<script src="js/db.js?v=202611191319"></script>
-<script src="js/common.js?v=202611191319"></script>
-<script src="js/painel.js?v=202611191319"></script>
+<script src="config.js?v=202611191327"></script>
+<script src="js/db.js?v=202611191327"></script>
+<script src="js/common.js?v=202611191327"></script>
+<script src="js/painel.js?v=202611191327"></script>
 </body>
 </html>

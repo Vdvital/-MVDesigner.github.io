@@ -8,7 +8,7 @@
 
   const base = new URL("loja.html", location.href).href;
   const catalogUrl = (slug) => `${base}?loja=${encodeURIComponent(slug)}`;
-  let users = [], stats = {};
+  let users = [], stats = {}, teamCount = {};
 
   const situation = (u) => {
     const st = DB.accessStatus(u);
@@ -65,6 +65,10 @@
     try {
       [users, stats] = await Promise.all([DB.listUsers(), DB.listCatalogStats()]);
     } catch (e) { toast(e.message, "err"); return; }
+    // Vendedores e representantes são geridos por cada loja; aqui aparecem só como contagem.
+    teamCount = {};
+    users.filter((u) => DB.TEAM.includes(u.role)).forEach((u) => { teamCount[u.ownerUid] = (teamCount[u.ownerUid] || 0) + 1; });
+    users = users.filter((u) => !DB.TEAM.includes(u.role));
     users.sort((a, b) => (a.role === "admin" ? -1 : b.role === "admin" ? 1 : (b.createdAt || 0) - (a.createdAt || 0)));
     const clients = users.filter((u) => u.role !== "admin");
     const sits = clients.map(situation);
@@ -101,7 +105,7 @@
       <tr data-uid="${esc(u.uid)}">
         <td><b>${esc(u.name)}</b><div class="muted">${esc(u.email)}</div></td>
         <td>${accessCell(u)}</td>
-        <td>${u.slug ? `<a href="${esc(catalogUrl(u.slug))}" target="_blank" rel="noopener">/${esc(u.slug)}</a><div class="muted">${stats[u.uid] ? stats[u.uid].products : 0} produtos</div>` : "—"}</td>
+        <td>${u.slug ? `<a href="${esc(catalogUrl(u.slug))}" target="_blank" rel="noopener">/${esc(u.slug)}</a><div class="muted">${stats[u.uid] ? stats[u.uid].products : 0} produtos${teamCount[u.uid] ? ` · equipe: ${teamCount[u.uid]}` : ""}</div>` : "—"}</td>
         <td class="muted">${U.dateTime(u.lastLogin)}</td>
         <td class="actions">${u.role === "admin" ? "" : `
           <button class="btn sm" data-act="time">Tempo</button>

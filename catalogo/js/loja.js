@@ -15,7 +15,29 @@
   if (DB.accessStatus(cat) !== "ativo") return fail("Este catálogo está temporariamente fora do ar.");
 
   const store = cat.store || {};
-  const products = (cat.products || []).filter((p) => p.code);
+  let products = (cat.products || []).filter((p) => p.code);
+
+  /* ---------- quem está vendo: preços só para loja, vendedores e representantes ---------- */
+  let viewer = null;
+  try { viewer = await DB.current(); } catch { viewer = null; }
+  const isStaff = !!viewer && (viewer.role === "admin" || (viewer.slug === slug && ["user", ...DB.TEAM].includes(viewer.role)));
+  let prices = null;
+  if (isStaff) { try { prices = await DB.getPrices(slug); } catch { prices = null; } }
+  const canSee = !!prices;
+  if (canSee) products = products.map((p) => ({ ...p, ...(prices[String(p.code)] || {}) }));
+  document.body.classList.toggle("staff", canSee);
+  if (isStaff) {
+    $("#staff-bar").hidden = false;
+    $("#staff-who").textContent = `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`;
+    $("#staff-msg").textContent = canSee ? "Você está vendo os preços." : "Não foi possível carregar os preços.";
+    $("#staff-logout").onclick = async () => { await DB.logout(); location.reload(); };
+    if (viewer.role === "user" || viewer.role === "admin") {
+      $("#staff-panel").hidden = false;
+      $("#staff-panel").href = viewer.role === "admin" ? "admin.html" : "painel.html";
+    }
+  } else {
+    $("#staff-login").hidden = false;
+  }
   const byCode = new Map(products.map((p) => [String(p.code), p]));
   document.title = store.name || "Catálogo";
   if (store.accent) document.documentElement.style.setProperty("--accent", store.accent);
@@ -36,18 +58,24 @@
   if (wa) { const f = $("#wa-float"); f.hidden = false; f.href = waLink("Olá! Vi o catálogo e tenho uma dúvida."); }
 
   /* ---------- preço ---------- */
-  const unitPrice = (p) => (U.discount(p) ? p.promoPrice : p.price ?? p.promoPrice ?? null);
+  const unitPrice = (p) => (!canSee ? null : U.discount(p) ? p.promoPrice : p.price ?? p.promoPrice ?? null);
+  const isPromo = (p) => (canSee ? U.discount(p) > 0 : !!p.promo);
   const priceHtml = (p, id = "") => {
     const off = U.discount(p), attr = id ? ` id="${id}"` : "";
+    if (!canSee) return `<div class="price"${attr}><span class="ask">Preço sob consulta</span></div>`;
     if (off) return `<div class="price"${attr}><span class="old">${U.money(p.price)}</span><span class="now promo">${U.money(p.promoPrice)}</span></div>`;
     const v = unitPrice(p);
     return `<div class="price"${attr}>${v != null ? `<span class="now">${U.money(v)}</span>` : `<span class="code">Consulte</span>`}</div>`;
   };
-  const tag = (p) => { const off = U.discount(p); return off ? `<span class="promo-tag"><small>PROMO</small>-${off}%</span>` : ""; };
+  const tag = (p) => {
+    if (!isPromo(p)) return "";
+    const off = U.discount(p);
+    return off ? `<span class="promo-tag"><small>PROMO</small>-${off}%</span>` : `<span class="promo-tag only">PROMO</span>`;
+  };
 
   /* ---------- card ---------- */
   const card = (p) => `
-    <article class="item${U.discount(p) ? " is-promo" : ""}">
+    <article class="item${isPromo(p) ? " is-promo" : ""}">
       ${tag(p)}
       <button class="open" data-code="${esc(p.code)}" aria-label="Ver detalhes de ${esc(p.name || p.code)}">
         ${U.imgTag(p, 500, "ph")}
@@ -57,7 +85,7 @@
     </article>`;
 
   /* ---------- promoções ---------- */
-  const promos = products.filter((p) => U.discount(p));
+  const promos = products.filter(isPromo);
   if (promos.length) { $("#promo-section").hidden = false; $("#promo-row").innerHTML = promos.map(card).join(""); }
 
   /* ---------- categorias ---------- */
@@ -70,7 +98,7 @@
   $("#cat-grid").innerHTML = cats.map((c) => {
     const items = products.filter((p) => p.category === c);
     const withImg = items.find((p) => p.images?.length || p.imageUrl) || items[0];
-    const promo = items.filter((p) => U.discount(p)).length;
+    const promo = items.filter(isPromo).length;
     return `<button class="cat-card" data-cat="${esc(c)}">
       ${U.imgTag(withImg, 400, "cat-img")}
       <span class="cat-info"><b>${esc(c)}</b><small>${items.length} ${items.length === 1 ? "produto" : "produtos"}${promo ? ` · <em>${promo} em promoção</em>` : ""}</small></span>
@@ -128,7 +156,11 @@
   const rangeLabel = ([a, b]) => (a == null ? `Até ${U.money(b)}` : b == null ? `Acima de ${U.money(a)}` : `${U.money(a)} a ${U.money(b)}`);
   $("#pp-ranges").innerHTML = ranges.map((r, i) => `<button type="button" aria-pressed="false" data-range="${i}">${rangeLabel(r).replace(/,00/g, "")}</button>`).join("");
   if (!ranges.length) $("#pp-ranges").hidden = true;
-  if (!priced.length) { toggle.hidden = true; }
+  if (!priced.length) {
+    // Sem preços visíveis: o filtro fica só com promoções e ordem por nome
+    $("#pp-price-group").hidden = true;
+    $$("#pp-sort option[data-price]").forEach((o) => { o.disabled = true; o.hidden = true; });
+  }
 
   const fmtInput = (v) => (v == null ? "" : String(v).replace(".", ","));
   function syncRangeButtons() {
@@ -169,7 +201,7 @@
     const list = products.filter((p) => {
       if (activeCat && p.category !== activeCat) return false;
       if (q && !(norm(p.code).includes(q) || norm(p.name).includes(q) || norm(p.description).includes(q))) return false;
-      if (pf.promo && !U.discount(p)) return false;
+      if (pf.promo && !isPromo(p)) return false;
       if (lo != null || hi != null) {
         const v = unitPrice(p);
         if (v == null || (lo != null && v < lo) || (hi != null && v > hi)) return false;
@@ -218,7 +250,7 @@
       return `<li data-code="${esc(c)}">
         ${U.imgTag(p, 160, "c-img")}
         <div class="c-info"><small>Cód. ${esc(c)}</small><b>${esc(p.name || "Produto")}</b>
-          <span>${unit != null ? U.money(unit) + " un." : "Consulte"}</span>
+          <span>${unit != null ? U.money(unit) + " un." : canSee ? "Sem preço" : ""}</span>
           <div class="qty sm"><button type="button" data-step="-1" aria-label="Diminuir">−</button><input type="number" min="1" value="${cart[c]}" aria-label="Quantidade de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Aumentar">+</button></div>
         </div>
         <div class="c-side"><strong>${unit != null ? U.money(unit * cart[c]) : ""}</strong><button type="button" class="link" data-remove aria-label="Remover ${esc(p.name || c)}">Remover</button></div>
@@ -226,14 +258,26 @@
     }).join("");
     $("#cart-empty").hidden = codes.length > 0;
     $("#cart-form").hidden = !codes.length;
-    $("#cart-total").textContent = total ? U.money(total) + (noPrice ? " +" : "") : "A consultar";
-    $("#cart-send").disabled = !wa;
-    $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
+    $("#cart-total-row").hidden = !canSee;
+    $("#cart-total").textContent = U.money(total) + (noPrice ? " +" : "");
+    if (canSee) {
+      // equipe: monta o orçamento com preços e escolhe o contato no WhatsApp
+      $("#cart-send").disabled = false;
+      $("#cart-send").textContent = "Enviar orçamento pelo WhatsApp";
+    } else {
+      $("#cart-send").disabled = !wa;
+      $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
+    }
+  }
+  if (canSee) {
+    $("#cart-hint").textContent = "Orçamento com preços. Você escolhe o contato no WhatsApp.";
+    $("#c-name-label").textContent = "Nome do cliente";
+    $("#cart-title").textContent = "Orçamento";
   }
 
   /* vendedores: o cliente escolhe com quem falar */
   let sellerIdx = 0;
-  if (sellers.length > 1) {
+  if (sellers.length > 1 && !canSee) {
     $("#seller-box").hidden = false;
     $("#seller-list").innerHTML = sellers.map((s, i) =>
       `<button type="button" role="radio" aria-checked="${i === 0}" data-seller="${i}">${esc(s.name)}</button>`).join("");
@@ -269,13 +313,31 @@
   $("#cart-float").onclick = openCart;
   $("#cart-close").onclick = () => drawer.close();
   drawer.addEventListener("click", (e) => { if (e.target === drawer) drawer.close(); });
-  try { $("#c-name").value = localStorage.getItem("cat_cliente") || ""; } catch { /* ignore */ }
+  if (!canSee) { try { $("#c-name").value = localStorage.getItem("cat_cliente") || ""; } catch { /* ignore */ } }
   $("#cart-clear").onclick = () => { if (confirm("Esvaziar o carrinho?")) { cart = {}; persist(); updateCart(); } };
 
   $("#cart-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const name = $("#c-name").value.trim();
-    if (!name) { $("#c-name").focus(); return U.toast("Informe seu nome.", "err"); }
+    if (!name) { $("#c-name").focus(); return U.toast(canSee ? "Informe o nome do cliente." : "Informe seu nome.", "err"); }
+    if (canSee) {
+      let total = 0;
+      const rows = Object.keys(cart).map((c) => {
+        const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
+        if (unit != null) total += unit * q;
+        return `• ${q}x — Cód. ${c} — ${p.name || ""}${unit != null ? `\n   ${U.money(unit)} un. = ${U.money(unit * q)}` : " (sem preço)"}`;
+      });
+      const obs = $("#c-obs").value.trim();
+      const msg = [
+        `*Orçamento — ${store.name || "Catálogo"}*`, `Cliente: ${name}`, "",
+        ...rows, "", `*Total: ${U.money(total)}*`,
+        obs ? `Obs.: ${obs}` : null,
+        "", `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`
+      ].filter((l) => l !== null).join("\n").trim();
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      if (!window.open(url, "_blank")) location.href = url;
+      return;
+    }
     try { localStorage.setItem("cat_cliente", name); } catch { /* ignore */ }
     const lines = Object.keys(cart).map((c) => `• ${cart[c]}x — Cód. ${c} — ${byCode.get(c).name || ""}`);
     const obs = $("#c-obs").value.trim();
