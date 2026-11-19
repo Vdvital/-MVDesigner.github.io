@@ -21,15 +21,29 @@
   let viewer = null;
   try { viewer = await DB.current(); } catch { viewer = null; }
   const isStaff = !!viewer && (viewer.role === "admin" || (viewer.slug === slug && ["user", ...DB.TEAM].includes(viewer.role)));
+  // Modo apresentação: a equipe mostra os produtos ao cliente sem nenhum preço na tela
+  const presentation = new URLSearchParams(location.search).get("apresentacao") === "1";
+  const pageUrl = (extra) => `${location.origin}${location.pathname}?loja=${encodeURIComponent(slug)}${extra || ""}`;
   let prices = null;
-  if (isStaff) { try { prices = await DB.getPrices(slug); } catch { prices = null; } }
+  if (isStaff && !presentation) { try { prices = await DB.getPrices(slug); } catch { prices = null; } }
   const canSee = !!prices;
   if (canSee) products = products.map((p) => ({ ...p, ...(prices[String(p.code)] || {}) }));
   document.body.classList.toggle("staff", canSee);
   if (isStaff) {
     $("#staff-bar").hidden = false;
     $("#staff-who").textContent = `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`;
-    $("#staff-msg").textContent = canSee ? "Você está vendo os preços." : "Não foi possível carregar os preços.";
+    $("#staff-msg").textContent = presentation ? "Modo apresentação: sem preços na tela."
+      : canSee ? "Você está vendo os preços." : "Não foi possível carregar os preços.";
+    const mode = $("#staff-mode");
+    mode.hidden = false;
+    mode.textContent = presentation ? "Mostrar preços" : "Modo apresentação";
+    mode.href = presentation ? pageUrl() : pageUrl("&apresentacao=1");
+    $("#staff-copy").hidden = false;
+    $("#staff-copy").onclick = async () => {
+      const link = pageUrl();
+      try { await navigator.clipboard.writeText(link); U.toast("Link para clientes copiado (sem preços)."); }
+      catch { prompt("Copie o link para clientes (sem preços):", link); }
+    };
     $("#staff-logout").onclick = async () => { await DB.logout(); location.reload(); };
     if (viewer.role === "user" || viewer.role === "admin") {
       $("#staff-panel").hidden = false;
