@@ -36,9 +36,14 @@
   U.discount = (p) => (p.promoPrice && p.price && p.promoPrice < p.price ? Math.round((1 - p.promoPrice / p.price) * 100) : 0);
 
   /* ---------- autenticação nas páginas ---------- */
+  /** Página inicial de cada tipo de conta. */
+  U.homeFor = (me) => me.role === "admin" ? "admin.html"
+    : DB.TEAM.includes(me.role) ? `loja.html?loja=${encodeURIComponent(me.slug)}` : "painel.html";
+
   U.requireLogin = async (role) => {
     const me = await DB.current();
     if (!me) { location.replace("index.html"); return null; }
+    if (DB.TEAM.includes(me.role)) { location.replace(U.homeFor(me)); return null; }
     if (role === "admin" && me.role !== "admin") { location.replace("painel.html"); return null; }
     if (me.role !== "admin" && DB.accessStatus(me) !== "ativo") { await DB.logout(); location.replace("index.html?expirado=1"); return null; }
     return me;

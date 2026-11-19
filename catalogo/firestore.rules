@@ -6,26 +6,49 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
-    function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
+    function myDoc() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(myDoc()).data; }
+    function hasProfile() { return signedIn() && exists(myDoc()); }
+    function isAdmin() { return hasProfile() && me().role == 'admin'; }
     function bootstrapAdmin() {
       return signedIn() && request.auth.token.email in ['tiranosaurro.vital@gmail.com'];
     }
-
-    // Perfis: só o próprio usuário e o administrador leem. Só o admin cria/edita/exclui.
-    match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create: if isAdmin()
-        || (request.auth.uid == uid && bootstrapAdmin() && request.resource.data.role == 'admin');
-      allow update: if isAdmin()
-        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']));
-      allow delete: if isAdmin();
+    function catalog(slug) { return get(/databases/$(database)/documents/catalogs/$(slug)).data; }
+    function catalogActive(slug) {
+      return catalog(slug).active == true
+        && (catalog(slug).expiresAt == null || catalog(slug).expiresAt > request.time.toMillis());
+    }
+    // Dono da loja (conta criada pelo admin)
+    function isStoreOwner() { return hasProfile() && me().role == 'user' && me().active != false; }
+    function ownsCatalog(slug) { return signedIn() && catalog(slug).uid == request.auth.uid; }
+    // Vendedor ou representante da loja
+    function isTeamOf(slug) {
+      return hasProfile() && me().role in ['seller', 'rep'] && me().slug == slug && me().active != false;
     }
 
-    // Catálogos: leitura pública (o próprio site decide se está no ar).
-    // O dono só altera loja e produtos, e só enquanto o acesso estiver ativo.
+    // ---------------- Perfis ----------------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin() || resource.data.ownerUid == request.auth.uid);
+
+      allow create: if isAdmin()
+        || (request.auth.uid == uid && bootstrapAdmin() && request.resource.data.role == 'admin')
+        // a loja cria contas de vendedor/representante só para o próprio catálogo
+        || (isStoreOwner()
+            && request.resource.data.role in ['seller', 'rep']
+            && request.resource.data.ownerUid == request.auth.uid
+            && request.resource.data.slug == me().slug
+            && catalogActive(me().slug));
+
+      allow update: if isAdmin()
+        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']))
+        // a loja só bloqueia/desbloqueia ou renomeia a própria equipe
+        || (signedIn() && resource.data.ownerUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'name']));
+
+      allow delete: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    // ---------------- Catálogo público (sem preços) ----------------
     match /catalogs/{slug} {
       allow read: if true;
       allow create, delete: if isAdmin();
@@ -35,6 +58,12 @@ service cloud.firestore {
         && resource.data.active == true
         && (resource.data.expiresAt == null || resource.data.expiresAt > request.time.toMillis())
       );
+
+      // ---------------- Preços: só loja, vendedores, representantes e admin ----------------
+      match /private/{doc} {
+        allow read: if isAdmin() || ownsCatalog(slug) || (isTeamOf(slug) && catalogActive(slug));
+        allow write: if isAdmin() || (ownsCatalog(slug) && catalogActive(slug));
+      }
     }
   }
 }

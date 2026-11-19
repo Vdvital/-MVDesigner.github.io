@@ -30,6 +30,69 @@
   }
   renderAccess();
 
+  /* ---------- equipe: vendedores e representantes ---------- */
+  let tmRole = "seller", members = [];
+  $$("#tm-role [data-role]").forEach((b) => b.onclick = () => {
+    tmRole = b.dataset.role;
+    $$("#tm-role [data-role]").forEach((x) => { const on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-checked", String(on)); });
+  });
+  $("#tm-gen").onclick = () => {
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    $("#tm-pass").value = Array.from(crypto.getRandomValues(new Uint32Array(10)), (n) => chars[n % chars.length]).join("");
+  };
+  async function loadTeam() {
+    try { members = await DB.listMembers(me); } catch (e) { toast(e.message, "err"); members = []; }
+    members.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    $("#team-list").innerHTML = members.length ? members.map((m) => `
+      <li data-uid="${esc(m.uid)}">
+        <div><b>${esc(m.name)}</b> <span class="pill ${m.active === false ? "bloqueado" : "ativo"}">${DB.ROLE_LABEL[m.role]}${m.active === false ? " · bloqueado" : ""}</span>
+          <div class="hint" style="margin:2px 0 0">${esc(m.email)} · último login: ${U.dateTime(m.lastLogin)}</div></div>
+        <div class="team-actions">
+          <button class="btn sm" data-act="toggle">${m.active === false ? "Desbloquear" : "Bloquear"}</button>
+          <button class="btn sm" data-act="pass">Senha</button>
+          <button class="btn sm danger" data-act="del" aria-label="Excluir ${esc(m.name)}">Excluir</button>
+        </div>
+      </li>`).join("") : `<li class="hint" style="justify-content:center">Nenhuma conta criada ainda.</li>`;
+  }
+  $("#team-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = $("#tm-name").value.trim(), email = $("#tm-email").value.trim(), password = $("#tm-pass").value;
+    if (!name || !/^\S+@\S+\.\S+$/.test(email)) return toast("Preencha nome e um e-mail válido.", "err");
+    if (password.length < 6) return toast("A senha precisa ter pelo menos 6 caracteres.", "err");
+    const btn = $("#tm-submit"); btn.disabled = true;
+    try {
+      await DB.createMember(me, { name, email, password, role: tmRole });
+      toast(`${DB.ROLE_LABEL[tmRole]} criado. Envie o login: ${email.toLowerCase()}`);
+      $("#tm-name").value = ""; $("#tm-email").value = ""; $("#tm-pass").value = "";
+      await loadTeam();
+    } catch (err) { toast(err.message, "err"); }
+    btn.disabled = false;
+  });
+  $("#team-list").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const m = members.find((x) => x.uid === b.closest("li").dataset.uid); if (!m) return;
+    try {
+      if (b.dataset.act === "toggle") {
+        await DB.updateMember(me, m.uid, { active: m.active === false });
+        toast(m.active === false ? "Acesso liberado." : "Acesso bloqueado.");
+      } else if (b.dataset.act === "del") {
+        if (!confirm(`Excluir a conta de ${m.name}?`)) return;
+        await DB.deleteMember(me, m.uid); toast("Conta excluída.");
+      } else if (b.dataset.act === "pass") {
+        if (DB.mode === "firebase") {
+          if (!confirm(`Enviar e-mail de redefinição de senha para ${m.email}?`)) return;
+          await DB.sendReset(m.email); toast("E-mail de redefinição enviado."); return;
+        }
+        const p = prompt(`Nova senha para ${m.name} (mínimo 6 caracteres):`);
+        if (!p) return;
+        await DB.updateMember(me, m.uid, { password: p }); toast("Senha alterada.");
+        return;
+      }
+      await loadTeam();
+    } catch (err) { toast(err.message, "err"); }
+  });
+  loadTeam();
+
   async function save(msg) {
     try {
       cat = await DB.saveMyCatalog(me, { store, products });
@@ -41,6 +104,8 @@
       return false;
     }
   }
+  // Catálogos antigos guardavam preços na parte pública: move para a área protegida.
+  if (cat.legacy) save();
 
   /* ---------- loja e capa ---------- */
   const fill = () => {

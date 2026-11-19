@@ -58,3 +58,14 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - **Aba Categorias:** mostra um cartão por categoria (com a foto de um produto, quantidade de itens e quantos estão em promoção). Ao tocar, abre os produtos daquela categoria.
 - **Carrinho:** o comprador adiciona produtos pelo botão **+ Adicionar** ou pela página do produto (com quantidade). O carrinho fica salvo no aparelho dele, mostra o total e envia o pedido completo para o WhatsApp da loja, com nome, itens, quantidades, valores e observação.
 - O botão do carrinho só funciona se a loja tiver o WhatsApp cadastrado no painel.
+
+## Vendedores, representantes e preços protegidos
+
+- No painel, a loja cria contas de **Vendedor** ou **Representante**, e pode bloquear, trocar a senha ou excluir cada uma.
+- **Os preços só aparecem para quem está logado:** a loja, os vendedores e os representantes dela (e o administrador). Clientes veem "Preço sob consulta" e o selo PROMO, sem valores.
+- Os preços ficam guardados à parte, em `catalogs/{loja}/private/prices`, protegidos pelas regras do Firestore. Não estão no documento público do catálogo.
+- O vendedor ou representante entra pela mesma tela de login e cai direto no catálogo da loja, com preços e um carrinho de **Orçamento** que monta a mensagem com valores e total para enviar ao cliente pelo WhatsApp.
+- Se a loja for bloqueada ou o acesso vencer, a equipe dela também perde o acesso.
+- Catálogos antigos: ao abrir o painel, a loja move automaticamente os preços para a área protegida.
+
+**Importante:** depois de atualizar o site, publique novamente o conteúdo de `firestore.rules` no Firebase.

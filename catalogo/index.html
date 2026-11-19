@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Entrar | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611191319">
+<link rel="stylesheet" href="css/app.css?v=202611191327">
 </head>
 <body>
 <main class="login">
@@ -15,7 +15,7 @@
   <section class="login-form">
     <form id="login-form" novalidate>
       <h2>Entrar</h2>
-      <p>Acesse o painel do seu catálogo.</p>
+      <p>Lojas, vendedores e representantes entram aqui.</p>
       <div id="msg" class="alert" role="alert" hidden></div>
       <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required></div>
       <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required></div>
@@ -25,9 +25,9 @@
     </form>
   </section>
 </main>
-<script src="config.js?v=202611191319"></script>
-<script src="js/db.js?v=202611191319"></script>
-<script src="js/common.js?v=202611191319"></script>
+<script src="config.js?v=202611191327"></script>
+<script src="js/db.js?v=202611191327"></script>
+<script src="js/common.js?v=202611191327"></script>
 <script>
 (async () => {
   const msg = U.$("#msg");
@@ -36,7 +36,7 @@
   if (DB.mode === "local") U.$("#demo-hint").hidden = false;
   try {
     const me = await DB.current();
-    if (me) return location.replace(me.role === "admin" ? "admin.html" : "painel.html");
+    if (me) return location.replace(U.homeFor(me));
   } catch (e) { show(e.message); }
 
   U.$("#login-form").addEventListener("submit", async (e) => {
@@ -47,7 +47,7 @@
     btn.disabled = true; btn.textContent = "Entrando…";
     try {
       const me = await DB.login(email, pass);
-      location.replace(me.role === "admin" ? "admin.html" : "painel.html");
+      location.replace(U.homeFor(me));
     } catch (err) {
       show(err.message);
       btn.disabled = false; btn.textContent = "Entrar";
