@@ -11,7 +11,7 @@ window.CATALOGO_CONFIG = {
 
   // Chave da API do Google (Google Drive API ativada). Usada para listar as fotos
   // da pasta do Drive de cada usuário e ligar cada foto ao código do produto.
-  googleApiKey: "",
+  googleApiKey: "AIzaSyBbEYr11XaiLVP3O2efgINypwKMv-HSfnI",
 
   // Preencha ao usar o modo "firebase" (Console do Firebase → Configurações do projeto)
   firebase: {
