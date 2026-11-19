@@ -7,7 +7,7 @@ Sistema de catálogos com painel de administrador, painel do cliente e catálogo
 | `catalogo/index.html` | Todos | Login |
 | `catalogo/admin.html` | Administrador | Cria usuários (só o admin), define o tempo de acesso, renova, bloqueia, troca senha e exclui |
 | `catalogo/painel.html` | Cliente | Capa, dados da loja, importar/exportar Excel, fotos do Google Drive, editar produtos |
-| `catalogo/loja.html?loja=endereco` | Compradores | Catálogo público com busca, categorias, promoções com selo pulsante e pedido pelo WhatsApp |
+| `catalogo/loja.html?loja=endereco` | Compradores | Catálogo público com abas Produtos/Categorias, busca, promoções com selo pulsante e carrinho que envia o pedido pelo WhatsApp |
 
 ## Testar agora (modo local)
 
@@ -52,3 +52,9 @@ Para isso funcionar, o administrador precisa de **uma** chave de API do Google:
 8. Em `config.js`, mude `modo` para `"firebase"`.
 
 No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada catálogo é salvo num único documento (limite de ~1 MB, o suficiente para milhares de produtos e uma capa comprimida).
+
+## Carrinho e categorias
+
+- **Aba Categorias:** mostra um cartão por categoria (com a foto de um produto, quantidade de itens e quantos estão em promoção). Ao tocar, abre os produtos daquela categoria.
+- **Carrinho:** o comprador adiciona produtos pelo botão **+ Adicionar** ou pela página do produto (com quantidade). O carrinho fica salvo no aparelho dele, mostra o total e envia o pedido completo para o WhatsApp da loja, com nome, itens, quantidades, valores e observação.
+- O botão do carrinho só funciona se a loja tiver o WhatsApp cadastrado no painel.
