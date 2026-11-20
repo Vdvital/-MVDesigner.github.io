@@ -23,7 +23,7 @@ No modo local, os dados ficam **apenas no navegador** em que foram criados. Use 
 ## Planilha do Excel
 
 Colunas reconhecidas (a ordem não importa; só **Código** é obrigatória):
-`Código`, `Nome`, `Descrição`, `Categoria`, `Preço`, `Preço promocional`, `Qtd. por caixa`, `Link da imagem`.
+`Código`, `Nome`, `Descrição`, `Categoria`, `Preço`, `Preço promocional`, `Qtd. por caixa`, `Tag`, `Link da imagem`.
 Use **Baixar modelo** no painel. Na importação, o cliente escolhe entre atualizar/adicionar ou substituir tudo.
 Um produto com preço promocional menor que o preço aparece com o selo **PROMO -X%** pulsando ao lado da foto.
 
@@ -91,3 +91,10 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - Preencha pela planilha (coluna `Qtd. por caixa`; também são aceitos os nomes `Caixa`, `CX`, `Qtd caixa`, `Embalagem`, `Master`) ou no cadastro do produto no painel. Aceita `12`, `cx 12` ou `12 un`.
 - Aparece também na página do produto, no carrinho, nas mensagens de WhatsApp (`(cx 12)`), na página e no PDF do orçamento (`Caixa com 12 un.`), e sai na exportação do Excel.
 - Se a planilha importada não tiver essa coluna, a quantidade por caixa já cadastrada é mantida.
+
+## Tags de Novidade e Promoção
+
+- Ao editar o produto no painel, marque **✨ Novidade** e/ou **🔥 Promoção**.
+- Na planilha, use a coluna **`Tag`** (também aceita `Etiqueta`, `Selo`, `Destaque`) com `Novidade`, `Promoção` ou as duas: `Novidade, Promoção`. Sem a coluna, as tags já marcadas são mantidas. A exportação do Excel traz a coluna preenchida.
+- No catálogo: selo **NOVO** (preto, com brilho) no canto esquerdo do anúncio, seção **✨ Novidades** no topo e filtro **Só novidades**. A tag Promoção mostra o selo **PROMO** e coloca o produto na seção Promoções mesmo sem preço promocional.
+- A promoção continua sendo marcada sozinha quando o preço promocional é menor que o preço.

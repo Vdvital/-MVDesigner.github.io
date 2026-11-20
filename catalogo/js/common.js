@@ -45,6 +45,13 @@
     ? `<span class="box-qty ${cls}" title="Caixa com ${p.boxQty} unidades">${BOX_SVG}<span>CX ${p.boxQty}</span><span class="sr-only"> (caixa com ${p.boxQty} unidades)</span></span>`
     : "";
 
+  /** Etiquetas do produto. Aceita "Novidade", "Novo", "Lançamento", "Promoção", "Promo", "Oferta" (juntas ou separadas). */
+  U.parseTags = (v) => {
+    const t = String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return { isNew: /novidade|\bnovo\b|\bnova\b|lancamento|new/.test(t), tagPromo: /promo|oferta|liquida/.test(t) };
+  };
+  U.tagText = (p) => [p.isNew && "Novidade", p.tagPromo && "Promoção"].filter(Boolean).join(", ");
+
   U.discount = (p) => (p.promoPrice && p.price && p.promoPrice < p.price ? Math.round((1 - p.promoPrice / p.price) * 100) : 0);
 
   /* ---------- autenticação nas páginas ---------- */
@@ -211,6 +218,7 @@
     { key: "category", label: "Categoria", alias: ["categoria", "linha", "grupo", "departamento"] },
     { key: "price", label: "Preço", alias: ["preco", "preço", "valor", "preco normal", "preço normal", "de"] },
     { key: "promoPrice", label: "Preço promocional", alias: ["preco promocional", "preço promocional", "promocao", "promoção", "promo", "por", "oferta"] },
+    { key: "tags", label: "Tag", alias: ["tag", "tags", "etiqueta", "etiquetas", "selo", "selos", "destaque", "novidade/promoção", "novidade/promocao", "novidade ou promoção"] },
     { key: "boxQty", label: "Qtd. por caixa", alias: ["qtd por caixa", "quantidade por caixa", "qtd caixa", "quantidade caixa", "qtd cx", "caixa", "cx", "caixa com", "embalagem", "master", "unidades por caixa", "un por caixa", "qtde caixa"] },
     { key: "imageUrl", label: "Link da imagem", alias: ["imagem", "link da imagem", "foto", "url"] }
   ];
@@ -239,6 +247,8 @@
       imageUrl: String(r[map.imageUrl] ?? "").trim(),
       // sem a coluna na planilha, mantém a quantidade por caixa que já estava cadastrada
       ...(map.boxQty ? { boxQty: U.parseBox(r[map.boxQty]) } : {}),
+      // coluna Tag: "Novidade", "Promoção" ou as duas (sem a coluna, mantém o que já estava marcado)
+      ...(map.tags ? U.parseTags(r[map.tags]) : {}),
       images: []
     })).filter((p) => p.code);
   };
@@ -249,10 +259,11 @@
       "Código": p.code, "Nome": p.name, "Descrição": p.description, "Categoria": p.category,
       "Preço": p.price ?? "", "Preço promocional": p.promoPrice ?? "",
       "Qtd. por caixa": p.boxQty ?? "",
+      "Tag": U.tagText(p),
       "Link da imagem": p.images && p.images.length ? U.driveImg(p.images[0], 1200) : (p.imageUrl || "")
     }));
-    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ "Código": "1020", "Nome": "Garrafa térmica 1L", "Descrição": "Aço inox, mantém a temperatura por 12h", "Categoria": "Utilidades", "Preço": 89.9, "Preço promocional": 69.9, "Qtd. por caixa": 12, "Link da imagem": "" }]);
-    ws["!cols"] = [{ wch: 12 }, { wch: 32 }, { wch: 44 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 15 }, { wch: 40 }];
+    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ "Código": "1020", "Nome": "Garrafa térmica 1L", "Descrição": "Aço inox, mantém a temperatura por 12h", "Categoria": "Utilidades", "Preço": 89.9, "Preço promocional": 69.9, "Qtd. por caixa": 12, "Tag": "Novidade, Promoção", "Link da imagem": "" }]);
+    ws["!cols"] = [{ wch: 12 }, { wch: 32 }, { wch: 44 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
     XLSX.writeFile(wb, filename);

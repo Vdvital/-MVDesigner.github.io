@@ -81,7 +81,8 @@
 
   /* ---------- preço ---------- */
   const unitPrice = (p) => (!canSee ? null : U.discount(p) ? p.promoPrice : p.price ?? p.promoPrice ?? null);
-  const isPromo = (p) => (canSee ? U.discount(p) > 0 : !!p.promo);
+  const isPromo = (p) => (canSee ? U.discount(p) > 0 || !!p.tagPromo : !!p.promo);
+  const isNew = (p) => !!p.isNew;
   const priceHtml = (p, id = "") => {
     const off = U.discount(p), attr = id ? ` id="${id}"` : "";
     if (!canSee) return `<div class="price"${attr}><span class="ask">Preço sob consulta</span></div>`;
@@ -97,8 +98,8 @@
 
   /* ---------- card ---------- */
   const card = (p) => `
-    <article class="item${isPromo(p) ? " is-promo" : ""}">
-      ${tag(p)}
+    <article class="item${isPromo(p) ? " is-promo" : ""}${isNew(p) ? " is-new" : ""}">
+      ${tag(p)}${isNew(p) ? `<span class="new-tag" aria-label="Novidade">NOVO</span>` : ""}
       <button class="open" data-code="${esc(p.code)}" aria-label="Ver detalhes de ${esc(p.name || p.code)}">
         ${U.imgTag(p, 500, "ph")}
         <div class="body"><span class="code-row"><span class="code">Cód. ${esc(p.code)}</span>${U.boxBadge(p)}</span><span class="name">${esc(p.name || "Produto")}</span>${priceHtml(p)}</div>
@@ -116,7 +117,9 @@
 
   /* ---------- promoções ---------- */
   const promos = products.filter(isPromo);
+  const news = products.filter(isNew);
   if (promos.length) { $("#promo-section").hidden = false; $("#promo-row").innerHTML = promos.map(card).join(""); }
+  if (news.length) { $("#new-section").hidden = false; $("#new-row").innerHTML = news.map(card).join(""); }
 
   /* ---------- categorias ---------- */
   const cats = [...new Set(products.map((p) => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -164,7 +167,7 @@
 
   /* ---------- filtro de preço ---------- */
   const priced = products.map(unitPrice).filter((v) => v != null);
-  const pf = { min: null, max: null, sort: "", promo: false };
+  const pf = { min: null, max: null, sort: "", promo: false, news: false };
   const panel = $("#price-panel"), toggle = $("#filter-toggle");
   toggle.onclick = () => {
     const open = panel.hidden;
@@ -200,7 +203,7 @@
     });
   }
   function applyFilters() {
-    const n = (pf.min != null || pf.max != null ? 1 : 0) + (pf.sort ? 1 : 0) + (pf.promo ? 1 : 0);
+    const n = (pf.min != null || pf.max != null ? 1 : 0) + (pf.sort ? 1 : 0) + (pf.promo ? 1 : 0) + (pf.news ? 1 : 0);
     $("#filter-count").textContent = n; $("#filter-count").hidden = !n;
     toggle.classList.toggle("on", !!n);
     syncRangeButtons(); shown = PAGE; render();
@@ -219,9 +222,11 @@
   }));
   $("#pp-sort").onchange = (e) => { pf.sort = e.target.value; applyFilters(); };
   $("#pp-promo").onchange = (e) => { pf.promo = e.target.checked; applyFilters(); };
+  $("#pp-new").onchange = (e) => { pf.news = e.target.checked; applyFilters(); };
+  if (!news.length) $("#pp-new-label").hidden = true;
   $("#pp-clear").onclick = () => {
-    Object.assign(pf, { min: null, max: null, sort: "", promo: false });
-    $("#pp-min").value = ""; $("#pp-max").value = ""; $("#pp-sort").value = ""; $("#pp-promo").checked = false;
+    Object.assign(pf, { min: null, max: null, sort: "", promo: false, news: false });
+    $("#pp-min").value = ""; $("#pp-max").value = ""; $("#pp-sort").value = ""; $("#pp-promo").checked = false; $("#pp-new").checked = false;
     applyFilters();
   };
 
@@ -232,6 +237,7 @@
       if (activeCat && p.category !== activeCat) return false;
       if (q && !(norm(p.code).includes(q) || norm(p.name).includes(q) || norm(p.description).includes(q))) return false;
       if (pf.promo && !isPromo(p)) return false;
+      if (pf.news && !isNew(p)) return false;
       if (lo != null || hi != null) {
         const v = unitPrice(p);
         if (v == null || (lo != null && v < lo) || (hi != null && v > hi)) return false;
@@ -243,12 +249,13 @@
     if (pf.sort === "desc") list.sort((a, b) => (unitPrice(b) ?? -1) - (unitPrice(a) ?? -1));
     if (pf.sort === "off") list.sort((a, b) => U.discount(b) - U.discount(a));
     if (pf.sort === "name") list.sort((a, b) => String(a.name).localeCompare(String(b.name), "pt-BR"));
-    const filtering = lo != null || hi != null || pf.promo;
+    const filtering = lo != null || hi != null || pf.promo || pf.news;
     $("#promo-section").hidden = !promos.length || !!activeCat || filtering || !!q;
+    $("#new-section").hidden = !news.length || !!activeCat || filtering || !!q;
     $("#grid").innerHTML = list.slice(0, shown).map(card).join("");
     $("#count").textContent = `${list.length} ${list.length === 1 ? "item" : "itens"}`;
     $("#empty").hidden = list.length > 0;
-    $("#empty-clear").hidden = !(q || activeCat || pf.min != null || pf.max != null || pf.promo);
+    $("#empty-clear").hidden = !(q || activeCat || pf.min != null || pf.max != null || pf.promo || pf.news);
     $("#more").hidden = list.length <= shown;
   }
   $("#more").onclick = () => { shown += PAGE; render(); };
@@ -379,7 +386,7 @@
     const number = Orcamento.newNumber();
     try {
       const items = quoteItems().map(({ p, qty, unit }) => ({
-        code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "", boxQty: p.boxQty || null,
+        code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "", boxQty: p.boxQty || null, isNew: !!p.isNew,
         price: p.price ?? null, promoPrice: p.promoPrice ?? null, qty, unit
       }));
       const id = await DB.saveQuote({
@@ -482,7 +489,7 @@
     current = p;
     const imgs = p.images && p.images.length ? p.images : [];
     const showImg = (i) => {
-      $("#d-main").innerHTML = tag(p) + (imgs.length
+      $("#d-main").innerHTML = tag(p) + (isNew(p) ? `<span class="new-tag">NOVO</span>` : "") + (imgs.length
         ? `<img src="${U.driveImg(imgs[i], 1200)}" data-fallback="${U.driveImgFallback(imgs[i], 1200)}" alt="${esc(p.name)}" referrerpolicy="no-referrer">`
         : U.imgTag(p, 1200, ""));
       $$("#d-thumbs button").forEach((t, j) => t.setAttribute("aria-current", String(i === j)));

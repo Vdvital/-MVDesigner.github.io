@@ -314,7 +314,8 @@
   function renderProducts() {
     const q = $("#p-search").value.trim().toLowerCase(), f = $("#p-filter").value;
     const list = products.map((p, i) => ({ p, i })).filter(({ p }) => {
-      if (f === "promo" && !U.discount(p)) return false;
+      if (f === "promo" && !U.discount(p) && !p.tagPromo) return false;
+      if (f === "new" && !p.isNew) return false;
       if (f === "nophoto" && (p.images?.length || p.imageUrl)) return false;
       return !q || String(p.code).toLowerCase().includes(q) || String(p.name).toLowerCase().includes(q);
     });
@@ -331,7 +332,7 @@
       const off = U.discount(p);
       return `<button class="p-mini" data-i="${i}" style="text-align:left;cursor:pointer;padding:0" aria-label="Editar ${esc(p.name || p.code)}">
         ${U.imgTag(p, 300, "thumb")}
-        ${off ? `<span class="flag">-${off}%</span>` : ""}
+        <span class="flags">${off ? `<span class="flag">-${off}%</span>` : p.tagPromo ? `<span class="flag">PROMO</span>` : ""}${p.isNew ? `<span class="flag new">NOVO</span>` : ""}</span>
         ${!(p.images?.length || p.imageUrl) ? `<span class="nophoto">sem foto</span>` : ""}
         <div class="info"><span class="code-row"><span class="code">${esc(p.code)}</span>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Sem nome")}</b>
         <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "<span class='code'>sem preço</span>"}</span></div>
@@ -397,6 +398,8 @@
     $("#pe-promo").value = p.promoPrice != null ? String(p.promoPrice).replace(".", ",") : "";
     $("#pe-img").value = p.imageUrl || "";
     $("#pe-box").value = p.boxQty || "";
+    $("#pe-new").checked = !!p.isNew;
+    $("#pe-tagpromo").checked = !!p.tagPromo;
     $("#pe-drive").textContent = p.images?.length ? `${p.images.length} foto(s) do Drive ligada(s) a este código.` : "";
     $("#pe-delete").hidden = i < 0;
     dlgProd.showModal();
@@ -433,7 +436,8 @@
         ...(editIndex >= 0 && String(products[editIndex].code) !== code ? { images: [] } : {}),
         code, name: $("#pe-name").value.trim(), description: $("#pe-desc").value.trim(), category: $("#pe-cat").value.trim(),
         price: U.parseMoney($("#pe-price").value), promoPrice: U.parseMoney($("#pe-promo").value), imageUrl: $("#pe-img").value.trim(),
-        boxQty: U.parseBox($("#pe-box").value)
+        boxQty: U.parseBox($("#pe-box").value),
+        isNew: $("#pe-new").checked, tagPromo: $("#pe-tagpromo").checked
       };
       if (editIndex >= 0) products[editIndex] = p; else products.unshift(p);
     } else return;
