@@ -47,7 +47,7 @@
     const pub = products.map((p) => {
       const { price, promoPrice, ...rest } = p;
       if (price != null || promoPrice != null) prices[String(p.code)] = { price: price ?? null, promoPrice: promoPrice ?? null };
-      return { ...rest, promo: isPromo(p) };
+      return { ...rest, promo: isPromo(p) || !!p.tagPromo };
     });
     return { pub, prices };
   }
@@ -63,7 +63,7 @@
     if (!cat) return cat;
     return { ...cat, products: (cat.products || []).map((p) => {
       const { price, promoPrice, ...rest } = p;
-      return { ...rest, promo: p.promo ?? isPromo(p) };
+      return { ...rest, promo: p.promo ?? (isPromo(p) || !!p.tagPromo) };
     }) };
   }
   const hasLegacyPrices = (cat) => (cat?.products || []).some((p) => "price" in p || "promoPrice" in p);
