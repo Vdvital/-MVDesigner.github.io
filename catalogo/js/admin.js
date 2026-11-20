@@ -114,6 +114,7 @@
         <td>${u.slug ? `<a href="${esc(catalogUrl(u.slug))}" target="_blank" rel="noopener">/${esc(u.slug)}</a><div class="muted">${stats[u.uid] ? stats[u.uid].products : 0} produtos${teamCount[u.uid] ? ` · equipe: ${teamCount[u.uid]}` : ""}</div>` : "—"}</td>
         <td class="muted">${U.dateTime(u.lastLogin)}</td>
         <td class="actions">${u.role === "admin" ? "" : `
+          ${U.renewState(u) && u.active !== false ? `<button class="btn sm remind" data-act="remind">Avisar ⏳</button>` : ""}
           <button class="btn sm" data-act="time">Tempo</button>
           <button class="btn sm" data-act="toggle">${u.active === false ? "Desbloquear" : "Bloquear"}</button>
           <button class="btn sm" data-act="pass">Senha</button>
@@ -130,6 +131,7 @@
     const act = btn.dataset.act;
     try {
       if (act === "time") return openTime(u);
+      if (act === "remind") return openRemind(u);
       if (act === "pass") return openPass(u);
       if (act === "toggle") {
         await DB.updateUser(u.uid, { active: u.active === false });
@@ -196,6 +198,34 @@
     if (p.length < 6) return toast("A senha precisa ter pelo menos 6 caracteres.", "err");
     try { await DB.updateUser(editing.uid, { password: p }); toast("Senha alterada."); } catch (err) { toast(err.message, "err"); }
   });
+
+  /* ---------- aviso de renovação para o cliente ---------- */
+  const dlgRemind = $("#dlg-remind");
+  let remindUser = null;
+  function updateRemindLinks() {
+    const text = $("#rm-text").value;
+    const phone = $("#rm-phone").value.replace(/\D/g, "");
+    const intl = phone ? (phone.length <= 11 ? "55" + phone : phone) : "";
+    const wa = $("#rm-wa");
+    wa.href = intl.length >= 12 ? `https://wa.me/${intl}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    wa.textContent = intl.length >= 12 ? "Enviar no WhatsApp" : "Escolher contato no WhatsApp";
+    $("#rm-email").href = `mailto:${encodeURIComponent(remindUser.email)}?subject=${encodeURIComponent("Seu acesso ao Catálogo Online está vencendo")}&body=${encodeURIComponent(text.replace(/\*/g, ""))}`;
+  }
+  function openRemind(u) {
+    remindUser = u;
+    const d = U.daysLeft(u.expiresAt);
+    $("#rm-who").textContent = `${u.name} · ${u.email} · ${d <= 0 ? "vencido em" : "vence em"} ${U.date(u.expiresAt)}`;
+    $("#rm-text").value = U.reminderText(u);
+    $("#rm-phone").value = (stats[u.uid] && stats[u.uid].whatsapp) || "";
+    updateRemindLinks();
+    dlgRemind.showModal();
+  }
+  $("#rm-text").addEventListener("input", updateRemindLinks);
+  $("#rm-phone").addEventListener("input", updateRemindLinks);
+  ["#rm-wa", "#rm-email"].forEach((s) => $(s).addEventListener("click", () => {
+    toast(`Aviso preparado para ${remindUser.name}. Confira e envie.`);
+    setTimeout(() => dlgRemind.close(), 300);
+  }));
 
   // os números do topo filtram a lista
   U.$$(".stats [data-filter]").forEach((b) => b.addEventListener("click", () => {

@@ -239,6 +239,48 @@
     if (input) { input.focus(); input.select(); }
   });
 
+  /* ---------- renovação do plano ---------- */
+  const REN = Object.assign({ whatsapp: "11993975886", avisoDias: 7 }, CFG.renovacao || {});
+  U.renewDays = REN.avisoDias;
+  const intlPhone = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
+  U.renewPhone = () => intlPhone(REN.whatsapp);
+  U.renewPhoneLabel = () => String(REN.whatsapp).replace(/\D/g, "").replace(/^(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3");
+
+  /** Situação do plano de uma loja: null (tudo certo), "vence" (≤ avisoDias) ou "venceu". */
+  U.renewState = (p) => {
+    if (!p || !p.expiresAt || p.role === "admin") return null;
+    const d = U.daysLeft(p.expiresAt);
+    if (d <= 0) return "venceu";
+    return d <= REN.avisoDias ? "vence" : null;
+  };
+  const prazo = (p) => {
+    const d = U.daysLeft(p.expiresAt);
+    return d <= 0 ? `venceu em ${U.date(p.expiresAt)}` : d === 1 ? `vence amanhã (${U.date(p.expiresAt)})` : `vence em ${d} dias (${U.date(p.expiresAt)})`;
+  };
+
+  /** Link para a loja falar com o suporte e renovar (mensagem já preenchida). */
+  U.renewLink = (p = {}) => {
+    const txt = p.expiresAt
+      ? `Olá! Quero renovar o plano do Catálogo Online.\nLoja: ${p.name || ""}\nE-mail: ${p.email || ""}\nO acesso ${prazo(p)}.`
+      : `Olá! Quero renovar o plano do Catálogo Online.${p.email ? `\nE-mail: ${p.email}` : ""}`;
+    return `https://wa.me/${U.renewPhone()}?text=${encodeURIComponent(txt)}`;
+  };
+
+  /** Lembrete que o administrador envia ao cliente, com o link direto para renovar. */
+  U.reminderText = (p) => [
+    `Olá, ${(p.name || "").split(" ")[0] || "tudo bem"}! 👋`,
+    "",
+    `Seu acesso ao *Catálogo Online* ${prazo(p)}.`,
+    U.daysLeft(p.expiresAt) <= 0
+      ? "Seu catálogo está fora do ar. Renove para voltar a vender hoje mesmo."
+      : "Para não perder tempo e manter seu catálogo no ar, renove seu plano.",
+    "",
+    `👉 Fale com a gente: https://wa.me/${U.renewPhone()}`,
+    `ou chame no WhatsApp ${U.renewPhoneLabel()}.`
+  ].join("\n");
+  U.reminderWhatsApp = (p, clientPhone) => `https://wa.me/${intlPhone(clientPhone)}?text=${encodeURIComponent(U.reminderText(p))}`;
+  U.reminderEmail = (p) => `mailto:${encodeURIComponent(p.email || "")}?subject=${encodeURIComponent("Seu acesso ao Catálogo Online está vencendo")}&body=${encodeURIComponent(U.reminderText(p).replace(/\*/g, ""))}`;
+
   /** Mostra/oculta senha nos campos com data-toggle-pass. */
   U.passToggles = () => U.$$("input[type=password][data-toggle-pass]").forEach((inp) => {
     const b = document.createElement("button");

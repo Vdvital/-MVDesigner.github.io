@@ -212,3 +212,20 @@ button.stat{text-align:left;color:inherit;cursor:pointer;font:inherit;transition
 button.stat:hover{border-color:#555;transform:translateY(-1px)}
 .p-mini .thumb.no-img{display:flex;align-items:center;justify-content:center;font-size:15px}
 @media(max-width:760px){.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.p-mini .info{padding:8px}.p-mini .info b{font-size:12.5px}.p-mini .edit{display:none}}
+
+/* ---------- aviso de renovação ---------- */
+.renew-banner{display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,#ffc24b22,#ffc24b0a);border:1px solid #ffc24b66;border-radius:var(--radius);padding:14px 18px;margin-bottom:20px}
+.renew-banner.urgent{background:linear-gradient(90deg,#ff5a5a2b,#ff5a5a0d);border-color:#ff5a5a88;animation:rb-pulse 2.4s ease-in-out infinite}
+@keyframes rb-pulse{50%{box-shadow:0 0 0 4px #ff5a5a1f}}
+.rb-icon{font-size:26px;line-height:1}
+.rb-text{flex:1;display:flex;flex-direction:column;gap:2px;font-size:13.5px;color:var(--muted)}
+.rb-text b{color:var(--ink);font-size:16px}
+.rb-btn{background:#25d366;border-color:#25d366;color:#0b3d1f;font-weight:800}
+.rb-btn:hover{background:#3ee07a;border-color:#3ee07a}
+.renew-login{width:100%;margin:-6px 0 16px;background:#25d366;border-color:#25d366;color:#0b3d1f;font-weight:800}
+.btn.remind{border-color:#ffc24b88;color:var(--warn)}
+#dlg-remind{width:min(560px,calc(100% - 32px))}
+#dlg-remind .dialog-actions a{text-decoration:none}
+@media(max-width:760px){.renew-banner{flex-wrap:wrap}.rb-btn{width:100%}}
+td.actions{white-space:normal;text-align:right;max-width:320px}
+td.actions .btn{margin:2px 0 2px 4px}

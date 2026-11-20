@@ -69,3 +69,11 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - Catálogos antigos: ao abrir o painel, a loja move automaticamente os preços para a área protegida.
 
 **Importante:** depois de atualizar o site, publique novamente o conteúdo de `firestore.rules` no Firebase.
+
+## Aviso de renovação do plano
+
+- Configure em `config.js` → `renovacao`: o WhatsApp de contato (`11993975886`) e com quantos dias de antecedência o aviso aparece (`avisoDias: 7`).
+- **Painel da loja:** faltando 7 dias ou menos, aparece no topo "Seu plano vence em X dias" com o botão **Renovar pelo WhatsApp** (mensagem pronta com nome da loja, e-mail e data). Faltando 2 dias ou menos, o aviso fica vermelho.
+- **Login:** se o plano já venceu, aparece o botão **Renovar meu plano pelo WhatsApp**.
+- **Administrador:** lojas vencendo ou vencidas ganham o botão **Avisar ⏳**, que abre a mensagem de lembrete (editável) para enviar ao WhatsApp da loja ou por e-mail, com o link direto para renovar.
+- O site não tem servidor, então o lembrete não é disparado sozinho: o administrador clica em Avisar e confirma o envio no WhatsApp ou no e-mail.

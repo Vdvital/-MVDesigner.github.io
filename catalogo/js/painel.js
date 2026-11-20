@@ -72,7 +72,15 @@
     $("#acc-days").textContent = d == null ? "Sem limite" : `${d} dia${d === 1 ? "" : "s"}`;
     const soon = d != null && d <= 7;
     $("#acc-pill").innerHTML = `<span class="pill ${soon ? "expirando" : "ativo"}">${me.expiresAt ? "até " + U.date(me.expiresAt) : "Ativo"}</span>`;
-    if (soon) toast(`Seu acesso vence em ${d} dia${d === 1 ? "" : "s"}. Fale com o administrador.`, "err");
+    // aviso de renovação em destaque no topo do painel
+    const st = U.renewState(me);
+    if (st) {
+      $("#renew-banner").hidden = false;
+      $("#renew-banner").classList.toggle("urgent", d <= 2);
+      $("#rb-title").textContent = d <= 0 ? "Seu plano venceu" : d === 1 ? "Seu plano vence amanhã" : `Seu plano vence em ${d} dias`;
+      $("#rb-sub").textContent = `Renove até ${U.date(me.expiresAt)} para não perder tempo: seu catálogo e sua equipe saem do ar quando o plano vence. Fale com a gente no ${U.renewPhoneLabel()}.`;
+      $("#rb-btn").href = U.renewLink(me);
+    }
   }
   renderAccess();
 

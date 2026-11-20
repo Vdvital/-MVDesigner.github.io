@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Entrar | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611201236">
+<link rel="stylesheet" href="css/app.css?v=202611201256">
 </head>
 <body>
 <main class="login">
@@ -17,6 +17,7 @@
       <h2>Entrar</h2>
       <p>Lojas, vendedores e representantes entram aqui.</p>
       <div id="msg" class="alert" role="alert" hidden></div>
+      <a class="btn renew-login" id="renew-login" target="_blank" rel="noopener" hidden>Renovar meu plano pelo WhatsApp</a>
       <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required></div>
       <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required data-toggle-pass></div>
       <button class="btn primary" style="width:100%;margin-top:6px" id="submit">Entrar</button>
@@ -25,14 +26,22 @@
     </form>
   </section>
 </main>
-<script src="config.js?v=202611201236"></script>
-<script src="js/db.js?v=202611201236"></script>
-<script src="js/common.js?v=202611201236"></script>
+<script src="config.js?v=202611201256"></script>
+<script src="js/db.js?v=202611201256"></script>
+<script src="js/common.js?v=202611201256"></script>
 <script>
 (async () => {
   const msg = U.$("#msg");
-  const show = (t, cls = "alert") => { msg.className = cls; msg.textContent = t; msg.hidden = false; };
-  if (new URLSearchParams(location.search).get("expirado")) show("Seu tempo de acesso terminou. Fale com o administrador para renovar.");
+  const renew = U.$("#renew-login");
+  const show = (t, cls = "alert") => {
+    msg.className = cls; msg.textContent = t; msg.hidden = false;
+    // plano da loja vencido: atalho direto para renovar
+    const expired = /tempo de acesso terminou/i.test(t);
+    renew.hidden = !expired;
+    if (expired) renew.href = U.renewLink({ email: U.$("#email").value.trim() });
+  };
+  U.$("#email").addEventListener("input", () => { if (!renew.hidden) renew.href = U.renewLink({ email: U.$("#email").value.trim() }); });
+  if (new URLSearchParams(location.search).get("expirado")) show("Seu tempo de acesso terminou. Renove seu plano para voltar a usar o catálogo.");
   if (DB.mode === "local") U.$("#demo-hint").hidden = false;
   U.passToggles();
   try {

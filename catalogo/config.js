@@ -24,5 +24,11 @@ window.CATALOGO_CONFIG = {
   },
 
   // E-mails que são administradores (só eles criam usuários)
-  admins: ["tiranosaurro.vital@gmail.com"]
+  admins: ["tiranosaurro.vital@gmail.com"],
+
+  // Renovação do plano: WhatsApp de contato e quantos dias antes do vencimento o aviso aparece
+  renovacao: {
+    whatsapp: "11993975886",
+    avisoDias: 7
+  }
 };
