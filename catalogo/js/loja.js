@@ -55,6 +55,11 @@
   const byCode = new Map(products.map((p) => [String(p.code), p]));
   document.title = store.name || "Catálogo";
   if (store.accent) document.documentElement.style.setProperty("--accent", store.accent);
+  // logo da loja: ícone da aba do navegador e selo no topo do catálogo
+  if (store.logo) {
+    U.setFavicon(store.logo);
+    const lg = $("#store-logo"); lg.src = store.logo; lg.alt = `Logo ${store.name || ""}`; lg.hidden = false;
+  }
 
   /* ---------- capa ---------- */
   const hero = $("#hero");
@@ -379,7 +384,7 @@
       }));
       const id = await DB.saveQuote({
         slug, number, client: name, obs: $("#c-obs").value.trim(), items,
-        store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36" },
+        store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36", logo: store.logo || "" },
         seller: sellerInfo()
       });
       const link = new URL(`orcamento.html?id=${encodeURIComponent(id)}`, location.href).href;

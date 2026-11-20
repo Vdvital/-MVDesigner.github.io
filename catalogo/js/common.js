@@ -150,6 +150,37 @@
     img.src = URL.createObjectURL(file);
   });
 
+  /** Logo/ícone: imagem quadrada (encaixada, fundo transparente) em PNG pequeno. */
+  U.squareIcon = (file, size = 192) => new Promise((ok, fail) => {
+    if (!file.type.startsWith("image/")) return fail(new Error("Escolha um arquivo de imagem."));
+    if (file.size > 8 * 1024 * 1024) return fail(new Error("Imagem muito grande (máximo 8 MB)."));
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = size; c.height = size;
+      const ctx = c.getContext("2d");
+      const w = img.naturalWidth || size, h = img.naturalHeight || size;
+      const s = Math.min(size / w, size / h);
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, (size - w * s) / 2, (size - h * s) / 2, w * s, h * s);
+      URL.revokeObjectURL(img.src);
+      ok(c.toDataURL("image/png"));
+    };
+    img.onerror = () => fail(new Error("Não foi possível ler a imagem."));
+    img.src = URL.createObjectURL(file);
+  });
+
+  /** Troca o ícone da aba do navegador (favicon) e o ícone de atalho no celular. */
+  U.setFavicon = (dataUrl) => {
+    if (!dataUrl) return;
+    [["icon", "image/png"], ["apple-touch-icon", ""]].forEach(([rel, type]) => {
+      let l = document.querySelector(`link[rel="${rel}"]`);
+      if (!l) { l = document.createElement("link"); l.rel = rel; document.head.appendChild(l); }
+      if (type) l.type = type;
+      l.href = dataUrl;
+    });
+  };
+
   /* ---------- Excel (SheetJS) ---------- */
   let xlsxPromise;
   U.loadXLSX = () => (xlsxPromise = xlsxPromise || new Promise((ok, fail) => {

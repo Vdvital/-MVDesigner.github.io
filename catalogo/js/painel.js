@@ -235,6 +235,39 @@
   }
   $("#cover-remove").onclick = async () => { store.cover = ""; showCover(); await save("Capa removida."); };
 
+  /* ---------- logo / ícone da aba ---------- */
+  function showLogo() {
+    const has = !!store.logo;
+    $("#logo-img").hidden = !has; $("#logo-text").hidden = has; $("#logo-remove").hidden = !has;
+    if (has) $("#logo-img").src = store.logo;
+    $("#tp-icon").style.backgroundImage = has ? `url("${store.logo}")` : "";
+    $("#tp-icon").classList.toggle("empty", !has);
+    $("#tp-title").textContent = $("#s-name").value.trim() || store.name || "Catálogo";
+    U.setFavicon(store.logo); // o painel também mostra o ícone, para a loja ver como fica
+  }
+  showLogo();
+  $("#s-name").addEventListener("input", showLogo);
+  const logoFile = $("#logo-file");
+  $("#logo-drop").onclick = () => logoFile.click();
+  ["dragenter", "dragover"].forEach((ev) => $("#logo-drop").addEventListener(ev, (e) => { e.preventDefault(); $("#logo-drop").classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => $("#logo-drop").addEventListener(ev, (e) => { e.preventDefault(); $("#logo-drop").classList.remove("drag"); }));
+  $("#logo-drop").addEventListener("drop", (e) => e.dataTransfer.files[0] && setLogo(e.dataTransfer.files[0]));
+  logoFile.onchange = () => logoFile.files[0] && setLogo(logoFile.files[0]);
+  async function setLogo(f) {
+    const prev = store.logo;
+    try {
+      store.logo = await U.squareIcon(f, 192);
+      showLogo();
+      if (!(await save("Logo atualizado! Ele já aparece na aba do catálogo."))) { store.logo = prev; showLogo(); }
+    } catch (err) { toast(err.message, "err"); }
+    logoFile.value = "";
+  }
+  $("#logo-remove").onclick = async () => {
+    store.logo = ""; showLogo();
+    const l = document.querySelector('link[rel="icon"]'); if (l) l.href = "data:,";
+    await save("Logo removido.");
+  };
+
   $("#store-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     store.name = $("#s-name").value.trim();
@@ -245,7 +278,7 @@
     if (store.whatsapp && store.whatsapp.length < 10) return toast("WhatsApp da loja incompleto: use DDD + número.", "err");
     if (await save("Dados da loja salvos!")) $("#store-dirty").hidden = true;
   });
-  $("#store-form").addEventListener("input", () => { $("#store-dirty").hidden = false; });
+  $("#store-form").addEventListener("input", (e) => { if (e.target.type !== "file") $("#store-dirty").hidden = false; });
   window.addEventListener("beforeunload", (e) => { if (!$("#store-dirty").hidden) { e.preventDefault(); e.returnValue = ""; } });
 
   $("#contacts-form").addEventListener("submit", async (e) => {

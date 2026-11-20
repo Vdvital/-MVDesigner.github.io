@@ -243,3 +243,6 @@ dialog::backdrop{background:#000a}
   .staff-actions{gap:6px;width:100%;overflow-x:auto;scrollbar-width:none}
   .staff-actions a,.staff-actions button{white-space:nowrap;padding:4px 10px}
 }
+/* logo da loja no topo */
+.store-logo{width:76px;height:76px;object-fit:contain;background:#fff;border-radius:18px;padding:6px;box-shadow:0 8px 24px #0003;margin-bottom:14px;display:block}
+@media(max-width:700px){.store-logo{width:56px;height:56px;border-radius:14px;margin-bottom:10px}}

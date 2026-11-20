@@ -73,12 +73,21 @@
 
     /* cabeçalho */
     doc.setFillColor(...accent); doc.rect(0, 0, W, 34, "F");
+    // logo da loja num quadrado branco à esquerda do nome
+    let tx = M;
+    if (o.store.logo && /^data:image\/png/.test(o.store.logo)) {
+      try {
+        doc.setFillColor(255, 255, 255); doc.roundedRect(M, 6, 22, 22, 3, 3, "F");
+        doc.addImage(o.store.logo, "PNG", M + 1.5, 7.5, 19, 19);
+        tx = M + 27;
+      } catch { tx = M; }
+    }
     doc.setTextColor(...onAccent);
     doc.setFont("helvetica", "bold"); doc.setFontSize(20);
-    doc.text(doc.splitTextToSize(o.store.name || "Catálogo", W - 2 * M - 62)[0], M, 16);
+    doc.text(doc.splitTextToSize(o.store.name || "Catálogo", W - tx - M - 62)[0], tx, 16);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
     const contacts = [o.store.whatsapp && `WhatsApp ${phone(o.store.whatsapp)}`, o.store.instagram && `@${o.store.instagram}`].filter(Boolean).join("   ·   ");
-    if (contacts) doc.text(contacts, M, 24);
+    if (contacts) doc.text(contacts, tx, 24);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
     doc.text("ORÇAMENTO", W - M, 15, { align: "right" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
