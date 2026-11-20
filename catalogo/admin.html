@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Painel do Administrador | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611191457">
+<link rel="stylesheet" href="css/app.css?v=202611201236">
 </head>
 <body>
 <header class="topbar">
@@ -17,16 +17,16 @@
   </div>
 
   <section class="stats" aria-label="Resumo">
-    <div class="stat"><small>Usuários</small><strong id="st-total">0</strong></div>
-    <div class="stat"><small>Ativos</small><strong id="st-active" style="color:var(--ok)">0</strong></div>
-    <div class="stat"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong></div>
-    <div class="stat"><small>Vencidos / bloqueados</small><strong id="st-off" style="color:var(--bad)">0</strong></div>
+    <button class="stat" data-filter="" aria-label="Mostrar todos os usuários"><small>Usuários</small><strong id="st-total">0</strong></button>
+    <button class="stat" data-filter="ativos" aria-label="Filtrar ativos"><small>Ativos</small><strong id="st-active" style="color:var(--ok)">0</strong></button>
+    <button class="stat" data-filter="expirando" aria-label="Filtrar os que vencem em 7 dias"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong></button>
+    <button class="stat" data-filter="off" aria-label="Filtrar vencidos e bloqueados"><small>Vencidos / bloqueados</small><strong id="st-off" style="color:var(--bad)">0</strong></button>
   </section>
 
   <div class="grid-2">
     <!-- CRIAR USUÁRIO (somente admin) -->
-    <section class="card" aria-labelledby="new-title">
-      <h2 id="new-title">Criar usuário</h2>
+    <details class="card create-card" id="create-card" open>
+      <summary><h2 id="new-title">+ Criar usuário</h2><span class="chev" aria-hidden="true">▾</span></summary>
       <p class="sub">Só o administrador pode criar contas.</p>
       <form id="new-user" autocomplete="off">
         <div class="field"><label for="nu-name">Nome da loja ou cliente</label><input id="nu-name" required maxlength="80" placeholder="Ex.: Casa & Cia Utilidades"></div>
@@ -55,7 +55,7 @@
         </div>
         <button class="btn primary" style="width:100%" id="nu-submit">Criar usuário</button>
       </form>
-    </section>
+    </details>
 
     <!-- LISTA DE USUÁRIOS -->
     <section class="card" aria-labelledby="list-title">
@@ -65,10 +65,12 @@
         <input id="search" type="search" placeholder="Buscar por nome, e-mail ou endereço" aria-label="Buscar usuário">
         <select id="filter" aria-label="Filtrar por situação">
           <option value="">Todas as situações</option>
+          <option value="ativos">Todos os ativos</option>
           <option value="ativo">Ativos</option>
           <option value="expirando">Vencem em 7 dias</option>
           <option value="expirado">Vencidos</option>
           <option value="bloqueado">Bloqueados</option>
+          <option value="off">Vencidos ou bloqueados</option>
         </select>
       </div>
       <div class="table-wrap">
@@ -109,9 +111,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611191457"></script>
-<script src="js/db.js?v=202611191457"></script>
-<script src="js/common.js?v=202611191457"></script>
-<script src="js/admin.js?v=202611191457"></script>
+<script src="config.js?v=202611201236"></script>
+<script src="js/db.js?v=202611201236"></script>
+<script src="js/common.js?v=202611201236"></script>
+<script src="js/admin.js?v=202611201236"></script>
 </body>
 </html>

@@ -98,7 +98,13 @@
   function render() {
     const q = $("#search").value.trim().toLowerCase(), f = $("#filter").value;
     const list = users.filter((u) => {
-      if (f && (u.role === "admin" || situation(u) !== f)) return false;
+      if (f) {
+        if (u.role === "admin") return false;
+        const sit = situation(u);
+        const ok = f === "ativos" ? (sit === "ativo" || sit === "expirando")
+          : f === "off" ? (sit === "expirado" || sit === "bloqueado") : sit === f;
+        if (!ok) return false;
+      }
       return !q || [u.name, u.email, u.slug].some((v) => String(v || "").toLowerCase().includes(q));
     });
     $("#users").innerHTML = list.length ? list.map((u) => `
@@ -130,7 +136,7 @@
         toast(u.active === false ? "Acesso desbloqueado." : "Acesso bloqueado. O catálogo saiu do ar.");
       }
       if (act === "del") {
-        if (!confirm(`Excluir ${u.name}? O catálogo e os produtos serão apagados.`)) return;
+        if (!(await U.ask({ title: `Excluir ${u.name}?`, text: "O catálogo, os produtos, os preços e a equipe desta loja serão apagados. Isso não pode ser desfeito.", ok: "Excluir tudo", danger: true }))) return;
         await DB.deleteUser(u.uid); toast("Usuário excluído.");
       }
       await load();
@@ -179,7 +185,7 @@
   const dlgPass = $("#dlg-pass");
   async function openPass(u) {
     if (DB.mode === "firebase") {
-      if (!confirm(`Enviar e-mail de redefinição de senha para ${u.email}?`)) return;
+      if (!(await U.ask({ title: "Redefinir senha", text: `Vamos enviar um e-mail para ${u.email} com o link para criar uma nova senha.`, ok: "Enviar e-mail" }))) return;
       await DB.sendReset(u.email); toast("E-mail de redefinição enviado."); return;
     }
     editing = u; $("#pass-who").textContent = u.name; $("#new-pass").value = ""; dlgPass.showModal();
@@ -190,6 +196,14 @@
     if (p.length < 6) return toast("A senha precisa ter pelo menos 6 caracteres.", "err");
     try { await DB.updateUser(editing.uid, { password: p }); toast("Senha alterada."); } catch (err) { toast(err.message, "err"); }
   });
+
+  // os números do topo filtram a lista
+  U.$$(".stats [data-filter]").forEach((b) => b.addEventListener("click", () => {
+    $("#filter").value = b.dataset.filter; render();
+    $("#list-title").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  // no celular o formulário de criar começa fechado, para a lista aparecer logo
+  if (matchMedia("(max-width: 760px)").matches) $("#create-card").open = false;
 
   await load();
   setInterval(render, 60000);

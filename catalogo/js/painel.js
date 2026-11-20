@@ -15,10 +15,56 @@
   $("#open-catalog").href = link;
   $("#cat-link").value = link;
   $("#logout").onclick = async () => { await DB.logout(); location.replace("index.html"); };
-  $("#copy-link").onclick = async () => {
+  const copyLink = async () => {
     try { await navigator.clipboard.writeText(link); } catch { $("#cat-link").select(); document.execCommand("copy"); }
-    toast("Link copiado!");
+    toast("Link do catálogo copiado (sem preços).");
+    markShared();
   };
+  $("#copy-link").onclick = copyLink;
+  $("#head-copy").onclick = copyLink;
+  $("#head-open").href = link;
+  $("#share-wa").addEventListener("click", () => markShared());
+
+  /* ---------- abas ---------- */
+  const TABS = ["produtos", "loja", "fotos", "equipe", "compartilhar"];
+  function showTab(name, focus) {
+    if (!TABS.includes(name)) name = "produtos";
+    $$(".tabs-nav [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+    $$(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+    if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+    if (focus) { const t = $(`.tab-panel[data-panel="${name}"] input:not([type=file]):not([readonly]), .tab-panel[data-panel="${name}"] button`); t && t.focus({ preventScroll: true }); }
+  }
+  $(".tabs-nav").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
+  window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+  showTab(location.hash.slice(1));
+
+  /* ---------- primeiros passos ---------- */
+  const OB_KEY = "cat_ob_" + me.uid;
+  const obState = () => { try { return JSON.parse(localStorage.getItem(OB_KEY)) || {}; } catch { return {}; } };
+  const obSet = (k, v) => { const s = obState(); s[k] = v; try { localStorage.setItem(OB_KEY, JSON.stringify(s)); } catch { /* ignore */ } };
+  function markShared() { obSet("shared", true); renderOnboarding(); }
+  function renderOnboarding() {
+    if (typeof products === "undefined") return;
+    const st = obState();
+    const withPhoto = products.filter((p) => p.images?.length || p.imageUrl).length;
+    const steps = [
+      { done: products.length > 0, tab: "produtos", t: "Importe seus produtos", d: "Envie a planilha do Excel ou cadastre um a um." },
+      { done: products.length > 0 && withPhoto >= Math.ceil(products.length / 2), tab: "fotos", t: "Ligue as fotos do Drive", d: "As fotos entram sozinhas pelo código." },
+      { done: !!(store.whatsapp && (store.cover || store.about)), tab: "loja", t: "Personalize a loja", d: "Capa, frase e WhatsApp de contato." },
+      { done: members.length > 0, tab: "equipe", t: "Crie a equipe", d: "Vendedores e representantes veem os preços." },
+      { done: !!st.shared, tab: "compartilhar", t: "Compartilhe o link", d: "Envie o catálogo aos clientes." }
+    ];
+    const n = steps.filter((s) => s.done).length;
+    const box = $("#onboarding");
+    box.hidden = !!st.hidden || n === steps.length;
+    $("#ob-progress").textContent = `${n} de ${steps.length} concluídos`;
+    $("#ob-bar").style.width = `${(n / steps.length) * 100}%`;
+    $("#ob-list").innerHTML = steps.map((s, i) => `<li class="${s.done ? "done" : ""}"><button data-tab="${s.tab}">
+      <span class="ck" aria-hidden="true">${s.done ? "✓" : i + 1}</span><span><b>${s.t}</b><small>${s.d}</small></span>
+      <span class="sr-only">${s.done ? "(concluído)" : "(pendente)"}</span></button></li>`).join("");
+  }
+  $("#ob-list").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { showTab(b.dataset.tab, true); $(".tabs-nav").scrollIntoView({ behavior: "smooth" }); } });
+  $("#ob-hide").onclick = () => { obSet("hidden", true); renderOnboarding(); };
 
   /* ---------- acesso ---------- */
   function renderAccess() {
@@ -43,6 +89,9 @@
   async function loadTeam() {
     try { members = await DB.listMembers(me); } catch (e) { toast(e.message, "err"); members = []; }
     members.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    $("#tab-count-team").textContent = members.length || "";
+    syncTeamContacts();
+    renderOnboarding();
     $("#team-list").innerHTML = members.length ? members.map((m) => `
       <li data-uid="${esc(m.uid)}">
         <div><b>${esc(m.name)}</b> <span class="pill ${m.active === false ? "bloqueado" : "ativo"}">${DB.ROLE_LABEL[m.role]}${m.active === false ? " · bloqueado" : ""}</span>
@@ -79,10 +128,10 @@
         await DB.updateMember(me, m.uid, { active: m.active === false });
         toast(m.active === false ? "Acesso liberado." : "Acesso bloqueado.");
       } else if (b.dataset.act === "del") {
-        if (!confirm(`Excluir a conta de ${m.name}?`)) return;
+        if (!(await U.ask({ title: `Excluir ${m.name}?`, text: "A pessoa perde o acesso ao catálogo e aos preços. Isso não pode ser desfeito.", ok: "Excluir conta", danger: true }))) return;
         await DB.deleteMember(me, m.uid); toast("Conta excluída.");
       } else if (b.dataset.act === "wa") {
-        const v = prompt(`WhatsApp de ${m.name} (DDD + número):`, m.whatsapp || "");
+        const v = await U.ask({ title: `WhatsApp de ${m.name}`, text: "Os orçamentos montados por essa pessoa chegam neste número.", ok: "Salvar", input: { value: m.whatsapp || "", placeholder: "11 99999-9999", inputmode: "tel" } });
         if (v === null) return;
         const n = v.replace(/\D/g, "");
         if (n && n.length < 10) return toast("WhatsApp incompleto: use DDD + número.", "err");
@@ -90,10 +139,10 @@
         toast("WhatsApp atualizado.");
       } else if (b.dataset.act === "pass") {
         if (DB.mode === "firebase") {
-          if (!confirm(`Enviar e-mail de redefinição de senha para ${m.email}?`)) return;
+          if (!(await U.ask({ title: "Redefinir senha", text: `Vamos enviar um e-mail para ${m.email} com o link para criar uma nova senha.`, ok: "Enviar e-mail" }))) return;
           await DB.sendReset(m.email); toast("E-mail de redefinição enviado."); return;
         }
-        const p = prompt(`Nova senha para ${m.name} (mínimo 6 caracteres):`);
+        const p = await U.ask({ title: `Nova senha para ${m.name}`, text: "Mínimo de 6 caracteres.", ok: "Salvar senha", input: { type: "text" } });
         if (!p) return;
         await DB.updateMember(me, m.uid, { password: p }); toast("Senha alterada.");
         return;
@@ -103,10 +152,19 @@
   });
   loadTeam();
 
+  /* Equipe com WhatsApp aparece como opção no carrinho dos clientes */
+  function syncTeamContacts() {
+    const team = members.filter((m) => m.active !== false && m.whatsapp).map((m) => ({ name: m.name.split(" ")[0], whatsapp: m.whatsapp }));
+    if (JSON.stringify(team) === JSON.stringify(store.team || [])) return;
+    store.team = team;
+    save();
+  }
+
   async function save(msg) {
     try {
       cat = await DB.saveMyCatalog(me, { store, products });
       if (msg) toast(msg);
+      renderOnboarding();
       return true;
     } catch (err) {
       toast(err.message, "err");
@@ -176,13 +234,21 @@
     store.whatsapp = $("#s-wa").value.replace(/\D/g, "");
     store.instagram = $("#s-ig").value.trim().replace(/^@/, "");
     store.accent = $("#s-accent").value;
+    if (store.whatsapp && store.whatsapp.length < 10) return toast("WhatsApp da loja incompleto: use DDD + número.", "err");
+    if (await save("Dados da loja salvos!")) $("#store-dirty").hidden = true;
+  });
+  $("#store-form").addEventListener("input", () => { $("#store-dirty").hidden = false; });
+  window.addEventListener("beforeunload", (e) => { if (!$("#store-dirty").hidden) { e.preventDefault(); e.returnValue = ""; } });
+
+  $("#contacts-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const bad = U.$$("#sellers .sl-wa").some((i) => i.value.trim() && i.value.replace(/\D/g, "").length < 10);
+    if (bad) return toast("Algum WhatsApp está incompleto: use DDD + número.", "err");
     store.sellers = U.$$("#sellers .seller").map((r) => ({
       name: r.querySelector(".sl-name").value.trim(),
       whatsapp: r.querySelector(".sl-wa").value.replace(/\D/g, "")
     })).filter((x) => x.whatsapp.length >= 10);
-    const bad = U.$$("#sellers .sl-wa").some((i) => i.value.trim() && i.value.replace(/\D/g, "").length < 10);
-    if (bad) toast("Algum WhatsApp de vendedor está incompleto (use DDD + número) e não foi salvo.", "err");
-    await save("Dados da loja salvos!");
+    await save("Contatos salvos!");
   });
 
   /* ---------- Google Drive ---------- */
@@ -213,17 +279,25 @@
     });
     const withPhoto = products.filter((p) => p.images?.length || p.imageUrl).length;
     $("#prod-count").textContent = products.length ? `· ${products.length} itens · ${withPhoto} com foto` : "";
+    $("#tab-count-prod").textContent = products.length || "";
+    const empty = !products.length
+      ? `<div class="empty-state"><h3>Seu catálogo ainda está vazio</h3>
+          <p>Comece pela planilha: baixe o modelo, preencha no Excel e importe aqui.</p>
+          <div class="actions"><button class="btn" data-empty="model">1. Baixar modelo</button><label class="btn primary" for="xls-file" style="margin:0;color:#111">2. Importar planilha</label></div></div>`
+      : `<div class="empty-state"><h3>Nenhum produto encontrado</h3><p>Tente outro código ou nome.</p>
+          <div class="actions"><button class="btn" data-empty="clear">Limpar busca</button></div></div>`;
     $("#products").innerHTML = list.length ? list.slice(0, 400).map(({ p, i }) => {
       const off = U.discount(p);
-      return `<button class="p-mini" data-i="${i}" style="text-align:left;cursor:pointer;padding:0">
+      return `<button class="p-mini" data-i="${i}" style="text-align:left;cursor:pointer;padding:0" aria-label="Editar ${esc(p.name || p.code)}">
         ${U.imgTag(p, 300, "thumb")}
         ${off ? `<span class="flag">-${off}%</span>` : ""}
         ${!(p.images?.length || p.imageUrl) ? `<span class="nophoto">sem foto</span>` : ""}
         <div class="info"><span class="code">${esc(p.code)}</span><b>${esc(p.name || "Sem nome")}</b>
-        <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "&nbsp;"}</span></div>
+        <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "<span class='code'>sem preço</span>"}</span></div>
+        <span class="edit" aria-hidden="true">Editar ✎</span>
       </button>`;
-    }).join("") + (list.length > 400 ? `<p class="hint">Mostrando 400 de ${list.length}. Use a busca.</p>` : "")
-      : `<div class="empty" style="grid-column:1/-1">${products.length ? "Nenhum produto encontrado." : "Nenhum produto ainda. Importe sua planilha do Excel ou baixe o modelo."}</div>`;
+    }).join("") + (list.length > 400 ? `<p class="hint">Mostrando 400 de ${list.length}. Use a busca.</p>` : "") : empty;
+    renderOnboarding();
     $("#cats").innerHTML = [...new Set(products.map((p) => p.category).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
   }
   $("#p-search").addEventListener("input", renderProducts);
@@ -285,17 +359,32 @@
     $("#pe-delete").hidden = i < 0;
     dlgProd.showModal();
   };
-  $("#products").addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) openProduct(Number(b.dataset.i)); });
+  $("#products").addEventListener("click", (e) => {
+    const em = e.target.closest("[data-empty]");
+    if (em && em.dataset.empty === "model") return $("#xls-model").click();
+    if (em && em.dataset.empty === "clear") { $("#p-search").value = ""; $("#p-filter").value = ""; return renderProducts(); }
+    const b = e.target.closest("[data-i]"); if (b) openProduct(Number(b.dataset.i));
+  });
+  // valida antes de fechar a janela, para não perder o que foi digitado
+  $("#prod-form").addEventListener("submit", (e) => {
+    if (!e.submitter || e.submitter.value !== "save") return;
+    const code = $("#pe-code").value.trim();
+    let msg = "";
+    if (!code) msg = "O código é obrigatório.";
+    else if (products.some((p, i) => i !== editIndex && String(p.code) === code)) msg = "Já existe um produto com esse código.";
+    else if ($("#pe-price").value.trim() && U.parseMoney($("#pe-price").value) == null) msg = "Preço inválido. Use, por exemplo, 89,90.";
+    else if ($("#pe-promo").value.trim() && U.parseMoney($("#pe-promo").value) == null) msg = "Preço promocional inválido.";
+    if (msg) { e.preventDefault(); toast(msg, "err"); }
+  });
   $("#add-product").onclick = () => openProduct(-1);
   dlgProd.addEventListener("close", async () => {
     const v = dlgProd.returnValue;
     if (v === "delete" && editIndex >= 0) {
-      if (!confirm("Excluir este produto?")) return;
+      const name = products[editIndex].name || products[editIndex].code;
+      if (!(await U.ask({ title: "Excluir produto?", text: `"${name}" sai do catálogo.`, ok: "Excluir", danger: true }))) return;
       products.splice(editIndex, 1);
     } else if (v === "save") {
       const code = $("#pe-code").value.trim();
-      if (!code) return toast("O código é obrigatório.", "err");
-      if (products.some((p, i) => i !== editIndex && String(p.code) === code)) return toast("Já existe um produto com esse código.", "err");
       const p = {
         ...(editIndex >= 0 ? products[editIndex] : { images: [] }),
         ...(editIndex >= 0 && String(products[editIndex].code) !== code ? { images: [] } : {}),

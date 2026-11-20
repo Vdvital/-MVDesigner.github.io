@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611191457">
+<link rel="stylesheet" href="css/app.css?v=202611201236">
 </head>
 <body>
 <header class="topbar">
@@ -13,24 +13,98 @@
 
 <main class="wrap">
   <div class="page-head">
-    <div><h1 id="hello">Olá!</h1><p>Monte seu catálogo: capa, produtos pelo Excel e fotos pelo Google Drive.</p></div>
+    <div><h1 id="hello">Olá!</h1><p id="hello-sub">Seu catálogo em um só lugar.</p></div>
+    <div class="head-actions">
+      <button class="btn" id="head-copy">Copiar link do catálogo</button>
+      <a class="btn primary" id="head-open" target="_blank" rel="noopener">Abrir catálogo ↗</a>
+    </div>
   </div>
 
-  <div class="grid-2">
-    <div class="stack">
-      <!-- ACESSO -->
-      <section class="card" aria-labelledby="acc-title">
-        <h2 id="acc-title">Seu acesso</h2>
-        <p class="sub">Link para enviar aos seus clientes.</p>
-        <div class="access-box"><div><small class="hint" style="margin:0">Tempo restante</small><strong id="acc-days">—</strong></div><span id="acc-pill"></span></div>
-        <div class="field" style="margin-top:14px">
-          <label for="cat-link">Link de apresentação para clientes (sem preços)</label>
-          <div class="link-box"><input id="cat-link" readonly><button class="btn sm" id="copy-link">Copiar</button></div>
-          <p class="hint">Quem abrir este link vê os produtos sem valores. Os preços só aparecem para a loja, vendedores e representantes logados.</p>
-        </div>
-        <a class="btn" style="width:100%" id="share-wa" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
-      </section>
+  <!-- PRIMEIROS PASSOS -->
+  <section class="card onboarding" id="onboarding" aria-labelledby="ob-title" hidden>
+    <div class="ob-head">
+      <div><h2 id="ob-title">Primeiros passos</h2><p class="sub" id="ob-progress"></p></div>
+      <button class="btn sm ghost" id="ob-hide" aria-label="Esconder primeiros passos">Esconder</button>
+    </div>
+    <div class="ob-bar"><i id="ob-bar"></i></div>
+    <ol class="ob-list" id="ob-list"></ol>
+  </section>
 
+  <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
+    <button role="tab" data-tab="produtos" aria-selected="true">Produtos <span class="count" id="tab-count-prod"></span></button>
+    <button role="tab" data-tab="loja" aria-selected="false">Minha loja</button>
+    <button role="tab" data-tab="fotos" aria-selected="false">Fotos do Drive</button>
+    <button role="tab" data-tab="equipe" aria-selected="false">Equipe <span class="count" id="tab-count-team"></span></button>
+    <button role="tab" data-tab="compartilhar" aria-selected="false">Compartilhar</button>
+  </nav>
+
+  <div class="tab-panel" data-panel="produtos">
+    <!-- PRODUTOS -->
+    <section class="card" aria-labelledby="prod-title">
+      <h2 id="prod-title">Produtos <span class="hint" id="prod-count" style="font-weight:500"></span></h2>
+      <p class="sub">Importe pelo Excel (.xlsx, .xls ou .csv) ou cadastre um a um.</p>
+      <div class="toolbar">
+        <label class="btn primary" style="margin:0;color:#111" for="xls-file">Importar Excel</label>
+        <input type="file" id="xls-file" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn" id="xls-export">Exportar Excel</button>
+        <button class="btn ghost" id="xls-model">Baixar modelo</button>
+        <button class="btn ghost" id="add-product">+ Produto</button>
+      </div>
+      <div class="toolbar">
+        <input id="p-search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar produto">
+        <select id="p-filter" aria-label="Filtrar produtos">
+          <option value="">Todos</option><option value="promo">Em promoção</option><option value="nophoto">Sem foto</option>
+        </select>
+      </div>
+      <div class="products" id="products"></div>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-panel="loja" hidden>
+      <!-- LOJA E CAPA -->
+      <section class="card" aria-labelledby="store-title">
+        <h2 id="store-title">Capa e dados da loja</h2>
+        <p class="sub">Aparecem no topo do catálogo.</p>
+        <form id="store-form">
+          <div class="field">
+            <label id="cover-label">Capa do catálogo</label>
+            <div class="cover-drop" id="cover-drop" tabindex="0" role="button" aria-labelledby="cover-label">
+              <span id="cover-text">Clique ou arraste uma imagem<br><small>Ideal: 1600 × 600 px</small></span>
+              <img id="cover-img" alt="" hidden>
+            </div>
+            <input type="file" id="cover-file" accept="image/*" hidden>
+            <button type="button" class="btn sm ghost danger" id="cover-remove" style="margin-top:8px" hidden>Remover capa</button>
+          </div>
+          <div class="field"><label for="s-name">Nome da loja</label><input id="s-name" maxlength="80"></div>
+          <div class="field"><label for="s-about">Frase de apresentação</label><textarea id="s-about" rows="2" maxlength="220" placeholder="Ex.: Atacado de utilidades domésticas com entrega para todo o Brasil"></textarea></div>
+          <div class="row">
+            <div class="field"><label for="s-wa">WhatsApp (com DDD)</label><input id="s-wa" inputmode="tel" placeholder="11 99999-9999"></div>
+            <div class="field"><label for="s-ig">Instagram</label><input id="s-ig" placeholder="@sualoja"></div>
+          </div>
+          <div class="field"><label for="s-accent">Cor de destaque</label><input id="s-accent" type="color" style="height:44px;padding:4px"></div>
+          <div class="save-row"><span class="dirty" id="store-dirty" hidden>Alterações não salvas</span><button class="btn primary">Salvar dados da loja</button></div>
+        </form>
+      </section>
+  </div>
+
+  <div class="tab-panel narrow" data-panel="fotos" hidden>
+      <!-- GOOGLE DRIVE -->
+      <section class="card" aria-labelledby="drive-title">
+        <h2 id="drive-title">Fotos pelo Google Drive</h2>
+        <p class="sub">O sistema puxa a foto certa pelo código do produto.</p>
+        <ol class="steps-list">
+          <li>Crie uma pasta no Google Drive e coloque as fotos.</li>
+          <li>Nomeie cada foto com o <b>código</b>: <code>1020.jpg</code>. Mais fotos: <code>1020_2.jpg</code>.</li>
+          <li>Compartilhe a pasta como <b>“Qualquer pessoa com o link – Leitor”</b>.</li>
+          <li>Cole o link da pasta abaixo e clique em buscar.</li>
+        </ol>
+        <div class="field" style="margin-top:14px"><label for="drive-link">Link da pasta do Drive</label><input id="drive-link" placeholder="https://drive.google.com/drive/folders/..."></div>
+        <button class="btn primary" style="width:100%" id="drive-sync">Buscar fotos do Drive</button>
+        <p class="progress" id="drive-status" role="status"></p>
+      </section>
+  </div>
+
+  <div class="tab-panel narrow" data-panel="equipe" hidden>
       <!-- EQUIPE -->
       <section class="card" aria-labelledby="team-title">
         <h2 id="team-title">Vendedores e representantes</h2>
@@ -53,74 +127,28 @@
           <button class="btn primary" style="width:100%" id="tm-submit">Criar conta</button>
         </form>
         <ul class="team-list" id="team-list"></ul>
-      </section>
-
-      <!-- LOJA E CAPA -->
-      <section class="card" aria-labelledby="store-title">
-        <h2 id="store-title">Capa e dados da loja</h2>
-        <p class="sub">Aparecem no topo do catálogo.</p>
-        <form id="store-form">
-          <div class="field">
-            <label id="cover-label">Capa do catálogo</label>
-            <div class="cover-drop" id="cover-drop" tabindex="0" role="button" aria-labelledby="cover-label">
-              <span id="cover-text">Clique ou arraste uma imagem<br><small>Ideal: 1600 × 600 px</small></span>
-              <img id="cover-img" alt="" hidden>
-            </div>
-            <input type="file" id="cover-file" accept="image/*" hidden>
-            <button type="button" class="btn sm ghost danger" id="cover-remove" style="margin-top:8px" hidden>Remover capa</button>
-          </div>
-          <div class="field"><label for="s-name">Nome da loja</label><input id="s-name" maxlength="80"></div>
-          <div class="field"><label for="s-about">Frase de apresentação</label><textarea id="s-about" rows="2" maxlength="220" placeholder="Ex.: Atacado de utilidades domésticas com entrega para todo o Brasil"></textarea></div>
-          <div class="row">
-            <div class="field"><label for="s-wa">WhatsApp (com DDD)</label><input id="s-wa" inputmode="tel" placeholder="11 99999-9999"></div>
-            <div class="field"><label for="s-ig">Instagram</label><input id="s-ig" placeholder="@sualoja"></div>
-          </div>
-          <div class="field">
-            <label>Vendedores no WhatsApp</label>
-            <p class="hint" style="margin:0 0 8px">Ao clicar em "Consultar preço", o cliente escolhe com quem falar. Sem vendedores, a lista vai para o WhatsApp da loja.</p>
-            <div id="sellers"></div>
-            <button type="button" class="btn sm" id="add-seller">+ Adicionar vendedor</button>
-          </div>
-          <div class="field"><label for="s-accent">Cor de destaque</label><input id="s-accent" type="color" style="height:44px;padding:4px"></div>
-          <button class="btn primary" style="width:100%">Salvar dados da loja</button>
+        <form id="contacts-form" class="contacts">
+          <h3>Contatos extras no carrinho</h3>
+          <p class="hint" style="margin:0 0 10px">Pessoas <b>sem login</b> que também atendem clientes pelo WhatsApp. No carrinho, o cliente escolhe com quem falar (junto com a equipe acima que tiver WhatsApp).</p>
+          <div id="sellers"></div>
+          <div class="save-row"><button type="button" class="btn sm" id="add-seller">+ Adicionar contato</button><button class="btn sm primary">Salvar contatos</button></div>
         </form>
       </section>
+  </div>
 
-      <!-- GOOGLE DRIVE -->
-      <section class="card" aria-labelledby="drive-title">
-        <h2 id="drive-title">Fotos pelo Google Drive</h2>
-        <p class="sub">O sistema puxa a foto certa pelo código do produto.</p>
-        <ol class="steps-list">
-          <li>Crie uma pasta no Google Drive e coloque as fotos.</li>
-          <li>Nomeie cada foto com o <b>código</b>: <code>1020.jpg</code>. Mais fotos: <code>1020_2.jpg</code>.</li>
-          <li>Compartilhe a pasta como <b>“Qualquer pessoa com o link – Leitor”</b>.</li>
-          <li>Cole o link da pasta abaixo e clique em buscar.</li>
-        </ol>
-        <div class="field" style="margin-top:14px"><label for="drive-link">Link da pasta do Drive</label><input id="drive-link" placeholder="https://drive.google.com/drive/folders/..."></div>
-        <button class="btn primary" style="width:100%" id="drive-sync">Buscar fotos do Drive</button>
-        <p class="progress" id="drive-status" role="status"></p>
+  <div class="tab-panel narrow" data-panel="compartilhar" hidden>
+      <!-- ACESSO -->
+      <section class="card" aria-labelledby="acc-title">
+        <h2 id="acc-title">Seu acesso</h2>
+        <p class="sub">Link para enviar aos seus clientes.</p>
+        <div class="access-box"><div><small class="hint" style="margin:0">Tempo restante</small><strong id="acc-days">—</strong></div><span id="acc-pill"></span></div>
+        <div class="field" style="margin-top:14px">
+          <label for="cat-link">Link de apresentação para clientes (sem preços)</label>
+          <div class="link-box"><input id="cat-link" readonly><button class="btn sm" id="copy-link">Copiar</button></div>
+          <p class="hint">Quem abrir este link vê os produtos sem valores. Os preços só aparecem para a loja, vendedores e representantes logados.</p>
+        </div>
+        <a class="btn" style="width:100%" id="share-wa" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
       </section>
-    </div>
-
-    <!-- PRODUTOS -->
-    <section class="card" aria-labelledby="prod-title">
-      <h2 id="prod-title">Produtos <span class="hint" id="prod-count" style="font-weight:500"></span></h2>
-      <p class="sub">Importe pelo Excel (.xlsx, .xls ou .csv) ou cadastre um a um.</p>
-      <div class="toolbar">
-        <label class="btn primary" style="margin:0;color:#111" for="xls-file">Importar Excel</label>
-        <input type="file" id="xls-file" accept=".xlsx,.xls,.csv" hidden>
-        <button class="btn" id="xls-export">Exportar Excel</button>
-        <button class="btn ghost" id="xls-model">Baixar modelo</button>
-        <button class="btn ghost" id="add-product">+ Produto</button>
-      </div>
-      <div class="toolbar">
-        <input id="p-search" type="search" placeholder="Buscar por código ou nome" aria-label="Buscar produto">
-        <select id="p-filter" aria-label="Filtrar produtos">
-          <option value="">Todos</option><option value="promo">Em promoção</option><option value="nophoto">Sem foto</option>
-        </select>
-      </div>
-      <div class="products" id="products"></div>
-    </section>
   </div>
 </main>
 
@@ -159,9 +187,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611191457"></script>
-<script src="js/db.js?v=202611191457"></script>
-<script src="js/common.js?v=202611191457"></script>
-<script src="js/painel.js?v=202611191457"></script>
+<script src="config.js?v=202611201236"></script>
+<script src="js/db.js?v=202611201236"></script>
+<script src="js/common.js?v=202611201236"></script>
+<script src="js/painel.js?v=202611201236"></script>
 </body>
 </html>

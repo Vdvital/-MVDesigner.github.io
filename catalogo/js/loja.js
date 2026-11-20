@@ -63,7 +63,7 @@
   $("#foot-name").textContent = store.name || "";
   $("#store-about").textContent = store.about || "";
   const intl = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
-  const sellers = (store.sellers || []).map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
+  const sellers = [...(store.team || []), ...(store.sellers || [])].map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
   const wa = intl(store.whatsapp) || (sellers[0] && sellers[0].wa) || "";
   // WhatsApp de quem monta o orçamento: o do próprio vendedor/representante (ou o da loja, para o dono)
   let myWa = !canSee ? "" : intl(viewer.whatsapp) || (viewer.role === "user" ? intl(store.whatsapp) : "");
@@ -98,8 +98,16 @@
         ${U.imgTag(p, 500, "ph")}
         <div class="body"><span class="code">Cód. ${esc(p.code)}</span><span class="name">${esc(p.name || "Produto")}</span>${priceHtml(p)}</div>
       </button>
-      <button class="add" data-add="${esc(p.code)}">+ Adicionar</button>
+      <div class="buy" data-buy="${esc(p.code)}">${buyInner(String(p.code))}</div>
     </article>`;
+  /** Botão do cartão: "+ Adicionar" ou o seletor − qtd + quando o item já está no carrinho. */
+  function buyInner(code) {
+    const n = cart && cart[code];
+    return n
+      ? `<div class="stepper" role="group" aria-label="Quantidade no carrinho"><button type="button" data-dec="${esc(code)}" aria-label="Tirar um">−</button><span aria-live="polite"><b>${n}</b> no carrinho</span><button type="button" data-inc="${esc(code)}" aria-label="Colocar mais um">+</button></div>`
+      : `<button class="add" data-add="${esc(code)}">+ Adicionar</button>`;
+  }
+  const refreshBuy = () => $$("[data-buy]").forEach((el) => { el.innerHTML = buyInner(el.dataset.buy); });
 
   /* ---------- promoções ---------- */
   const promos = products.filter(isPromo);
@@ -235,28 +243,30 @@
     $("#grid").innerHTML = list.slice(0, shown).map(card).join("");
     $("#count").textContent = `${list.length} ${list.length === 1 ? "item" : "itens"}`;
     $("#empty").hidden = list.length > 0;
+    $("#empty-clear").hidden = !(q || activeCat || pf.min != null || pf.max != null || pf.promo);
     $("#more").hidden = list.length <= shown;
   }
   $("#more").onclick = () => { shown += PAGE; render(); };
+  $("#empty-clear").onclick = () => { $("#q").value = ""; $("#pp-clear").click(); setCategory(""); };
   render();
 
   /* ---------- carrinho ---------- */
   const KEY = "cat_cart_" + slug;
-  let cart = {};
+  var cart = {}; // var: os cartões já desenhados consultam o carrinho antes desta linha
   try { cart = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { cart = {}; }
   Object.keys(cart).forEach((c) => { if (!byCode.has(c)) delete cart[c]; }); // remove itens que saíram do catálogo
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch { /* navegador sem armazenamento */ } };
 
-  function addToCart(code, qty = 1, btn) {
+  function addToCart(code, qty = 1, silent) {
     cart[code] = Math.min(9999, (cart[code] || 0) + qty);
     persist(); updateCart();
-    U.toast(`Adicionado ao carrinho (${cart[code]})`);
-    if (btn) { btn.classList.add("added"); btn.textContent = "✓ Adicionado"; setTimeout(() => { btn.classList.remove("added"); btn.textContent = "+ Adicionar"; }, 1200); }
+    if (!silent) U.toast(`${cart[code]} no carrinho · ${byCode.get(code)?.name || ""}`);
     ["#cart-open", "#cart-float"].forEach((s) => { const el = $(s); el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); });
   }
 
   function updateCart() {
     const codes = Object.keys(cart);
+    refreshBuy();
     if ($("#pdf-ready")) $("#pdf-ready").hidden = true; // carrinho mudou: gerar de novo
     const count = codes.reduce((n, c) => n + cart[c], 0);
     $("#cart-count").textContent = count; $("#cart-count").hidden = !count;
@@ -449,7 +459,15 @@
   let current = null;
   document.addEventListener("click", (e) => {
     const add = e.target.closest("[data-add]");
-    if (add) return addToCart(add.dataset.add, 1, add);
+    if (add) return addToCart(add.dataset.add, 1, true);
+    const inc = e.target.closest("[data-inc]");
+    if (inc) return addToCart(inc.dataset.inc, 1, true);
+    const dec = e.target.closest("[data-dec]");
+    if (dec) {
+      const c = dec.dataset.dec;
+      if (cart[c] > 1) cart[c] -= 1; else cart = Object.fromEntries(Object.entries(cart).filter(([k]) => k !== c));
+      persist(); updateCart(); return;
+    }
     const b = e.target.closest(".open[data-code]");
     if (b) open(byCode.get(b.dataset.code));
   });
