@@ -235,6 +235,39 @@
   }
   $("#cover-remove").onclick = async () => { store.cover = ""; showCover(); await save("Capa removida."); };
 
+  /* ---------- logo / ícone da aba ---------- */
+  function showLogo() {
+    const has = !!store.logo;
+    $("#logo-img").hidden = !has; $("#logo-text").hidden = has; $("#logo-remove").hidden = !has;
+    if (has) $("#logo-img").src = store.logo;
+    $("#tp-icon").style.backgroundImage = has ? `url("${store.logo}")` : "";
+    $("#tp-icon").classList.toggle("empty", !has);
+    $("#tp-title").textContent = $("#s-name").value.trim() || store.name || "Catálogo";
+    U.setFavicon(store.logo); // o painel também mostra o ícone, para a loja ver como fica
+  }
+  showLogo();
+  $("#s-name").addEventListener("input", showLogo);
+  const logoFile = $("#logo-file");
+  $("#logo-drop").onclick = () => logoFile.click();
+  ["dragenter", "dragover"].forEach((ev) => $("#logo-drop").addEventListener(ev, (e) => { e.preventDefault(); $("#logo-drop").classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => $("#logo-drop").addEventListener(ev, (e) => { e.preventDefault(); $("#logo-drop").classList.remove("drag"); }));
+  $("#logo-drop").addEventListener("drop", (e) => e.dataTransfer.files[0] && setLogo(e.dataTransfer.files[0]));
+  logoFile.onchange = () => logoFile.files[0] && setLogo(logoFile.files[0]);
+  async function setLogo(f) {
+    const prev = store.logo;
+    try {
+      store.logo = await U.squareIcon(f, 192);
+      showLogo();
+      if (!(await save("Logo atualizado! Ele já aparece na aba do catálogo."))) { store.logo = prev; showLogo(); }
+    } catch (err) { toast(err.message, "err"); }
+    logoFile.value = "";
+  }
+  $("#logo-remove").onclick = async () => {
+    store.logo = ""; showLogo();
+    const l = document.querySelector('link[rel="icon"]'); if (l) l.href = "data:,";
+    await save("Logo removido.");
+  };
+
   $("#store-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     store.name = $("#s-name").value.trim();
@@ -245,7 +278,7 @@
     if (store.whatsapp && store.whatsapp.length < 10) return toast("WhatsApp da loja incompleto: use DDD + número.", "err");
     if (await save("Dados da loja salvos!")) $("#store-dirty").hidden = true;
   });
-  $("#store-form").addEventListener("input", () => { $("#store-dirty").hidden = false; });
+  $("#store-form").addEventListener("input", (e) => { if (e.target.type !== "file") $("#store-dirty").hidden = false; });
   window.addEventListener("beforeunload", (e) => { if (!$("#store-dirty").hidden) { e.preventDefault(); e.returnValue = ""; } });
 
   $("#contacts-form").addEventListener("submit", async (e) => {
@@ -300,7 +333,7 @@
         ${U.imgTag(p, 300, "thumb")}
         ${off ? `<span class="flag">-${off}%</span>` : ""}
         ${!(p.images?.length || p.imageUrl) ? `<span class="nophoto">sem foto</span>` : ""}
-        <div class="info"><span class="code">${esc(p.code)}</span><b>${esc(p.name || "Sem nome")}</b>
+        <div class="info"><span class="code-row"><span class="code">${esc(p.code)}</span>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Sem nome")}</b>
         <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "<span class='code'>sem preço</span>"}</span></div>
         <span class="edit" aria-hidden="true">Editar ✎</span>
       </button>`;
@@ -363,6 +396,7 @@
     $("#pe-price").value = p.price != null ? String(p.price).replace(".", ",") : "";
     $("#pe-promo").value = p.promoPrice != null ? String(p.promoPrice).replace(".", ",") : "";
     $("#pe-img").value = p.imageUrl || "";
+    $("#pe-box").value = p.boxQty || "";
     $("#pe-drive").textContent = p.images?.length ? `${p.images.length} foto(s) do Drive ligada(s) a este código.` : "";
     $("#pe-delete").hidden = i < 0;
     dlgProd.showModal();
@@ -382,6 +416,7 @@
     else if (products.some((p, i) => i !== editIndex && String(p.code) === code)) msg = "Já existe um produto com esse código.";
     else if ($("#pe-price").value.trim() && U.parseMoney($("#pe-price").value) == null) msg = "Preço inválido. Use, por exemplo, 89,90.";
     else if ($("#pe-promo").value.trim() && U.parseMoney($("#pe-promo").value) == null) msg = "Preço promocional inválido.";
+    else if ($("#pe-box").value.trim() && U.parseBox($("#pe-box").value) == null) msg = "Quantidade por caixa inválida. Use só números, por exemplo 12.";
     if (msg) { e.preventDefault(); toast(msg, "err"); }
   });
   $("#add-product").onclick = () => openProduct(-1);
@@ -397,7 +432,8 @@
         ...(editIndex >= 0 ? products[editIndex] : { images: [] }),
         ...(editIndex >= 0 && String(products[editIndex].code) !== code ? { images: [] } : {}),
         code, name: $("#pe-name").value.trim(), description: $("#pe-desc").value.trim(), category: $("#pe-cat").value.trim(),
-        price: U.parseMoney($("#pe-price").value), promoPrice: U.parseMoney($("#pe-promo").value), imageUrl: $("#pe-img").value.trim()
+        price: U.parseMoney($("#pe-price").value), promoPrice: U.parseMoney($("#pe-promo").value), imageUrl: $("#pe-img").value.trim(),
+        boxQty: U.parseBox($("#pe-box").value)
       };
       if (editIndex >= 0) products[editIndex] = p; else products.unshift(p);
     } else return;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611201256">
+<link rel="stylesheet" href="css/app.css?v=202611201316">
 </head>
 <body>
 <header class="topbar">
@@ -80,6 +80,23 @@
             </div>
             <input type="file" id="cover-file" accept="image/*" hidden>
             <button type="button" class="btn sm ghost danger" id="cover-remove" style="margin-top:8px" hidden>Remover capa</button>
+
+            <div class="logo-field">
+              <label id="logo-label">Logo e ícone da aba</label>
+              <div class="logo-row">
+                <button type="button" class="logo-drop" id="logo-drop" aria-labelledby="logo-label">
+                  <img id="logo-img" alt="" hidden><span id="logo-text">+ Logo</span>
+                </button>
+                <div class="logo-info">
+                  <div class="tab-preview" aria-hidden="true">
+                    <span class="tp-icon" id="tp-icon"></span><span class="tp-title" id="tp-title">Catálogo</span><span class="tp-x">×</span>
+                  </div>
+                  <p class="hint">Aparece na aba do navegador, no topo do catálogo e no PDF do orçamento. Use uma imagem quadrada (PNG com fundo transparente fica melhor).</p>
+                  <button type="button" class="btn sm ghost danger" id="logo-remove" hidden>Remover logo</button>
+                </div>
+              </div>
+              <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+            </div>
           </div>
           <div class="field"><label for="s-name">Nome da loja</label><input id="s-name" maxlength="80"></div>
           <div class="field"><label for="s-about">Frase de apresentação</label><textarea id="s-about" rows="2" maxlength="220" placeholder="Ex.: Atacado de utilidades domésticas com entrega para todo o Brasil"></textarea></div>
@@ -183,6 +200,7 @@
     <div class="row">
       <div class="field"><label for="pe-price">Preço</label><input id="pe-price" inputmode="decimal" placeholder="89,90"></div>
       <div class="field"><label for="pe-promo">Preço promocional</label><input id="pe-promo" inputmode="decimal" placeholder="69,90"></div>
+      <div class="field"><label for="pe-box">Qtd. por caixa</label><div class="box-input"><span class="box-prefix" aria-hidden="true">CX</span><input id="pe-box" inputmode="numeric" placeholder="12"></div></div>
     </div>
     <div class="field"><label for="pe-img">Link de imagem (opcional)</label><input id="pe-img" placeholder="Usado só se não houver foto no Drive"><p class="hint" id="pe-drive"></p></div>
     <div class="dialog-actions">
@@ -193,9 +211,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611201256"></script>
-<script src="js/db.js?v=202611201256"></script>
-<script src="js/common.js?v=202611201256"></script>
-<script src="js/painel.js?v=202611201256"></script>
+<script src="config.js?v=202611201316"></script>
+<script src="js/db.js?v=202611201316"></script>
+<script src="js/common.js?v=202611201316"></script>
+<script src="js/painel.js?v=202611201316"></script>
 </body>
 </html>

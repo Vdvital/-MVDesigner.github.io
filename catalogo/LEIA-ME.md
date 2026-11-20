@@ -23,7 +23,7 @@ No modo local, os dados ficam **apenas no navegador** em que foram criados. Use 
 ## Planilha do Excel
 
 Colunas reconhecidas (a ordem não importa; só **Código** é obrigatória):
-`Código`, `Nome`, `Descrição`, `Categoria`, `Preço`, `Preço promocional`, `Link da imagem`.
+`Código`, `Nome`, `Descrição`, `Categoria`, `Preço`, `Preço promocional`, `Qtd. por caixa`, `Link da imagem`.
 Use **Baixar modelo** no painel. Na importação, o cliente escolhe entre atualizar/adicionar ou substituir tudo.
 Um produto com preço promocional menor que o preço aparece com o selo **PROMO -X%** pulsando ao lado da foto.
 
@@ -77,3 +77,17 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - **Login:** se o plano já venceu, aparece o botão **Renovar meu plano pelo WhatsApp**.
 - **Administrador:** lojas vencendo ou vencidas ganham o botão **Avisar ⏳**, que abre a mensagem de lembrete (editável) para enviar ao WhatsApp da loja ou por e-mail, com o link direto para renovar.
 - O site não tem servidor, então o lembrete não é disparado sozinho: o administrador clica em Avisar e confirma o envio no WhatsApp ou no e-mail.
+
+## Logo e ícone da aba (favicon)
+
+- No painel da loja, aba **Minha loja**, campo **Logo e ícone da aba**: a loja envia uma imagem (de preferência quadrada, PNG com fundo transparente).
+- O sistema ajusta a imagem para 192 × 192 px e mostra uma prévia de como fica a aba do navegador.
+- O logo vira o ícone da aba do catálogo (e do atalho na tela inicial do celular), aparece no topo do catálogo, na página do orçamento e no cabeçalho do PDF.
+- Cada loja tem o seu logo; quem não enviar continua com o ícone padrão do navegador.
+
+## Quantidade por caixa
+
+- Cada produto pode ter a **quantidade por caixa**. No anúncio aparece um selo com ícone de caixa e **CX 12** ao lado do código.
+- Preencha pela planilha (coluna `Qtd. por caixa`; também são aceitos os nomes `Caixa`, `CX`, `Qtd caixa`, `Embalagem`, `Master`) ou no cadastro do produto no painel. Aceita `12`, `cx 12` ou `12 un`.
+- Aparece também na página do produto, no carrinho, nas mensagens de WhatsApp (`(cx 12)`), na página e no PDF do orçamento (`Caixa com 12 un.`), e sai na exportação do Excel.
+- Se a planilha importada não tiver essa coluna, a quantidade por caixa já cadastrada é mantida.

@@ -4,10 +4,12 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <meta name="robots" content="noindex">
 <title>Orçamento</title>
-<link rel="stylesheet" href="css/loja.css?v=202611201256">
+<link rel="stylesheet" href="css/loja.css?v=202611201316">
 <style>
   .q-wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px}
   .q-head{background:var(--accent);color:#111;border-radius:18px;padding:22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .q-brand{display:flex;align-items:center;gap:14px}
+  .q-brand img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:12px;padding:4px}
   .q-head h1{margin:0;font-size:24px;letter-spacing:-.6px}
   .q-head small{display:block;opacity:.8;font-weight:600}
   .q-head .num{text-align:right;font-weight:800}
@@ -37,7 +39,7 @@
 
 <main class="q-wrap" id="app" hidden>
   <header class="q-head" id="q-head">
-    <div><small>Orçamento</small><h1 id="q-store"></h1></div>
+    <div class="q-brand"><img id="q-logo" alt="" hidden><div><small>Orçamento</small><h1 id="q-store"></h1></div></div>
     <div class="num"><span id="q-number"></span><small id="q-date"></small></div>
   </header>
   <section class="q-meta" aria-label="Dados do orçamento">
@@ -55,10 +57,10 @@
   <p class="q-note">Preços e disponibilidade sujeitos a confirmação no fechamento do pedido.</p>
 </main>
 
-<script src="config.js?v=202611201256"></script>
-<script src="js/db.js?v=202611201256"></script>
-<script src="js/common.js?v=202611201256"></script>
-<script src="js/orcamento.js?v=202611201256"></script>
+<script src="config.js?v=202611201316"></script>
+<script src="js/db.js?v=202611201316"></script>
+<script src="js/common.js?v=202611201316"></script>
+<script src="js/orcamento.js?v=202611201316"></script>
 <script>
 (async () => {
   const { $, esc } = U;
@@ -68,6 +70,10 @@
   try { if (id) q = await DB.getQuote(id); } catch { q = null; }
   if (!q) return fail();
 
+  if (q.store.logo) {
+    U.setFavicon(q.store.logo);
+    const lg = $("#q-logo"); lg.src = q.store.logo; lg.hidden = false;
+  }
   const accent = q.store.accent || "#ff6a36";
   document.documentElement.style.setProperty("--accent", accent);
   const rgb = parseInt(accent.replace("#", ""), 16);
@@ -87,7 +93,7 @@
     const sub = it.unit != null ? it.unit * it.qty : null;
     if (sub != null) total += sub; units += it.qty;
     return `<div class="q-row">${U.imgTag(it, 160, "")}
-      <div><small>Cód. ${esc(it.code)}</small><br><b>${esc(it.name)}</b><br><small>${it.qty} × ${it.unit != null ? U.money(it.unit) : "a consultar"}</small></div>
+      <div><span class="code-row"><small>Cód. ${esc(it.code)}</small>${U.boxBadge(it, "sm")}</span><b>${esc(it.name)}</b><br><small>${it.qty} × ${it.unit != null ? U.money(it.unit) : "a consultar"}</small></div>
       <div class="sub">${sub != null ? U.money(sub) : "—"}</div></div>`;
   }).join("");
   $("#q-count").textContent = `${q.items.length} produtos · ${units} unidades`;
