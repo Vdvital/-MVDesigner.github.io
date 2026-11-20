@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <title>Catálogo</title>
-<link rel="stylesheet" href="css/loja.css?v=202611201332">
+<link rel="stylesheet" href="css/loja.css?v=202611201401">
 </head>
 <body>
 <div id="loading" class="state"><div class="spinner" aria-hidden="true"></div><p>Carregando catálogo…</p></div>
@@ -129,7 +129,15 @@
   <form class="drawer-foot" id="cart-form" hidden>
     <div class="total" id="cart-total-row" hidden><span>Total</span><strong id="cart-total"></strong></div>
     <p class="hint" id="cart-hint">Envie a lista e o vendedor responde com os preços pelo WhatsApp.</p>
-    <label for="c-name" id="c-name-label">Seu nome</label><input id="c-name" autocomplete="name" maxlength="80" required>
+    <fieldset class="client-box">
+      <legend id="client-legend">Seus dados para o pedido</legend>
+      <label for="c-name" id="c-name-label">Nome ou razão social</label><input id="c-name" autocomplete="organization" maxlength="80" required placeholder="Ex.: Mercado Bom Preço Ltda">
+      <div class="client-row">
+        <div><label for="c-doc" id="c-doc-label">CNPJ</label><input id="c-doc" inputmode="numeric" autocomplete="off" maxlength="18" required placeholder="00.000.000/0000-00"></div>
+        <div><label for="c-phone" id="c-phone-label">WhatsApp para contato</label><input id="c-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="15" required placeholder="(11) 99999-9999"></div>
+      </div>
+      <p class="field-err" id="c-err" role="alert" hidden></p>
+    </fieldset>
     <div id="my-wa-box" hidden><label for="my-wa">Seu WhatsApp (recebe o orçamento)</label><input id="my-wa" inputmode="tel" placeholder="11 99999-9999"></div>
     <div id="seller-box" hidden>
       <label>Falar com</label>
@@ -150,10 +158,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611201332"></script>
-<script src="js/db.js?v=202611201332"></script>
-<script src="js/common.js?v=202611201332"></script>
-<script src="js/orcamento.js?v=202611201332"></script>
-<script src="js/loja.js?v=202611201332"></script>
+<script src="config.js?v=202611201401"></script>
+<script src="js/db.js?v=202611201401"></script>
+<script src="js/common.js?v=202611201401"></script>
+<script src="js/orcamento.js?v=202611201401"></script>
+<script src="js/loja.js?v=202611201401"></script>
 </body>
 </html>
