@@ -36,7 +36,7 @@
     if (team) return status === "bloqueado" ? "Seu acesso foi bloqueado pela loja." : "O acesso desta loja está suspenso. Fale com o responsável.";
     return status === "bloqueado"
       ? "Seu acesso está bloqueado. Fale com o administrador."
-      : "Seu tempo de acesso terminou. Fale com o administrador para renovar.";
+      : "Seu tempo de acesso terminou. Renove seu plano para voltar a usar o catálogo.";
   }
 
   const isPromo = (p) => p.price != null && p.promoPrice != null && p.promoPrice < p.price;
@@ -240,7 +240,7 @@
 
     async listCatalogStats() {
       const out = {};
-      Object.values(this._catalogs()).forEach((c) => { out[c.uid] = { products: c.products.length, updatedAt: c.updatedAt }; });
+      Object.values(this._catalogs()).forEach((c) => { out[c.uid] = { products: c.products.length, updatedAt: c.updatedAt, whatsapp: (c.store && c.store.whatsapp) || "" }; });
       return out;
     }
   };
@@ -449,7 +449,7 @@
     async listCatalogStats() {
       const snap = await this.db.collection("catalogs").get();
       const out = {};
-      snap.docs.forEach((d) => { const c = d.data(); out[c.uid] = { products: (c.products || []).length, updatedAt: c.updatedAt }; });
+      snap.docs.forEach((d) => { const c = d.data(); out[c.uid] = { products: (c.products || []).length, updatedAt: c.updatedAt, whatsapp: (c.store && c.store.whatsapp) || "" }; });
       return out;
     }
   };

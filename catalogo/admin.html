@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Painel do Administrador | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611201236">
+<link rel="stylesheet" href="css/app.css?v=202611201256">
 </head>
 <body>
 <header class="topbar">
@@ -102,6 +102,26 @@
   </form>
 </dialog>
 
+<!-- Aviso de renovação -->
+<dialog id="dlg-remind" aria-labelledby="rm-title">
+  <form method="dialog">
+    <h2 id="rm-title">Avisar sobre o vencimento</h2>
+    <p class="hint" id="rm-who" style="margin:-8px 0 12px"></p>
+    <label for="rm-text">Mensagem (pode editar)</label>
+    <textarea id="rm-text" rows="9"></textarea>
+    <div class="field" id="rm-phone-box" style="margin-top:12px">
+      <label for="rm-phone">WhatsApp do cliente</label>
+      <input id="rm-phone" inputmode="tel" placeholder="11 99999-9999">
+      <p class="hint">Preenchido com o WhatsApp cadastrado na loja.</p>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn ghost" value="cancel">Fechar</button>
+      <a class="btn" id="rm-email" target="_blank" rel="noopener">Enviar por e-mail</a>
+      <a class="btn primary" id="rm-wa" target="_blank" rel="noopener">Enviar no WhatsApp</a>
+    </div>
+  </form>
+</dialog>
+
 <!-- Senha -->
 <dialog id="dlg-pass" aria-labelledby="dlg-pass-title">
   <form method="dialog" id="pass-form">
@@ -111,9 +131,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611201236"></script>
-<script src="js/db.js?v=202611201236"></script>
-<script src="js/common.js?v=202611201236"></script>
-<script src="js/admin.js?v=202611201236"></script>
+<script src="config.js?v=202611201256"></script>
+<script src="js/db.js?v=202611201256"></script>
+<script src="js/common.js?v=202611201256"></script>
+<script src="js/admin.js?v=202611201256"></script>
 </body>
 </html>
