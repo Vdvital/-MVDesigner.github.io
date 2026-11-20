@@ -340,5 +340,92 @@
     inp.parentNode.classList.add("pass-wrap"); inp.after(b);
   });
 
+  /* ---------- transição de entrada e saída (cortina) ---------- */
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const TR_KEY = "cat_transition";
+  function trStyles() {
+    if (document.getElementById("tr-css")) return;
+    const st = document.createElement("style");
+    st.id = "tr-css";
+    st.textContent = `
+      .tr-curtain{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+        background:var(--tr-color,#ff6a36);color:#111;font-family:Inter,Arial,Helvetica,sans-serif;text-align:center;padding:24px;
+        clip-path:circle(0% at var(--tr-x,50%) var(--tr-y,50%));transition:clip-path .62s cubic-bezier(.7,0,.25,1)}
+      .tr-curtain.on{clip-path:circle(150% at var(--tr-x,50%) var(--tr-y,50%))}
+      .tr-curtain.leave{transition:clip-path .7s cubic-bezier(.7,0,.25,1) .08s;clip-path:circle(0% at 50% 120%)}
+      .tr-curtain .tr-mark{width:68px;height:68px;border-radius:50%;background:#111;color:var(--tr-color,#ff6a36);display:flex;align-items:center;justify-content:center;
+        transform:scale(.4);opacity:0;transition:transform .45s cubic-bezier(.3,1.6,.5,1) .3s,opacity .3s .3s}
+      .tr-curtain .tr-mark svg{width:34px;height:34px}
+      .tr-curtain .tr-mark path{stroke-dasharray:40;stroke-dashoffset:40;transition:stroke-dashoffset .45s ease .55s}
+      .tr-curtain.on .tr-mark{transform:scale(1);opacity:1}
+      .tr-curtain.on .tr-mark path{stroke-dashoffset:0}
+      .tr-curtain h2{margin:0;font-size:clamp(28px,6vw,52px);letter-spacing:-.04em;font-weight:800;line-height:1.05;opacity:0;transform:translateY(16px);transition:all .45s ease .4s}
+      .tr-curtain p{margin:0;font-size:15px;font-weight:600;opacity:0;transition:opacity .4s ease .55s}
+      .tr-curtain.on h2{opacity:1;transform:none}.tr-curtain.on p{opacity:.75}
+      .tr-curtain.leave h2,.tr-curtain.leave p,.tr-curtain.leave .tr-mark{opacity:0;transition:opacity .2s}
+      @media (prefers-reduced-motion: reduce){
+        .tr-curtain,.tr-curtain.on,.tr-curtain.leave{clip-path:none!important;transition:opacity .25s!important}
+        .tr-curtain{opacity:0}.tr-curtain.on{opacity:1}.tr-curtain.leave{opacity:0}
+        .tr-curtain *{transition:none!important;transform:none!important;opacity:1!important;stroke-dashoffset:0!important}
+      }`;
+    document.head.appendChild(st);
+  }
+  const ICONS = {
+    in: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  function curtain({ title, sub, icon = "in", color, x, y }) {
+    trStyles();
+    const c = document.createElement("div");
+    c.className = "tr-curtain"; c.setAttribute("role", "status"); c.setAttribute("aria-live", "assertive");
+    if (color) c.style.setProperty("--tr-color", color);
+    if (x != null) { c.style.setProperty("--tr-x", x + "px"); c.style.setProperty("--tr-y", y + "px"); }
+    c.innerHTML = `<div class="tr-mark">${ICONS[icon] || ICONS.in}</div><h2>${U.esc(title)}</h2>${sub ? `<p>${U.esc(sub)}</p>` : ""}`;
+    document.body.appendChild(c);
+    return c;
+  }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /**
+   * Cobre a tela com a cortina e depois navega. A próxima página abre a cortina (U.pageEnter).
+   * o: { title, sub, icon: "in"|"out", color, from: elemento de onde a cortina nasce }
+   */
+  U.leaveTo = async (url, o = {}) => {
+    let x, y;
+    if (o.from && o.from.getBoundingClientRect) { const r = o.from.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
+    const c = curtain({ ...o, x, y });
+    c.getBoundingClientRect(); // garante a animação
+    c.classList.add("on");
+    try { sessionStorage.setItem(TR_KEY, JSON.stringify({ title: o.title, sub: o.sub || "", icon: o.icon || "in", color: o.color || "" })); } catch { /* ignore */ }
+    await wait(REDUCED ? 250 : 1250);
+    if (url === "reload") location.reload(); else location.replace(url);
+  };
+
+  /** Ao abrir a página: se veio de um login/saída, mostra a cortina coberta e a abre revelando a tela. */
+  U.pageEnter = () => {
+    let t = null;
+    try { t = JSON.parse(sessionStorage.getItem(TR_KEY)); sessionStorage.removeItem(TR_KEY); } catch { t = null; }
+    if (!t) { document.documentElement.classList.remove("tr-pending"); return; }
+    const c = curtain(t);
+    c.style.transition = "none"; c.classList.add("on");
+    document.documentElement.classList.remove("tr-pending");
+    c.getBoundingClientRect();
+    c.style.transition = "";
+    requestAnimationFrame(() => setTimeout(() => {
+      c.classList.add("leave");
+      setTimeout(() => c.parentNode && c.parentNode.removeChild(c), REDUCED ? 300 : 900);
+    }, REDUCED ? 50 : 250));
+  };
+  U.pageEnter();
+
+  /** Sair com animação: "Até logo!" e volta para o login. */
+  U.logout = async (btn, back = "index.html?saiu=1") => {
+    if (btn) btn.disabled = true;
+    const color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#ff6a36";
+    const leaving = U.leaveTo(back, { title: "Até logo!", sub: "Você saiu com segurança.", icon: "out", color, from: btn });
+    try { await DB.logout(); } catch { /* segue para o login mesmo assim */ }
+    await leaving;
+  };
+
   window.U = U;
 })();

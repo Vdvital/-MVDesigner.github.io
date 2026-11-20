@@ -44,7 +44,7 @@
       try { await navigator.clipboard.writeText(link); U.toast("Link para clientes copiado (sem preços)."); }
       catch { prompt("Copie o link para clientes (sem preços):", link); }
     };
-    $("#staff-logout").onclick = async () => { await DB.logout(); location.reload(); };
+    $("#staff-logout").onclick = (e) => U.logout(e.currentTarget, "reload");
     if (viewer.role === "user" || viewer.role === "admin") {
       $("#staff-panel").hidden = false;
       $("#staff-panel").href = viewer.role === "admin" ? "admin.html" : "painel.html";

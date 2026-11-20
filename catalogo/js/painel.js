@@ -14,7 +14,7 @@
   $("#hello").textContent = `Olá, ${me.name.split(" ")[0]}!`;
   $("#open-catalog").href = link;
   $("#cat-link").value = link;
-  $("#logout").onclick = async () => { await DB.logout(); location.replace("index.html"); };
+  $("#logout").onclick = (e) => U.logout(e.currentTarget);
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(link); } catch { $("#cat-link").select(); document.execCommand("copy"); }
     toast("Link do catálogo copiado (sem preços).");

@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Entrar | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611201316">
+<link rel="stylesheet" href="css/app.css?v=202611201324">
 </head>
 <body>
-<main class="login">
+<main class="login enter">
   <section class="login-art" aria-hidden="true">
     <a class="brand" href="../index.html">mv<span>catálogo online</span></a>
-    <h1>Seus produtos.<br>Um link.<br>Pronto pra vender.</h1>
+    <h1><span class="ln">Seus produtos.</span><span class="ln">Um link.</span><span class="ln">Pronto pra vender.</span></h1>
     <p style="max-width:360px;margin:0;font-weight:600">Fotos direto do Google Drive, planilha do Excel e promoções em destaque.</p>
   </section>
   <section class="login-form">
@@ -26,9 +27,9 @@
     </form>
   </section>
 </main>
-<script src="config.js?v=202611201316"></script>
-<script src="js/db.js?v=202611201316"></script>
-<script src="js/common.js?v=202611201316"></script>
+<script src="config.js?v=202611201324"></script>
+<script src="js/db.js?v=202611201324"></script>
+<script src="js/common.js?v=202611201324"></script>
 <script>
 (async () => {
   const msg = U.$("#msg");
@@ -41,6 +42,10 @@
     if (expired) renew.href = U.renewLink({ email: U.$("#email").value.trim() });
   };
   U.$("#email").addEventListener("input", () => { if (!renew.hidden) renew.href = U.renewLink({ email: U.$("#email").value.trim() }); });
+  if (new URLSearchParams(location.search).get("saiu")) {
+    show("Você saiu com segurança. Até a próxima!", "alert info");
+    history.replaceState(null, "", "index.html");
+  }
   if (new URLSearchParams(location.search).get("expirado")) show("Seu tempo de acesso terminou. Renove seu plano para voltar a usar o catálogo.");
   if (DB.mode === "local") U.$("#demo-hint").hidden = false;
   U.passToggles();
@@ -54,13 +59,19 @@
     const btn = U.$("#submit");
     const email = U.$("#email").value, pass = U.$("#password").value;
     if (!email || !pass) return show("Preencha e-mail e senha.");
-    btn.disabled = true; btn.textContent = "Entrando…";
+    btn.disabled = true; btn.classList.add("loading"); btn.textContent = "Entrando…";
     try {
       const me = await DB.login(email, pass);
-      location.replace(U.homeFor(me));
+      const first = String(me.name || "").split(" ")[0];
+      const sub = me.role === "admin" ? "Abrindo o painel de administração…"
+        : DB.TEAM.includes(me.role) ? "Abrindo o catálogo com os preços…" : "Abrindo o seu painel…";
+      btn.classList.remove("loading"); btn.textContent = "Tudo certo! ✓";
+      await U.leaveTo(U.homeFor(me), { title: first ? `Bem-vindo, ${first}!` : "Bem-vindo!", sub, icon: "in", from: btn });
     } catch (err) {
       show(err.message);
-      btn.disabled = false; btn.textContent = "Entrar";
+      const form = U.$("#login-form");
+      form.classList.remove("shake"); void form.offsetWidth; form.classList.add("shake");
+      btn.disabled = false; btn.classList.remove("loading"); btn.textContent = "Entrar";
     }
   });
 })();

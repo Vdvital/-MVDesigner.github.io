@@ -4,7 +4,7 @@
   if (!me) return;
   U.modeBanner();
   $("#me-email").textContent = me.email;
-  $("#logout").onclick = async () => { await DB.logout(); location.replace("index.html"); };
+  $("#logout").onclick = (e) => U.logout(e.currentTarget);
 
   const base = new URL("loja.html", location.href).href;
   const catalogUrl = (slug) => `${base}?loja=${encodeURIComponent(slug)}`;
