@@ -333,7 +333,7 @@
         ${U.imgTag(p, 300, "thumb")}
         ${off ? `<span class="flag">-${off}%</span>` : ""}
         ${!(p.images?.length || p.imageUrl) ? `<span class="nophoto">sem foto</span>` : ""}
-        <div class="info"><span class="code">${esc(p.code)}</span><b>${esc(p.name || "Sem nome")}</b>
+        <div class="info"><span class="code-row"><span class="code">${esc(p.code)}</span>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Sem nome")}</b>
         <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "<span class='code'>sem preço</span>"}</span></div>
         <span class="edit" aria-hidden="true">Editar ✎</span>
       </button>`;
@@ -396,6 +396,7 @@
     $("#pe-price").value = p.price != null ? String(p.price).replace(".", ",") : "";
     $("#pe-promo").value = p.promoPrice != null ? String(p.promoPrice).replace(".", ",") : "";
     $("#pe-img").value = p.imageUrl || "";
+    $("#pe-box").value = p.boxQty || "";
     $("#pe-drive").textContent = p.images?.length ? `${p.images.length} foto(s) do Drive ligada(s) a este código.` : "";
     $("#pe-delete").hidden = i < 0;
     dlgProd.showModal();
@@ -415,6 +416,7 @@
     else if (products.some((p, i) => i !== editIndex && String(p.code) === code)) msg = "Já existe um produto com esse código.";
     else if ($("#pe-price").value.trim() && U.parseMoney($("#pe-price").value) == null) msg = "Preço inválido. Use, por exemplo, 89,90.";
     else if ($("#pe-promo").value.trim() && U.parseMoney($("#pe-promo").value) == null) msg = "Preço promocional inválido.";
+    else if ($("#pe-box").value.trim() && U.parseBox($("#pe-box").value) == null) msg = "Quantidade por caixa inválida. Use só números, por exemplo 12.";
     if (msg) { e.preventDefault(); toast(msg, "err"); }
   });
   $("#add-product").onclick = () => openProduct(-1);
@@ -430,7 +432,8 @@
         ...(editIndex >= 0 ? products[editIndex] : { images: [] }),
         ...(editIndex >= 0 && String(products[editIndex].code) !== code ? { images: [] } : {}),
         code, name: $("#pe-name").value.trim(), description: $("#pe-desc").value.trim(), category: $("#pe-cat").value.trim(),
-        price: U.parseMoney($("#pe-price").value), promoPrice: U.parseMoney($("#pe-promo").value), imageUrl: $("#pe-img").value.trim()
+        price: U.parseMoney($("#pe-price").value), promoPrice: U.parseMoney($("#pe-promo").value), imageUrl: $("#pe-img").value.trim(),
+        boxQty: U.parseBox($("#pe-box").value)
       };
       if (editIndex >= 0) products[editIndex] = p; else products.unshift(p);
     } else return;

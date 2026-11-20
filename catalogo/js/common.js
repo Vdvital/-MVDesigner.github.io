@@ -33,6 +33,18 @@
   U.inputDate = (ms) => { if (!ms) return ""; const d = new Date(ms); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
   U.endOfDay = (yyyyMmDd) => { const [y, m, d] = yyyyMmDd.split("-").map(Number); return new Date(y, m - 1, d, 23, 59, 59).getTime(); };
 
+  /** Quantidade por caixa: aceita 12, "12", "cx 12", "12 un" → 12 (ou null). */
+  U.parseBox = (v) => {
+    const m = String(v ?? "").match(/\d+/);
+    const n = m ? parseInt(m[0], 10) : NaN;
+    return n > 0 && n < 100000 ? n : null;
+  };
+  const BOX_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7L12 2.8Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3.5 7 12 11.2 20.5 7M12 11.2v10M7.8 4.9l8.5 4.2"/></svg>';
+  /** Selo "caixa com N unidades" (ícone de caixa + CX N). */
+  U.boxBadge = (p, cls = "") => p && p.boxQty
+    ? `<span class="box-qty ${cls}" title="Caixa com ${p.boxQty} unidades">${BOX_SVG}<span>CX ${p.boxQty}</span><span class="sr-only"> (caixa com ${p.boxQty} unidades)</span></span>`
+    : "";
+
   U.discount = (p) => (p.promoPrice && p.price && p.promoPrice < p.price ? Math.round((1 - p.promoPrice / p.price) * 100) : 0);
 
   /* ---------- autenticação nas páginas ---------- */
@@ -199,6 +211,7 @@
     { key: "category", label: "Categoria", alias: ["categoria", "linha", "grupo", "departamento"] },
     { key: "price", label: "Preço", alias: ["preco", "preço", "valor", "preco normal", "preço normal", "de"] },
     { key: "promoPrice", label: "Preço promocional", alias: ["preco promocional", "preço promocional", "promocao", "promoção", "promo", "por", "oferta"] },
+    { key: "boxQty", label: "Qtd. por caixa", alias: ["qtd por caixa", "quantidade por caixa", "qtd caixa", "quantidade caixa", "qtd cx", "caixa", "cx", "caixa com", "embalagem", "master", "unidades por caixa", "un por caixa", "qtde caixa"] },
     { key: "imageUrl", label: "Link da imagem", alias: ["imagem", "link da imagem", "foto", "url"] }
   ];
   const headerKey = (h) => {
@@ -224,6 +237,8 @@
       price: U.parseMoney(r[map.price]),
       promoPrice: U.parseMoney(r[map.promoPrice]),
       imageUrl: String(r[map.imageUrl] ?? "").trim(),
+      // sem a coluna na planilha, mantém a quantidade por caixa que já estava cadastrada
+      ...(map.boxQty ? { boxQty: U.parseBox(r[map.boxQty]) } : {}),
       images: []
     })).filter((p) => p.code);
   };
@@ -233,10 +248,11 @@
     const data = products.map((p) => ({
       "Código": p.code, "Nome": p.name, "Descrição": p.description, "Categoria": p.category,
       "Preço": p.price ?? "", "Preço promocional": p.promoPrice ?? "",
+      "Qtd. por caixa": p.boxQty ?? "",
       "Link da imagem": p.images && p.images.length ? U.driveImg(p.images[0], 1200) : (p.imageUrl || "")
     }));
-    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ "Código": "1020", "Nome": "Garrafa térmica 1L", "Descrição": "Aço inox, mantém a temperatura por 12h", "Categoria": "Utilidades", "Preço": 89.9, "Preço promocional": 69.9, "Link da imagem": "" }]);
-    ws["!cols"] = [{ wch: 12 }, { wch: 32 }, { wch: 44 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 40 }];
+    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ "Código": "1020", "Nome": "Garrafa térmica 1L", "Descrição": "Aço inox, mantém a temperatura por 12h", "Categoria": "Utilidades", "Preço": 89.9, "Preço promocional": 69.9, "Qtd. por caixa": 12, "Link da imagem": "" }]);
+    ws["!cols"] = [{ wch: 12 }, { wch: 32 }, { wch: 44 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 15 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
     XLSX.writeFile(wb, filename);

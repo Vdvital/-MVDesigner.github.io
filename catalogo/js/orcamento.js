@@ -121,7 +121,7 @@
       return [
         "",
         String(it.p.code),
-        { content: (it.p.name || "Produto") + (it.p.category ? `\n${it.p.category}` : "") + (promo ? `\nPromoção: de ${money(it.p.price)}` : ""), _promo: promo, _cat: !!it.p.category },
+        { content: (it.p.name || "Produto") + (it.p.category ? `\n${it.p.category}` : "") + (it.p.boxQty ? `\nCaixa com ${it.p.boxQty} un.` : "") + (promo ? `\nPromoção: de ${money(it.p.price)}` : ""), _promo: promo, _cat: !!it.p.category },
         String(it.qty),
         it.unit != null ? money(it.unit) : "A consultar",
         sub != null ? money(sub) : "—"
