@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Entrar | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611191457">
+<link rel="stylesheet" href="css/app.css?v=202611201236">
 </head>
 <body>
 <main class="login">
@@ -18,22 +18,23 @@
       <p>Lojas, vendedores e representantes entram aqui.</p>
       <div id="msg" class="alert" role="alert" hidden></div>
       <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required></div>
-      <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required data-toggle-pass></div>
       <button class="btn primary" style="width:100%;margin-top:6px" id="submit">Entrar</button>
       <p class="hint" style="margin-top:18px">Não tem acesso? Apenas o administrador cria contas. Fale com ele para receber seu login.</p>
       <p class="hint" id="demo-hint" hidden>Modo de teste — administrador padrão: <code>admin@catalogo.com</code> / <code>admin123</code></p>
     </form>
   </section>
 </main>
-<script src="config.js?v=202611191457"></script>
-<script src="js/db.js?v=202611191457"></script>
-<script src="js/common.js?v=202611191457"></script>
+<script src="config.js?v=202611201236"></script>
+<script src="js/db.js?v=202611201236"></script>
+<script src="js/common.js?v=202611201236"></script>
 <script>
 (async () => {
   const msg = U.$("#msg");
   const show = (t, cls = "alert") => { msg.className = cls; msg.textContent = t; msg.hidden = false; };
   if (new URLSearchParams(location.search).get("expirado")) show("Seu tempo de acesso terminou. Fale com o administrador para renovar.");
   if (DB.mode === "local") U.$("#demo-hint").hidden = false;
+  U.passToggles();
   try {
     const me = await DB.current();
     if (me) return location.replace(U.homeFor(me));

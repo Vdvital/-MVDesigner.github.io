@@ -211,5 +211,45 @@
     XLSX.writeFile(wb, filename);
   };
 
+  /**
+   * Caixa de diálogo no visual do sistema (substitui confirm/prompt do navegador).
+   * U.ask({ title, text, ok, cancel, danger, input: { value, placeholder, type, inputmode } })
+   * → confirmação: true/false · com input: texto digitado ou null
+   */
+  U.ask = (o = {}) => new Promise((resolve) => {
+    const d = document.createElement("dialog");
+    d.className = "ask";
+    d.setAttribute("aria-labelledby", "ask-title");
+    d.innerHTML = `<form method="dialog">
+      <h2 id="ask-title">${U.esc(o.title || "Confirmar")}</h2>
+      ${o.text ? `<p class="ask-text">${U.esc(o.text)}</p>` : ""}
+      ${o.input ? `<input class="ask-input" type="${o.input.type || "text"}" inputmode="${o.input.inputmode || "text"}" placeholder="${U.esc(o.input.placeholder || "")}" value="${U.esc(o.input.value || "")}" aria-label="${U.esc(o.title || "")}">` : ""}
+      <div class="dialog-actions">
+        <button class="btn ghost" value="cancel" formnovalidate>${U.esc(o.cancel || "Cancelar")}</button>
+        <button class="btn ${o.danger ? "danger-solid" : "primary"}" value="ok">${U.esc(o.ok || "Confirmar")}</button>
+      </div></form>`;
+    document.body.appendChild(d);
+    const input = d.querySelector(".ask-input");
+    d.addEventListener("close", () => {
+      const ok = d.returnValue === "ok";
+      resolve(o.input ? (ok ? input.value : null) : ok);
+      d.parentNode.removeChild(d);
+    });
+    d.showModal();
+    if (input) { input.focus(); input.select(); }
+  });
+
+  /** Mostra/oculta senha nos campos com data-toggle-pass. */
+  U.passToggles = () => U.$$("input[type=password][data-toggle-pass]").forEach((inp) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "pass-eye"; b.textContent = "Mostrar"; b.setAttribute("aria-label", "Mostrar senha");
+    b.onclick = () => {
+      const show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      b.textContent = show ? "Ocultar" : "Mostrar"; b.setAttribute("aria-label", show ? "Ocultar senha" : "Mostrar senha");
+    };
+    inp.parentNode.classList.add("pass-wrap"); inp.after(b);
+  });
+
   window.U = U;
 })();

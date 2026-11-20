@@ -221,3 +221,25 @@ dialog::backdrop{background:#000a}
 .pdf-actions{display:flex;flex-direction:column;gap:6px}
 .pdf-actions .btn-wa{margin:0}
 .btn-pdf{display:block;text-align:center;border:1.5px solid var(--ink);border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:14px;background:#fff}
+/* ---------- melhorias de UX ---------- */
+.buy{margin:0 12px 12px}
+.buy .add{margin:0;width:100%}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--ink);background:var(--ink);color:#fff;border-radius:10px;overflow:hidden;animation:pop .2s ease}
+.stepper button{border:0;background:none;color:#fff;width:40px;height:38px;font-size:18px;font-weight:700;cursor:pointer}
+.stepper button:hover{background:#ffffff1f}
+.stepper span{font-size:13px;white-space:nowrap}
+@keyframes pop{from{transform:scale(.96)}}
+.empty p{margin:0 0 12px}
+.empty .more{margin-top:0}
+@media(max-width:700px){
+  .buy{margin:0 8px 8px}
+  .stepper button{width:34px}
+  .stepper span{font-size:12px}
+  .hero{min-height:190px}
+  .hero-inner{padding:22px 16px 18px}
+  .hero h1{font-size:30px}
+  .hero p{font-size:14px}
+  .staff-bar{padding:6px 12px;gap:6px;font-size:12px}
+  .staff-actions{gap:6px;width:100%;overflow-x:auto;scrollbar-width:none}
+  .staff-actions a,.staff-actions button{white-space:nowrap;padding:4px 10px}
+}
