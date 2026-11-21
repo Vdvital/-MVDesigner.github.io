@@ -89,7 +89,9 @@
     return rest ? `${cx ? cx + " cx + " : ""}${rest} un` : `${cx} cx`;
   };
   /** "24 un (2 cx)" para produto com caixa; "3x" para os outros. */
-  const qtyTxt = (code, n) => (boxOf(code) ? `${n} un (${boxesTxt(code, n)})` : `${n}x`);
+  const qtyTxt = (code, n) => (boxOf(code) ? `${boxesTxt(code, n)} (${n} un)` : `${n} cx`);
+  /** Quantas caixas mostrar no campo de quantidade. */
+  const boxesOf = (code, n) => (boxOf(code) ? Math.max(1, Math.round(n / boxOf(code))) : n);
   document.title = store.name || "Catálogo";
   if (store.accent) document.documentElement.style.setProperty("--accent", store.accent);
   // logo da loja: ícone da aba do navegador e selo no topo do catálogo
@@ -147,7 +149,7 @@
   function buyInner(code) {
     const n = cart && cart[code];
     return n
-      ? `<div class="stepper" role="group" aria-label="Quantidade no carrinho"><button type="button" data-dec="${esc(code)}" aria-label="${boxOf(code) ? "Tirar uma caixa" : "Tirar um"}">−</button><span aria-live="polite">${boxOf(code) ? `<b>${boxesTxt(code, n)}</b> · ${n} un` : `<b>${n}</b> no carrinho`}</span><button type="button" data-inc="${esc(code)}" aria-label="${boxOf(code) ? "Colocar mais uma caixa" : "Colocar mais um"}">+</button></div>`
+      ? `<div class="stepper" role="group" aria-label="Quantidade no carrinho"><button type="button" data-dec="${esc(code)}" aria-label="${boxOf(code) ? "Tirar uma caixa" : "Tirar um"}">−</button><span aria-live="polite">${boxOf(code) ? `<b>${boxesTxt(code, n)}</b> · ${n} un` : `<b>${n} cx</b> no carrinho`}</span><button type="button" data-inc="${esc(code)}" aria-label="${boxOf(code) ? "Colocar mais uma caixa" : "Colocar mais um"}">+</button></div>`
       : `<button class="add" data-add="${esc(code)}">${boxOf(code) ? `+ Adicionar caixa` : "+ Adicionar"}</button>`;
   }
   const refreshBuy = () => $$("[data-buy]").forEach((el) => { el.innerHTML = buyInner(el.dataset.buy); });
@@ -347,8 +349,8 @@
         ${U.imgTag(p, 160, "c-img")}
         <div class="c-info"><span class="code-row"><small>Cód. ${esc(c)}</small>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Produto")}</b>
           <span>${unit != null ? U.money(unit) + " un." : canSee ? "Sem preço" : ""}</span>
-          ${boxOf(c) ? `<span class="c-box${cart[c] % boxOf(c) ? " warn" : ""}">${boxesTxt(c, cart[c])}${cart[c] % boxOf(c) ? " · não fecha caixa" : ""}</span>` : ""}
-          <div class="qty sm"><button type="button" data-step="-1" aria-label="${boxOf(c) ? "Tirar uma caixa" : "Diminuir"}">−</button><input type="number" min="1" step="${stepOf(c)}" value="${cart[c]}" aria-label="Unidades de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="${boxOf(c) ? "Colocar mais uma caixa" : "Aumentar"}">+</button><span class="qty-unit">un</span></div>
+          ${boxOf(c) ? `<span class="c-box">${boxesTxt(c, cart[c])} = ${cart[c]} unidades</span>` : ""}
+          <div class="qty sm"><button type="button" data-step="-1" aria-label="${boxOf(c) ? "Tirar uma caixa" : "Diminuir"}">−</button><input type="number" min="1" step="1" value="${boxesOf(c, cart[c])}" aria-label="Caixas de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Colocar mais uma caixa">+</button><span class="qty-unit">cx</span></div>
         </div>
         <div class="c-side"><strong>${unit != null ? U.money(unit * cart[c]) : ""}</strong><button type="button" class="link" data-remove aria-label="Remover ${esc(p.name || c)}">Remover</button></div>
       </li>`;
@@ -406,7 +408,8 @@
   $("#cart-list").addEventListener("change", (e) => {
     if (e.target.tagName !== "INPUT") return;
     const c = e.target.closest("li").dataset.code, n = Math.floor(Number(e.target.value));
-    if (n >= 1) cart[c] = Math.min(9999, n); else delete cart[c];
+    // o campo é em caixas: converte para unidades quando o produto tem Qtd. por caixa
+    if (n >= 1) cart[c] = Math.min(99999, n * stepOf(c)); else delete cart[c];
     persist(); updateCart();
   });
 
@@ -598,7 +601,7 @@
     $("#d-price").outerHTML = priceHtml(p, "d-price");
     $("#d-desc").textContent = p.description || "";
     $("#d-qty").value = 1;
-    $("#d-unit").textContent = p.boxQty ? "cx" : "un";
+    $("#d-unit").textContent = "cx";
     $("#d-boxhint").hidden = !p.boxQty;
     if (p.boxQty) $("#d-boxhint").textContent = `Pedido por caixa: 1 cx = ${p.boxQty} unidades.`;
     const waBtn = $("#d-wa");
