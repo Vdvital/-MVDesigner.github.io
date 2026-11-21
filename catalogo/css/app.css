@@ -546,3 +546,5 @@ input[aria-invalid=true]{border-color:var(--bad)}
 .btn.paid-btn:hover{background:#7ee2a2;border-color:#7ee2a2}
 @media(max-width:760px){.login{grid-template-columns:1fr}}
 .pix-how li::before{width:24px;height:24px;display:flex;box-sizing:border-box}
+.ped-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.proof-note{color:var(--ok)!important;font-weight:600}
