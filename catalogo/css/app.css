@@ -460,3 +460,23 @@ input[aria-invalid=true]{border-color:var(--bad)}
 .pix-plans{margin-bottom:4px}
 .plan-card .plan-pick small{text-transform:none;letter-spacing:0;font-weight:500;display:inline}
 .plan-card .plan-pick b{font-size:24px}
+
+/* tudo o que está incluído + perguntas frequentes (cadastro) */
+.plan-note{margin:10px 0 0;color:var(--muted);font-size:13px}
+.incluso{margin:18px 0 18px}
+.incluso h3,.faq h3{font-size:17px;margin:0 0 12px;letter-spacing:-.3px}
+.inc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.inc-grid article{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.inc-ico{font-size:20px;line-height:1}
+.inc-grid h4{margin:6px 0 6px;font-size:14px}
+.inc-grid ul{margin:0;padding-left:16px;color:var(--muted);font-size:12.5px;line-height:1.5}
+.inc-grid li b{color:var(--ink);font-weight:700}
+.inc-support{margin:12px 0 0;text-align:center;color:var(--muted);font-size:13px;font-weight:600}
+.faq{margin-top:26px;border-top:1px solid var(--line);padding-top:20px}
+.faq details{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:8px}
+.faq summary{cursor:pointer;padding:12px 14px;font-weight:700;font-size:14px;list-style:none;display:flex;justify-content:space-between;gap:10px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--accent);font-size:18px;line-height:1}
+.faq details[open] summary::after{content:"−"}
+.faq details p{margin:0;padding:0 14px 14px;color:var(--muted);font-size:13.5px;line-height:1.55}
+@media(max-width:560px){.inc-grid{grid-template-columns:1fr}}
