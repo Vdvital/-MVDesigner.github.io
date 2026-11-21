@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Assinar | Catálogo Online</title>
 <meta name="description" content="Crie o catálogo online da sua loja: produtos pelo Excel, fotos do Google Drive, preços só para a sua equipe e pedidos pelo WhatsApp.">
-<link rel="stylesheet" href="css/app.css?v=202611212111">
+<link rel="stylesheet" href="css/app.css?v=202611212213">
 </head>
 <body>
 <main class="login enter signup">
@@ -74,14 +74,14 @@
   </section>
 </main>
 
-<script src="config.js?v=202611212111"></script>
-<script src="js/db.js?v=202611212111"></script>
-<script src="js/common.js?v=202611212111"></script>
-<script src="js/pix.js?v=202611212111"></script>
+<script src="config.js?v=202611212213"></script>
+<script src="js/db.js?v=202611212213"></script>
+<script src="js/common.js?v=202611212213"></script>
+<script src="js/pix.js?v=202611212213"></script>
 <script>
 (async () => {
   const { $ } = U;
-  const { plano } = Pix.cfg();
+  let plano = Pix.cfg().plano;
   const msg = $("#msg");
   const show = (t, cls = "alert") => { msg.className = cls; msg.textContent = t; msg.hidden = !t; if (t) msg.scrollIntoView({ block: "center", behavior: "smooth" }); };
   const step = (n) => {
@@ -90,9 +90,10 @@
   };
   const base = new URL("loja.html", location.href).href + "?loja=";
   $("#slug-base").textContent = "loja=";
-  $("#plan-card").innerHTML = `
-    <div><small>Plano ${U.esc(plano.nome)}</small><b>${Pix.money(plano.valor)}</b><span>a cada ${plano.dias} dias</span></div>
-    <ul><li>Catálogos e produtos sem limite de visitas</li><li>Equipe de vendedores e representantes</li><li>Suporte pelo WhatsApp</li></ul>`;
+  // escolha do plano (mensal ou anual)
+  $("#plan-card").innerHTML = `<div class="plan-choose"></div>
+    <ul class="plan-perks"><li>Catálogo sem limite de visitas</li><li>Equipe de vendedores e representantes</li><li>Suporte pelo WhatsApp</li></ul>`;
+  Pix.planPicker($("#plan-card .plan-choose"), (p) => { plano = p; }, new URLSearchParams(location.search).get("plano"));
 
   /* máscaras e endereço automático */
   let slugTouched = false, slugOk = false, slugTimer;

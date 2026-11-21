@@ -623,18 +623,22 @@
   /* ---------- renovação do plano por Pix ---------- */
   const dlgPix = $("#dlg-pix");
   let pixTx = null;
-  U.$$("[data-renew-pix]").forEach((b) => b.addEventListener("click", async () => {
-    const { plano } = Pix.cfg();
+  let renewPlan = null;
+  async function showRenewPay(plano) {
+    renewPlan = plano;
     pixTx = Pix.newTxid("RN");
     const novo = Math.max(Date.now(), me.expiresAt || 0) + plano.dias * DB.DAY;
     $("#pix-sub").textContent = `Plano ${plano.nome} · ${Pix.money(plano.valor)} · +${plano.dias} dias (acesso até ${U.date(novo)} depois da liberação).`;
-    dlgPix.showModal();
     const code = await Pix.mountPay($("#pix-area"), { valor: plano.valor, txid: pixTx, descricao: `Renovacao ${me.slug}` });
     $("#pix-paid").hidden = !code;
+  }
+  U.$$("[data-renew-pix]").forEach((b) => b.addEventListener("click", () => {
+    dlgPix.showModal();
+    Pix.planPicker($("#pix-plans"), showRenewPay);
   }));
   dlgPix.addEventListener("close", async () => {
     if (dlgPix.returnValue !== "paid" || !pixTx) return;
-    const { plano } = Pix.cfg();
+    const plano = renewPlan || Pix.cfg().plano;
     try {
       const id = await DB.createPedido({ tipo: "renovacao", loja: store.name || me.name, slug: me.slug, responsavel: me.responsavel || me.name,
         email: me.email, whatsapp: store.whatsapp || me.whatsapp || "", cnpj: me.cnpj || "", plano: plano.nome, valor: plano.valor, dias: plano.dias, txid: pixTx });

@@ -60,10 +60,9 @@
   /** Configuração do Pix e do plano (config.js). */
   const cfg = () => {
     const c = window.CATALOGO_CONFIG || {};
-    return {
-      pix: Object.assign({ chave: "", nome: "", cidade: "" }, c.pix || {}),
-      plano: Object.assign({ nome: "Mensal", valor: 1000, dias: 30 }, c.plano || {})
-    };
+    const planos = (Array.isArray(c.planos) && c.planos.length ? c.planos : [Object.assign({ id: "mensal", nome: "Mensal", valor: 996, dias: 30 }, c.plano || {})])
+      .map((p, i) => ({ id: p.id || "p" + i, ...p }));
+    return { pix: Object.assign({ chave: "", nome: "", cidade: "" }, c.pix || {}), planos, plano: planos[0] };
   };
   const newTxid = (prefix = "MV") => (prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase().slice(0, 25);
 
@@ -103,5 +102,30 @@
     return code;
   }
 
-  window.Pix = { payload, crc16, renderQr, cfg, newTxid, mountPay, money };
+  /**
+   * Cartões para escolher o plano. onChange(plano) é chamado na escolha (e logo no início).
+   * Retorna uma função que devolve o plano escolhido.
+   */
+  function planPicker(el, onChange, selectedId) {
+    const { planos } = cfg();
+    let cur = planos.find((p) => p.id === selectedId) || planos[0];
+    const perMonth = (p) => (p.dias >= 300 ? ` · equivale a ${money(p.valor / Math.round(p.dias / 30.4))}/mês` : "");
+    el.innerHTML = `<div class="plan-pick" role="radiogroup" aria-label="Escolha o plano">${planos.map((p) => `
+      <button type="button" role="radio" aria-checked="${p.id === cur.id}" data-plan="${p.id}">
+        <span class="pp-name">${p.nome}${p.selo ? `<em>${p.selo}</em>` : ""}</span>
+        ${p.de ? `<s>${money(p.de)}</s>` : ""}
+        <b>${money(p.valor)}</b>
+        <small>${p.dias >= 300 ? "por ano" : `a cada ${p.dias} dias`}${perMonth(p)}</small>
+      </button>`).join("")}</div>`;
+    el.onclick = (e) => { // onclick (e não addEventListener): reabrir o seletor não duplica o clique
+      const b = e.target.closest("[data-plan]"); if (!b) return;
+      cur = planos.find((p) => p.id === b.dataset.plan);
+      el.querySelectorAll("[data-plan]").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+      onChange && onChange(cur);
+    };
+    onChange && onChange(cur);
+    return () => cur;
+  }
+
+  window.Pix = { payload, crc16, renderQr, cfg, newTxid, mountPay, money, planPicker };
 })();
