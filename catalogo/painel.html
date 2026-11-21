@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611212041">
+<link rel="stylesheet" href="css/app.css?v=202611212111">
 </head>
 <body>
 <header class="topbar">
@@ -16,7 +16,10 @@
   <div class="renew-banner" id="renew-banner" role="alert" hidden>
     <div class="rb-icon" aria-hidden="true">⏳</div>
     <div class="rb-text"><b id="rb-title"></b><span id="rb-sub"></span></div>
-    <a class="btn rb-btn" id="rb-btn" target="_blank" rel="noopener">Renovar pelo WhatsApp</a>
+    <div class="rb-actions">
+      <button type="button" class="btn rb-btn" data-renew-pix>Pagar com Pix</button>
+      <a class="btn ghost" id="rb-btn" target="_blank" rel="noopener">Falar no WhatsApp</a>
+    </div>
   </div>
 
   <div class="page-head">
@@ -249,9 +252,23 @@
           <p class="hint">Quem abrir este link vê os produtos sem valores. Os preços só aparecem para a loja, vendedores e representantes logados.</p>
         </div>
         <a class="btn" style="width:100%" id="share-wa" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+        <button type="button" class="btn primary" style="width:100%;margin-top:8px" data-renew-pix>Renovar plano com Pix</button>
       </section>
   </div>
 </main>
+
+<!-- Renovação por Pix -->
+<dialog id="dlg-pix" class="dlg-pix" aria-labelledby="pix-title">
+  <form method="dialog">
+    <h2 id="pix-title">Renovar plano</h2>
+    <p class="hint" id="pix-sub" style="margin:-8px 0 14px"></p>
+    <div id="pix-area"></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" value="cancel">Fechar</button>
+      <button class="btn primary" value="paid" id="pix-paid">Já paguei</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- Importação -->
 <dialog id="dlg-import" aria-labelledby="imp-title">
@@ -297,9 +314,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611212041"></script>
-<script src="js/db.js?v=202611212041"></script>
-<script src="js/common.js?v=202611212041"></script>
-<script src="js/painel.js?v=202611212041"></script>
+<script src="config.js?v=202611212111"></script>
+<script src="js/db.js?v=202611212111"></script>
+<script src="js/common.js?v=202611212111"></script>
+<script src="js/pix.js?v=202611212111"></script>
+<script src="js/painel.js?v=202611212111"></script>
 </body>
 </html>

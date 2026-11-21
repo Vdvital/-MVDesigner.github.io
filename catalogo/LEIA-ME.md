@@ -127,3 +127,20 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - Acessos da loja e da equipe não contam como visita. Os eventos são juntados e gravados de uma vez (a cada 15 s ou ao sair), um registro por loja por dia em `stats/{loja}_{data}`.
 
 **Importante:** publique de novo o `firestore.rules` (coleção `stats`).
+
+## Assinatura por Pix (plano mensal)
+
+Configure em `config.js`:
+- `plano`: nome, valor (R$ 1.000) e dias de acesso por pagamento (30).
+- `pix`: **chave** (celular no formato `+5511999999999`, CPF/CNPJ só números, e-mail ou chave aleatória), **nome** e **cidade** do titular como estão no banco.
+
+Fluxo:
+1. O cliente abre **Assinar** (link no login, página `cadastro.html`) e preenche loja, endereço do catálogo, responsável, CNPJ, WhatsApp e e-mail.
+2. Aparece o plano com **QR Code Pix** e **Pix copia e cola** já com o valor (o dinheiro cai direto na sua conta, sem intermediário).
+3. Ele toca em **Já paguei** e envia o comprovante pelo WhatsApp de renovação.
+4. No painel do administrador, em **Pedidos de liberação**, você confere o Pix no banco e clica em **Aprovar e liberar**: a conta é criada com 30 dias e o cliente recebe um e-mail para criar a senha (no modo de teste aparece uma senha provisória). Há uma mensagem pronta para avisar no WhatsApp.
+5. **Renovação:** no painel da loja (aviso de vencimento ou aba Compartilhar) o botão **Pagar com Pix** gera um pedido de renovação; ao aprovar, o acesso ganha +30 dias.
+
+O sistema não confirma o Pix sozinho (isso exige um intermediador e servidor). A confirmação é sua, no banco.
+
+**Importante:** publique de novo o `firestore.rules` (coleção `pedidos`).

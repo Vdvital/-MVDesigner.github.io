@@ -247,6 +247,99 @@
   // no celular o formulário de criar começa fechado, para a lista aparecer logo
   if (matchMedia("(max-width: 760px)").matches) $("#create-card").open = false;
 
+  /* ---------- pedidos de liberação (cadastro e renovação por Pix) ---------- */
+  let pedidos = [];
+  const STATUS = {
+    aguardando_pagamento: ["Aguardando pagamento", "expirando"],
+    pagamento_informado: ["Pagamento informado", "ativo"],
+    aprovado: ["Aprovado", "admin"],
+    recusado: ["Recusado", "bloqueado"]
+  };
+  async function loadPedidos() {
+    try { pedidos = await DB.listPedidos(); }
+    catch (e) { $("#ped-list").innerHTML = `<li class="hint">Não foi possível carregar os pedidos. ${DB.mode === "firebase" ? "Confira se as regras novas do Firestore foram publicadas." : ""}</li>`; return; }
+    pedidos.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderPedidos();
+  }
+  function renderPedidos() {
+    const f = $("#ped-filter").value;
+    const open = pedidos.filter((p) => p.status === "aguardando_pagamento" || p.status === "pagamento_informado");
+    $("#ped-count").hidden = !open.length; $("#ped-count").textContent = `${open.length} em aberto`;
+    const list = pedidos.filter((p) => !f || (f === "abertos" ? open.includes(p) : p.status === f));
+    $("#ped-list").innerHTML = list.length ? list.map((p) => {
+      const [label, cls] = STATUS[p.status] || [p.status, ""];
+      const phone = String(p.whatsapp || "").replace(/\D/g, "");
+      return `<li data-id="${esc(p.id)}" class="${p.status === "pagamento_informado" ? "hot" : ""}">
+        <div class="ped-main">
+          <div class="ped-top"><b>${esc(p.loja || "")}</b><span class="pill ${cls}">${label}</span><span class="tag-type">${p.tipo === "renovacao" ? "Renovação" : "Novo cadastro"}</span></div>
+          <div class="muted">${esc(p.responsavel || "")} · ${esc(p.email || "")} · ${esc(p.whatsapp || "")} · CNPJ ${esc(p.cnpj || "—")}</div>
+          <div class="muted">${p.slug ? "/" + esc(p.slug) + " · " : ""}${Pix.money(p.valor || 0)} · ${p.dias || 30} dias · pedido ${esc(p.txid || p.id)} · ${U.dateTime(p.createdAt)}${p.paidAt ? " · pago informado " + U.dateTime(p.paidAt) : ""}</div>
+        </div>
+        <div class="ped-actions">
+          ${p.status !== "aprovado" ? `<button class="btn sm primary" data-ped="ok">${p.tipo === "renovacao" ? "Aprovar e renovar" : "Aprovar e liberar"}</button>` : ""}
+          ${phone ? `<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/55${phone}">WhatsApp</a>` : ""}
+          ${p.status !== "aprovado" && p.status !== "recusado" ? `<button class="btn sm" data-ped="no">Recusar</button>` : ""}
+          <button class="btn sm ghost danger" data-ped="del" aria-label="Excluir pedido">Excluir</button>
+        </div>
+      </li>`;
+    }).join("") : `<li class="hint">${f === "abertos" ? "Nenhum pedido em aberto." : "Nenhum pedido."}</li>`;
+  }
+  $("#ped-filter").addEventListener("change", renderPedidos);
+  $("#ped-list").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-ped]"); if (!b) return;
+    const p = pedidos.find((x) => x.id === b.closest("li").dataset.id); if (!p) return;
+    try {
+      if (b.dataset.ped === "del") {
+        if (!(await U.ask({ title: "Excluir pedido?", text: `Pedido de ${p.loja}. A conta (se já existir) não é afetada.`, ok: "Excluir", danger: true }))) return;
+        await DB.deletePedido(p.id); toast("Pedido excluído.");
+      } else if (b.dataset.ped === "no") {
+        if (!(await U.ask({ title: "Recusar pedido?", text: `${p.loja} não será liberado. Avise o cliente pelo WhatsApp se for o caso.`, ok: "Recusar", danger: true }))) return;
+        await DB.updatePedido(p.id, { status: "recusado" }); toast("Pedido recusado.");
+      } else if (b.dataset.ped === "ok") {
+        b.disabled = true;
+        await approve(p);
+      }
+      await loadPedidos();
+    } catch (err) { toast(err.message, "err"); b.disabled = false; }
+  });
+
+  async function approve(p) {
+    const dias = p.dias || 30;
+    if (p.tipo === "renovacao") {
+      const u = users.find((x) => x.uid === p.uid) || users.find((x) => x.email === p.email);
+      if (!u) throw new Error("Não encontrei a conta desta loja para renovar.");
+      if (!(await U.ask({ title: `Renovar ${u.name}?`, text: `Confirme que o Pix de ${Pix.money(p.valor)} caiu na sua conta. O acesso ganha +${dias} dias.`, ok: "Confirmar e renovar" }))) return;
+      const until = Math.max(Date.now(), u.expiresAt || 0) + dias * DB.DAY;
+      await DB.updateUser(u.uid, { expiresAt: until, active: true });
+      await DB.updatePedido(p.id, { status: "aprovado", approvedAt: Date.now() });
+      toast(`${u.name} renovado até ${U.date(until)}.`);
+      await load();
+      return;
+    }
+    if (!(await U.ask({ title: `Liberar ${p.loja}?`, text: `Confirme que o Pix de ${Pix.money(p.valor)} caiu na sua conta. A conta é criada com ${dias} dias de acesso e o cliente recebe um e-mail para criar a senha.`, ok: "Confirmar e liberar" }))) return;
+    // senha provisória aleatória: o cliente cria a dele pelo e-mail de redefinição
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const temp = Array.from(crypto.getRandomValues(new Uint32Array(14)), (n) => chars[n % chars.length]).join("");
+    const until = Date.now() + dias * DB.DAY;
+    const u = await DB.createUser({ name: p.loja, email: p.email, password: temp, slug: p.slug, expiresAt: until, whatsapp: p.whatsapp, cnpj: p.cnpj, responsavel: p.responsavel });
+    await DB.updatePedido(p.id, { status: "aprovado", approvedAt: Date.now(), userUid: u.uid });
+    let senhaMsg = "";
+    if (DB.mode === "firebase") {
+      try { await DB.sendReset(p.email); senhaMsg = "Você vai receber um e-mail para criar a sua senha (confira o spam)."; }
+      catch { senhaMsg = `Senha provisória: ${temp}`; }
+    } else senhaMsg = `Senha provisória: ${temp}`;
+    const login = new URL("index.html", location.href).href;
+    const text = [`Olá, ${(p.responsavel || "").split(" ")[0]}! ✅ Seu *Catálogo Online* foi liberado.`, "",
+      `Login: ${p.email}`, senhaMsg, `Entre por aqui: ${login}`, "",
+      `Acesso válido até ${U.date(until)}.`].join("\n");
+    const phone = String(p.whatsapp || "").replace(/\D/g, "");
+    await U.ask({ title: "Conta liberada!", text: `${p.loja} já pode entrar. ${senhaMsg} Avise o cliente pelo WhatsApp com a mensagem pronta.`, ok: "Avisar no WhatsApp", cancel: "Fechar" })
+      .then((go) => { if (go && phone) window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(text)}`, "_blank"); });
+    await load();
+  }
+
+  await loadPedidos();
+  setInterval(loadPedidos, 60000);
   await load();
   setInterval(render, 60000);
 })();
