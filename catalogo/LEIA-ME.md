@@ -131,8 +131,8 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 ## Assinatura por Pix (plano mensal)
 
 Configure em `config.js`:
-- `plano`: nome, valor (R$ 1.000) e dias de acesso por pagamento (30).
-- `pix`: **chave** (celular no formato `+5511999999999`, CPF/CNPJ só números, e-mail ou chave aleatória), **nome** e **cidade** do titular como estão no banco.
+- `planos`: lista de planos (id, nome, valor, dias; opcional `de` = preço cheio riscado e `selo`). Hoje: **Mensal R$ 996 / 30 dias** e **Anual R$ 11.354,40 / 365 dias** (996 × 12 = 11.952 com 5% de desconto).
+- `pix`: **chave** (hoje: CPF 45854113805) (celular no formato `+5511999999999`, CPF/CNPJ só números, e-mail ou chave aleatória), **nome** e **cidade** do titular como estão no banco.
 
 Fluxo:
 1. O cliente abre **Assinar** (link no login, página `cadastro.html`) e preenche loja, endereço do catálogo, responsável, CNPJ, WhatsApp e e-mail.

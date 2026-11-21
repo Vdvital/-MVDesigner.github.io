@@ -26,19 +26,18 @@ window.CATALOGO_CONFIG = {
   // E-mails que são administradores (só eles criam usuários)
   admins: ["tiranosaurro.vital@gmail.com"],
 
-  // Plano de assinatura (cobrado por Pix direto na sua conta)
-  plano: {
-    nome: "Mensal",
-    valor: 1000,   // R$ por período
-    dias: 30       // dias de acesso liberados a cada pagamento
-  },
+  // Planos de assinatura (cobrados por Pix direto na sua conta). O primeiro é o padrão.
+  planos: [
+    { id: "mensal", nome: "Mensal", valor: 996, dias: 30 },
+    { id: "anual", nome: "Anual", valor: 11354.40, dias: 365, de: 11952, selo: "5% de desconto" } // 996 x 12 = 11.952 - 5%
+  ],
 
   // Sua chave Pix. Celular no formato +5511999999999; CPF/CNPJ só números; ou e-mail; ou chave aleatória.
   // Nome e cidade como estão no banco (sem acento, até 25 e 15 letras).
   pix: {
-    chave: "",
-    nome: "",
-    cidade: ""
+    chave: "45854113805",   // CPF
+    nome: "MARCOS VITAL",
+    cidade: "SAO PAULO"
   },
 
   // Renovação do plano: WhatsApp de contato e quantos dias antes do vencimento o aviso aparece
