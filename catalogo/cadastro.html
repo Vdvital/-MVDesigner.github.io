@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Assinar | Catálogo Online</title>
 <meta name="description" content="Crie o catálogo online da sua loja: produtos pelo Excel, fotos do Google Drive, preços só para a sua equipe e pedidos pelo WhatsApp.">
-<link rel="stylesheet" href="css/app.css?v=202611212224">
+<link rel="stylesheet" href="css/app.css?v=202611212236">
 </head>
 <body>
 <main class="login enter signup">
@@ -31,6 +31,10 @@
 
       <!-- 1. CADASTRO -->
       <form id="step-1" novalidate>
+        <div class="resume" id="resume" hidden>
+          <div><b id="resume-title"></b><span id="resume-sub"></span></div>
+          <div class="resume-actions"><button type="button" class="btn primary sm" id="resume-go">Continuar</button><button type="button" class="btn ghost sm" id="resume-new">Começar de novo</button></div>
+        </div>
         <h2>Crie sua conta</h2>
         <p>Preencha os dados da loja. Depois você paga o plano por Pix.</p>
         <div id="msg" class="alert" role="alert" hidden></div>
@@ -133,30 +137,38 @@
       <!-- 2. PAGAMENTO -->
       <section id="step-2" hidden aria-labelledby="pay-title">
         <h2 id="pay-title">Pague com Pix</h2>
-        <p id="pay-sub"></p>
+        <p>Falta pouco. Pague pelo app do seu banco e volte aqui para avisar.</p>
+        <div class="order-sum" id="order-sum"></div>
         <div id="pay-box"></div>
-        <button class="btn primary" style="width:100%;margin-top:16px" id="paid">Já paguei</button>
-        <p class="hint" style="margin-top:10px">Depois de pagar, toque em <b>Já paguei</b> e envie o comprovante pelo WhatsApp. Isso acelera a liberação.</p>
-        <button class="link-btn" id="back-1" type="button" style="margin-top:12px">← Corrigir meus dados</button>
+        <button class="btn primary paid-btn" id="paid">✓ Já paguei</button>
+        <p class="hint center">Pode fechar esta página para ir ao app do banco: ao voltar, seu pedido continua daqui.</p>
+        <button class="link-btn" id="back-1" type="button" style="margin-top:12px">← Corrigir meus dados ou trocar de plano</button>
       </section>
 
       <!-- 3. AGUARDANDO LIBERAÇÃO -->
       <section id="step-3" hidden aria-labelledby="done-title">
         <div class="done-mark" aria-hidden="true">✓</div>
-        <h2 id="done-title">Pedido recebido!</h2>
-        <p>Assim que confirmarmos o pagamento, sua conta é liberada e você recebe um <b>e-mail para criar a sua senha</b>.</p>
+        <h2 id="done-title">Pagamento informado!</h2>
+        <p>Agora é com a gente. Veja o que acontece:</p>
+        <ol class="timeline">
+          <li class="ok"><span class="tl-dot" aria-hidden="true">✓</span><div><b>Pedido e pagamento registrados</b><small id="tl-1"></small></div></li>
+          <li class="now"><span class="tl-dot" aria-hidden="true">2</span><div><b>Envie o comprovante</b><small>Pelo WhatsApp, com um toque. É o que mais acelera a liberação.</small>
+            <a class="btn primary wa-btn" id="send-proof" target="_blank" rel="noopener">Enviar comprovante pelo WhatsApp</a></div></li>
+          <li><span class="tl-dot" aria-hidden="true">3</span><div><b>Conferimos o Pix e liberamos a conta</b><small>Você recebe a confirmação no WhatsApp.</small></div></li>
+          <li><span class="tl-dot" aria-hidden="true">4</span><div><b>Crie a sua senha pelo e-mail</b><small id="tl-4"></small></div></li>
+          <li><span class="tl-dot" aria-hidden="true">5</span><div><b>Entre e monte o seu catálogo</b><small>O painel tem um passo a passo de primeiros passos.</small></div></li>
+        </ol>
         <ul class="done-list" id="done-list"></ul>
-        <a class="btn primary" style="width:100%" id="send-proof" target="_blank" rel="noopener">Enviar comprovante pelo WhatsApp</a>
-        <a class="btn ghost" style="width:100%;margin-top:8px" href="index.html">Voltar ao login</a>
+        <a class="btn ghost" style="width:100%" href="index.html">Ir para o login</a>
       </section>
     </div>
   </section>
 </main>
 
-<script src="config.js?v=202611212224"></script>
-<script src="js/db.js?v=202611212224"></script>
-<script src="js/common.js?v=202611212224"></script>
-<script src="js/pix.js?v=202611212224"></script>
+<script src="config.js?v=202611212236"></script>
+<script src="js/db.js?v=202611212236"></script>
+<script src="js/common.js?v=202611212236"></script>
+<script src="js/pix.js?v=202611212236"></script>
 <script>
 (async () => {
   const { $ } = U;
@@ -165,6 +177,7 @@
   const show = (t, cls = "alert") => { msg.className = cls; msg.textContent = t; msg.hidden = !t; if (t) msg.scrollIntoView({ block: "center", behavior: "smooth" }); };
   const step = (n) => {
     [1, 2, 3].forEach((i) => { $("#step-" + i).hidden = i !== n; $("#sb-" + i).classList.toggle("on", i <= n); });
+    document.querySelector(".signup").classList.toggle("paying", n > 1); // no celular, esconde o bloco laranja durante o pagamento
     scrollTo({ top: 0, behavior: "smooth" });
   };
   const base = new URL("loja.html", location.href).href + "?loja=";
@@ -196,8 +209,52 @@
     }, 450);
   }
 
+  /* pedido em andamento fica salvo no aparelho, para retomar depois de ir ao app do banco */
+  const PEND = "cat_signup_pending";
+  const savePend = (x) => { try { localStorage.setItem(PEND, JSON.stringify(x)); } catch { /* ignore */ } };
+  const readPend = () => { try { const x = JSON.parse(localStorage.getItem(PEND)); return x && Date.now() - x.at < 7 * 864e5 ? x : null; } catch { return null; } };
+  const clearPend = () => { try { localStorage.removeItem(PEND); } catch { /* ignore */ } };
+
   /* 1 → 2 */
   let pedido = null;
+  async function showPay() {
+    const until = new Date(Date.now() + plano.dias * 864e5);
+    $("#order-sum").innerHTML = `
+      <div class="os-row"><span>Plano</span><b>${U.esc(plano.nome)}${plano.selo ? ` <em>${U.esc(plano.selo)}</em>` : ""}</b></div>
+      <div class="os-row"><span>Loja</span><b>${U.esc(pedido.loja)}</b></div>
+      <div class="os-row"><span>Catálogo</span><b class="mono">${U.esc(base.replace(/^https?:\/\//, "") + pedido.slug)}</b></div>
+      <div class="os-row"><span>Login</span><b>${U.esc(pedido.email)}</b></div>
+      <div class="os-row"><span>Acesso</span><b>${plano.dias} dias a partir da liberação (até ~${until.toLocaleDateString("pt-BR")})</b></div>
+      <div class="os-row total"><span>Total</span><b>${Pix.money(plano.valor)}</b></div>`;
+    await Pix.mountPay($("#pay-box"), { valor: plano.valor, txid: pedido.txid, descricao: `Plano ${plano.nome} ${pedido.slug}` });
+    step(2);
+  }
+  function showDone() {
+    const text = [
+      "Olá! Acabei de pagar o plano do *Catálogo Online* por Pix. Segue o comprovante.", "",
+      `Loja: ${pedido.loja}`, `Endereço: ${pedido.slug}`, `Responsável: ${pedido.responsavel}`, `CNPJ: ${pedido.cnpj}`,
+      `E-mail: ${pedido.email}`, `Plano: ${plano.nome} (${Pix.money(plano.valor)})`, `Pedido: ${pedido.txid}`
+    ].join("\n");
+    $("#send-proof").href = `https://wa.me/${U.renewPhone()}?text=${encodeURIComponent(text)}`;
+    $("#tl-1").textContent = `Pedido ${pedido.txid} · ${plano.nome} · ${Pix.money(plano.valor)}`;
+    $("#tl-4").textContent = `O link chega em ${pedido.email}. Confira também a caixa de spam.`;
+    $("#done-list").innerHTML = `<li><span>Loja</span><b>${U.esc(pedido.loja)}</b></li><li><span>Seu login</span><b>${U.esc(pedido.email)}</b></li><li><span>Dúvidas</span><b>WhatsApp ${U.esc(U.renewPhoneLabel())}</b></li>`;
+    step(3);
+  }
+
+  // voltou depois de sair para pagar: oferece continuar de onde parou
+  const pend = readPend();
+  if (pend) {
+    const pl = Pix.cfg().planos.find((x) => x.id === pend.planoId) || plano;
+    $("#resume").hidden = false;
+    $("#resume-title").textContent = pend.paid ? `Pagamento de ${pend.d.loja} já informado` : `Você tem um pagamento em andamento`;
+    $("#resume-sub").textContent = pend.paid ? "Veja os próximos passos e envie o comprovante." : `${pend.d.loja} · Plano ${pl.nome} · ${Pix.money(pl.valor)}`;
+    $("#resume-go").onclick = async () => {
+      plano = pl; pedido = { id: pend.id, txid: pend.txid, ...pend.d };
+      if (pend.paid) showDone(); else await showPay();
+    };
+    $("#resume-new").onclick = () => { clearPend(); $("#resume").hidden = true; };
+  }
   $("#step-1").addEventListener("submit", async (e) => {
     e.preventDefault();
     const d = {
@@ -220,27 +277,26 @@
       const txid = Pix.newTxid("MV");
       const id = await DB.createPedido({ tipo: "novo", ...d, plano: plano.nome, valor: plano.valor, dias: plano.dias, txid });
       pedido = { id, txid, ...d };
-      $("#pay-sub").textContent = `Plano ${plano.nome} · ${Pix.money(plano.valor)} · ${plano.dias} dias de acesso para ${d.loja}.`;
-      await Pix.mountPay($("#pay-box"), { valor: plano.valor, txid, descricao: `Plano ${plano.nome} ${d.slug}` });
-      step(2);
+      savePend({ id, txid, d, planoId: plano.id, at: Date.now() });
+      await showPay();
     } catch (err) { show("Não foi possível registrar o pedido agora. Tente de novo em instantes."); }
     btn.disabled = false; btn.classList.remove("loading");
   });
   $("#back-1").onclick = () => step(1);
 
-  /* 2 → 3 */
+  /* 2 → 3: confirma antes, para ninguém avisar sem ter pago */
   $("#paid").addEventListener("click", async () => {
     if (!pedido) return;
+    const ok = await U.ask({
+      title: "Você já concluiu o Pix?",
+      text: `Confirme que o pagamento de ${Pix.money(plano.valor)} para ${Pix.cfg().pix.nome || "o recebedor"} foi concluído no app do seu banco.`,
+      ok: "Sim, já paguei", cancel: "Ainda não"
+    });
+    if (!ok) return;
     const btn = $("#paid"); btn.disabled = true;
     try { await DB.pedidoPago(pedido.id); } catch { /* o pedido já está registrado; segue para o comprovante */ }
-    const text = [
-      "Olá! Acabei de pagar o plano do *Catálogo Online* por Pix. Segue o comprovante.", "",
-      `Loja: ${pedido.loja}`, `Endereço: ${pedido.slug}`, `Responsável: ${pedido.responsavel}`, `CNPJ: ${pedido.cnpj}`,
-      `E-mail: ${pedido.email}`, `Valor: ${Pix.money(plano.valor)}`, `Pedido: ${pedido.txid}`
-    ].join("\n");
-    $("#send-proof").href = `https://wa.me/${U.renewPhone()}?text=${encodeURIComponent(text)}`;
-    $("#done-list").innerHTML = `<li><span>Loja</span><b>${U.esc(pedido.loja)}</b></li><li><span>Login</span><b>${U.esc(pedido.email)}</b></li><li><span>Pedido</span><b>${U.esc(pedido.txid)}</b></li>`;
-    step(3);
+    savePend({ ...readPend(), id: pedido.id, txid: pedido.txid, d: { loja: pedido.loja, slug: pedido.slug, responsavel: pedido.responsavel, cnpj: pedido.cnpj, whatsapp: pedido.whatsapp, email: pedido.email }, planoId: plano.id, paid: true, at: Date.now() });
+    showDone();
     btn.disabled = false;
   });
 })();
