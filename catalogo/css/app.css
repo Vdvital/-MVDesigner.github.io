@@ -299,3 +299,22 @@ td.actions .btn{margin:2px 0 2px 4px}
 .p-mini .flags{position:absolute;top:8px;left:8px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 80px)}
 .p-mini .flags .flag{position:static}
 .p-mini .flag.new{background:#f4f4ee;color:#111}
+
+/* esqueci minha senha */
+.link-btn{background:none;border:0;padding:0;margin:-6px 0 14px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;align-self:flex-start}
+.link-btn:hover{color:var(--ink)}
+/* aviso com botão (Desfazer) */
+.toast.action{display:flex;align-items:center;gap:14px}
+.toast.action button{border:0;background:#111;color:#fff;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer}
+
+/* histórico de orçamentos */
+.qh-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.qh-stats div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.qh-stats small{display:block;color:var(--muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.qh-stats b{font-size:20px;letter-spacing:-.4px}
+.qh-table td .muted{color:var(--muted);font-size:12.5px}
+.btn.wa{background:#25d366;border-color:#25d366;color:#0b3d1f}
+@media(max-width:760px){.qh-stats{grid-template-columns:1fr 1fr}.qh-stats div:last-child{grid-column:1/-1}}
+.renew-quick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:14px 0 4px;padding:10px 12px;border:1px dashed #5fd38d66;border-radius:12px;font-size:13px;color:var(--muted)}
+.renew-quick b{color:var(--ink)}
+.renew-quick span{margin-right:4px}

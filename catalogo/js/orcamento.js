@@ -97,19 +97,24 @@
     /* blocos cliente / vendedor / validade */
     let y = 44;
     const colW = (W - 2 * M - 8) / 3;
+    const BH = 26; // altura dos blocos (cabe nome + 2 linhas)
     const block = (x, label, lines) => {
-      doc.setFillColor(...mix(accent, 0.9)); doc.roundedRect(x, y, colW, 22, 2, 2, "F");
+      doc.setFillColor(...mix(accent, 0.9)); doc.roundedRect(x, y, colW, BH, 2, 2, "F");
       doc.setTextColor(...muted); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
       doc.text(label.toUpperCase(), x + 4, y + 6);
       doc.setTextColor(...ink); doc.setFont("helvetica", "bold"); doc.setFontSize(10.5);
       doc.text(doc.splitTextToSize(lines[0] || "—", colW - 8)[0], x + 4, y + 12.5);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...muted);
       if (lines[1]) doc.text(doc.splitTextToSize(lines[1], colW - 8)[0], x + 4, y + 18);
+      if (lines[2]) doc.text(doc.splitTextToSize(lines[2], colW - 8)[0], x + 4, y + 22.5);
     };
-    block(M, "Cliente", [o.client, ""]);
+    const docNum = String(o.clientDoc || "").replace(/\D/g, "");
+    block(M, "Cliente", [o.client,
+      o.clientDoc ? `${docNum.length === 11 ? "CPF" : "CNPJ"} ${o.clientDoc}` : "",
+      o.clientPhone ? `WhatsApp ${o.clientPhone}` : ""]);
     block(M + colW + 4, o.seller.role || "Vendedor", [o.seller.name, o.seller.whatsapp ? `WhatsApp ${phone(o.seller.whatsapp)}` : ""]);
     block(M + 2 * (colW + 4), "Validade", [fmtDate(valid), "7 dias a partir da emissão"]);
-    y += 30;
+    y += BH + 8;
 
     /* tabela */
     let total = 0, units = 0;
@@ -122,7 +127,7 @@
         "",
         String(it.p.code),
         { content: (it.p.name || "Produto") + (it.p.category ? `\n${it.p.category}` : "") + (it.p.boxQty ? `\nCaixa com ${it.p.boxQty} un.` : "") + (it.p.isNew ? "\nNovidade" : "") + (promo ? `\nPromoção: de ${money(it.p.price)}` : ""), _promo: promo, _cat: !!it.p.category },
-        String(it.qty),
+        it.p.boxQty ? `${it.qty} un\n${it.qty % it.p.boxQty ? Math.floor(it.qty / it.p.boxQty) + " cx + " + (it.qty % it.p.boxQty) + " un" : it.qty / it.p.boxQty + " cx"}` : String(it.qty),
         it.unit != null ? money(it.unit) : "A consultar",
         sub != null ? money(sub) : "—"
       ];

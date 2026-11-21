@@ -220,6 +220,18 @@
     updateRemindLinks();
     dlgRemind.showModal();
   }
+  // renovação em 1 clique, contando a partir do vencimento (ou de hoje, se já venceu)
+  U.$$("#dlg-remind [data-renew]").forEach((b) => b.addEventListener("click", async () => {
+    const days = Number(b.dataset.renew);
+    const from = Math.max(Date.now(), remindUser.expiresAt || 0);
+    const until = from + days * DB.DAY;
+    try {
+      await DB.updateUser(remindUser.uid, { expiresAt: until, ...(remindUser.active === false ? { active: true } : {}) });
+      toast(`${remindUser.name} renovado até ${U.date(until)}.`);
+      dlgRemind.close();
+      await load();
+    } catch (err) { toast(err.message, "err"); }
+  }));
   $("#rm-text").addEventListener("input", updateRemindLinks);
   $("#rm-phone").addEventListener("input", updateRemindLinks);
   ["#rm-wa", "#rm-email"].forEach((s) => $(s).addEventListener("click", () => {

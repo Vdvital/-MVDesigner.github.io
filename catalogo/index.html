@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Entrar | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611201332">
+<link rel="stylesheet" href="css/app.css?v=202611211703">
 </head>
 <body>
 <main class="login enter">
@@ -21,15 +21,16 @@
       <a class="btn renew-login" id="renew-login" target="_blank" rel="noopener" hidden>Renovar meu plano pelo WhatsApp</a>
       <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required></div>
       <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required data-toggle-pass></div>
+      <button type="button" class="link-btn" id="forgot">Esqueci minha senha</button>
       <button class="btn primary" style="width:100%;margin-top:6px" id="submit">Entrar</button>
       <p class="hint" style="margin-top:18px">Não tem acesso? Apenas o administrador cria contas. Fale com ele para receber seu login.</p>
       <p class="hint" id="demo-hint" hidden>Modo de teste — administrador padrão: <code>admin@catalogo.com</code> / <code>admin123</code></p>
     </form>
   </section>
 </main>
-<script src="config.js?v=202611201332"></script>
-<script src="js/db.js?v=202611201332"></script>
-<script src="js/common.js?v=202611201332"></script>
+<script src="config.js?v=202611211703"></script>
+<script src="js/db.js?v=202611211703"></script>
+<script src="js/common.js?v=202611211703"></script>
 <script>
 (async () => {
   const msg = U.$("#msg");
@@ -49,6 +50,31 @@
   if (new URLSearchParams(location.search).get("expirado")) show("Seu tempo de acesso terminou. Renove seu plano para voltar a usar o catálogo.");
   if (DB.mode === "local") U.$("#demo-hint").hidden = false;
   U.passToggles();
+
+  /* esqueci minha senha: o Firebase envia um e-mail com o link para criar uma nova */
+  U.$("#forgot").addEventListener("click", async () => {
+    const email = await U.ask({
+      title: "Esqueci minha senha",
+      text: "Digite o e-mail do seu login. Vamos enviar um link para você criar uma senha nova.",
+      ok: "Enviar link", input: { type: "email", value: U.$("#email").value.trim(), placeholder: "seu@email.com", inputmode: "email" }
+    });
+    if (email === null) return;
+    const e = email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(e)) return show("Digite um e-mail válido para receber o link.");
+    if (DB.mode !== "firebase") return show("No modo de teste não há envio de e-mail. Peça ao administrador para trocar sua senha.", "alert info");
+    const done = () => {
+      U.$("#email").value = e;
+      show(`Pronto! Se ${e} tiver cadastro, o link para criar uma senha nova chega em alguns minutos. Confira também a caixa de spam.`, "alert info");
+    };
+    try {
+      await DB.sendReset(e);
+      done();
+    } catch (err) {
+      const code = String(err.code || err.message || "");
+      if (/user-not-found/.test(code)) return done(); // não revela quais e-mails têm cadastro
+      show(/too-many/.test(code) ? "Muitas tentativas. Aguarde alguns minutos e tente de novo." : "Não foi possível enviar agora. Tente de novo em instantes.");
+    }
+  });
   try {
     const me = await DB.current();
     if (me) return location.replace(U.homeFor(me));

@@ -226,6 +226,11 @@
       return id;
     },
     async getQuote(id) { return this._read("cat_quotes", {})[id] || null; },
+    async listQuotes(owner) {
+      return Object.entries(this._read("cat_quotes", {}))
+        .filter(([, q]) => q.slug === owner.slug)
+        .map(([id, q]) => ({ id, ...q }));
+    },
 
     async getPrices(slug) {
       const me = await this.current();
@@ -431,6 +436,11 @@
       const s = await this.db.collection("quotes").doc(id).get();
       return s.exists ? s.data() : null;
     },
+    async listQuotes(owner) {
+      // só os orçamentos da própria loja (ownerUid gravado na criação)
+      const snap = await this.db.collection("quotes").where("ownerUid", "==", owner.uid).limit(300).get();
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    },
 
     async getPrices(slug) {
       await this._ready;
@@ -464,7 +474,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

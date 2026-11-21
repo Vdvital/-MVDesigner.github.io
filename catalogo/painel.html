@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611201332">
+<link rel="stylesheet" href="css/app.css?v=202611211703">
 </head>
 <body>
 <header class="topbar">
@@ -42,6 +42,7 @@
     <button role="tab" data-tab="loja" aria-selected="false">Minha loja</button>
     <button role="tab" data-tab="fotos" aria-selected="false">Fotos do Drive</button>
     <button role="tab" data-tab="equipe" aria-selected="false">Equipe <span class="count" id="tab-count-team"></span></button>
+    <button role="tab" data-tab="orcamentos" aria-selected="false">Orçamentos <span class="count" id="tab-count-quotes"></span></button>
     <button role="tab" data-tab="compartilhar" aria-selected="false">Compartilhar</button>
   </nav>
 
@@ -160,6 +161,27 @@
       </section>
   </div>
 
+  <div class="tab-panel" data-panel="orcamentos" hidden>
+    <section class="card" aria-labelledby="qh-title">
+      <h2 id="qh-title">Histórico de orçamentos</h2>
+      <p class="sub">Orçamentos enviados pela loja, vendedores e representantes.</p>
+      <div class="qh-stats" id="qh-stats"></div>
+      <div class="toolbar">
+        <input id="qh-search" type="search" placeholder="Buscar por cliente, CNPJ, vendedor ou número" aria-label="Buscar orçamento">
+        <select id="qh-seller" aria-label="Filtrar por vendedor"><option value="">Todos os vendedores</option></select>
+        <select id="qh-period" aria-label="Filtrar por período">
+          <option value="">Todo o período</option><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="qh-table">
+          <thead><tr><th>Nº / data</th><th>Cliente</th><th>Vendedor</th><th>Itens</th><th>Total</th><th><span class="sr-only">Ações</span></th></tr></thead>
+          <tbody id="qh-list"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
   <div class="tab-panel narrow" data-panel="compartilhar" hidden>
       <!-- ACESSO -->
       <section class="card" aria-labelledby="acc-title">
@@ -220,9 +242,9 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611201332"></script>
-<script src="js/db.js?v=202611201332"></script>
-<script src="js/common.js?v=202611201332"></script>
-<script src="js/painel.js?v=202611201332"></script>
+<script src="config.js?v=202611211703"></script>
+<script src="js/db.js?v=202611211703"></script>
+<script src="js/common.js?v=202611211703"></script>
+<script src="js/painel.js?v=202611211703"></script>
 </body>
 </html>

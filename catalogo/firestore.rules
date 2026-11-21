@@ -52,9 +52,13 @@ service cloud.firestore {
     // Abertos pelo link (id aleatório, impossível de adivinhar); ninguém lista todos.
     match /quotes/{id} {
       allow get: if true;
-      allow list: if false;
+      // a loja lista os orçamentos dela; quem criou lista os seus (consulta filtrada por ownerUid ou createdBy)
+      allow list: if signedIn() && (isAdmin()
+        || resource.data.ownerUid == request.auth.uid
+        || resource.data.createdBy == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.ownerUid == catalog(request.resource.data.slug).uid
         && (isAdmin() || ownsCatalog(request.resource.data.slug) || isTeamOf(request.resource.data.slug));
       allow update, delete: if isAdmin();
     }

@@ -17,6 +17,21 @@
     setTimeout(() => t.remove(), 4300);
   };
 
+  /** Aviso com um botão (ex.: "Desfazer"). O botão some depois de alguns segundos. */
+  U.toastAction = (msg, label, onClick, ms = 7000) => {
+    let box = document.getElementById("toasts");
+    if (!box) { box = document.createElement("div"); box.id = "toasts"; box.setAttribute("role", "status"); document.body.appendChild(box); }
+    const t = document.createElement("div");
+    t.className = "toast action";
+    t.innerHTML = `<span></span><button type="button"></button>`;
+    t.querySelector("span").textContent = msg;
+    const b = t.querySelector("button"); b.textContent = label;
+    const close = () => { t.classList.add("out"); setTimeout(() => t.parentNode && t.parentNode.removeChild(t), 450); };
+    b.onclick = () => { close(); onClick(); };
+    box.appendChild(t);
+    setTimeout(close, ms);
+  };
+
   /* ---------- dinheiro e datas ---------- */
   U.parseMoney = (v) => {
     if (typeof v === "number") return isFinite(v) ? v : null;
@@ -44,6 +59,39 @@
   U.boxBadge = (p, cls = "") => p && p.boxQty
     ? `<span class="box-qty ${cls}" title="Caixa com ${p.boxQty} unidades">${BOX_SVG}<span>CX ${p.boxQty}</span><span class="sr-only"> (caixa com ${p.boxQty} unidades)</span></span>`
     : "";
+
+  /* ---------- dados do cliente no pedido ---------- */
+  const digits = (v) => String(v ?? "").replace(/\D/g, "");
+  /** Máscara de CNPJ (ou CPF, se tiver até 11 números). */
+  U.maskDoc = (v) => {
+    const d = digits(v).slice(0, 14);
+    if (d.length <= 11) return d.replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+    return d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+  };
+  /** Confere os dígitos verificadores do CNPJ (14 números) ou CPF (11 números). */
+  U.validDoc = (v) => {
+    const d = digits(v);
+    if (/^(\d)\1+$/.test(d)) return false;
+    if (d.length === 14) {
+      const calc = (n) => { let s = 0, w = n - 7; for (let i = 0; i < n; i++) { s += +d[i] * w--; if (w < 2) w = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
+      return calc(12) === +d[12] && calc(13) === +d[13];
+    }
+    if (d.length === 11) {
+      const calc = (n) => { let s = 0; for (let i = 0; i < n; i++) s += +d[i] * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+      return calc(9) === +d[9] && calc(10) === +d[10];
+    }
+    return false;
+  };
+  U.docLabel = (v) => (digits(v).length === 11 ? "CPF" : "CNPJ");
+  /** Máscara de telefone: (11) 99999-9999. */
+  U.maskPhone = (v) => {
+    const d = digits(v).replace(/^55(?=\d{10,11}$)/, "").slice(0, 11);
+    if (d.length <= 2) return d ? `(${d}` : "";
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  };
+  U.validPhone = (v) => { const d = digits(v); return d.length === 10 || d.length === 11; };
 
   /** Etiquetas do produto. Aceita "Novidade", "Novo", "Lançamento", "Promoção", "Promo", "Oferta" (juntas ou separadas). */
   U.parseTags = (v) => {
