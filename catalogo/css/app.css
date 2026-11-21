@@ -318,3 +318,59 @@ td.actions .btn{margin:2px 0 2px 4px}
 .renew-quick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:14px 0 4px;padding:10px 12px;border:1px dashed #5fd38d66;border-radius:12px;font-size:13px;color:var(--muted)}
 .renew-quick b{color:var(--ink)}
 .renew-quick span{margin-right:4px}
+
+/* ---------- painel Mais procurados ---------- */
+.dash-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:none;color:var(--muted);font-weight:700;font-size:13px;padding:7px 12px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--surface2);color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:6px 0 22px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi small{color:var(--muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.kpi b{font-size:28px;letter-spacing:-.8px;line-height:1.15}
+.trend{font-size:12px;font-weight:700}
+.trend small{font-weight:500;color:var(--muted)}
+.trend.up{color:var(--ok)}.trend.down{color:var(--bad)}
+.dash-block{margin-bottom:24px}
+.dash-block h3{font-size:15px;margin:0 0 10px}
+.block-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.block-head h3{margin:0}
+.block-head select{width:auto}
+.chart{position:relative}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .grid{stroke:#2c2c2f;stroke-width:1}
+.chart .tick{fill:var(--muted);font-size:11px}
+.chart .bar{fill:var(--accent)}
+.chart .hit{fill:transparent;cursor:default}
+.chart .col:hover .bar,.chart .col:focus .bar{fill:#ff8a5e}
+.chart .col:focus{outline:none}
+.chart .col:focus .hit{stroke:var(--accent);stroke-width:1}
+.tip{position:absolute;top:-6px;width:140px;text-align:center;background:var(--ink);color:#111;font-size:12.5px;font-weight:700;padding:6px 8px;border-radius:8px;pointer-events:none;box-shadow:0 6px 18px #0006}
+.as-table{margin-top:8px;font-size:13px;color:var(--muted)}
+.as-table summary{cursor:pointer}
+.as-table table{margin-top:8px;max-width:320px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.rank .pos{color:var(--muted);font-weight:800;width:32px}
+.rank .prod{display:flex;align-items:center;gap:10px;min-width:180px}
+.rank .prod .th{width:40px;height:40px;border-radius:8px;object-fit:cover;background:#fff;flex:0 0 40px}
+.rank .prod .no-img.th{display:flex;align-items:center;justify-content:center;font-size:9px;aspect-ratio:auto}
+.rank .prod small{display:block;color:var(--muted);font-size:12px}
+.meter{height:8px;background:#2a2a2d;border-radius:8px;overflow:hidden;min-width:70px}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0}
+.dash-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.mini-rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;counter-reset:r}
+.mini-rank li{display:grid;grid-template-columns:minmax(0,1fr) 70px 40px;gap:8px;align-items:center;font-size:13.5px}
+.mini-rank li span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-rank li b{text-align:right;font-variant-numeric:tabular-nums}
+.mini-rank.warn .meter i{background:var(--warn)}
+.mini-rank li.none{display:block;color:var(--muted);font-size:13px}
+@media(max-width:980px){.kpis{grid-template-columns:repeat(2,1fr)}.dash-cols{grid-template-columns:1fr}}
+@media(max-width:760px){.kpi b{font-size:22px}.rank .prod{min-width:140px}}
+@media(max-width:760px){
+  .rank tr{display:grid;grid-template-columns:28px 1fr;gap:4px 8px;padding:10px 12px}
+  .rank td{padding:0}
+  .rank td.pos{grid-row:span 5;align-self:start;padding-top:10px}
+  .rank td.num{display:flex;justify-content:space-between;font-size:13px}
+  .rank td.num::before{content:attr(data-label);color:var(--muted)}
+  .rank td:last-child{margin-top:4px}
+}

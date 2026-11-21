@@ -66,6 +66,11 @@
       return { ...rest, promo: p.promo ?? (isPromo(p) || !!p.tagPromo) };
     }) };
   }
+  /* estatísticas: um registro por loja por dia (id "slug_AAAA-MM-DD") */
+  const STAT_MAPS = ["v", "c", "o", "s", "sz", "cat"];
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const lastDays = (n) => Array.from({ length: n }, (_, i) => dayKey(new Date(Date.now() - (n - 1 - i) * 86400000)));
+
   const hasLegacyPrices = (cat) => (cat?.products || []).some((p) => "price" in p || "promoPrice" in p);
 
   async function sha256(text) {
@@ -226,6 +231,18 @@
       return id;
     },
     async getQuote(id) { return this._read("cat_quotes", {})[id] || null; },
+    async track(slug, delta) {
+      const all = this._read("cat_stats", {});
+      const day = dayKey(), id = `${slug}_${day}`;
+      const d = all[id] || { slug, day, visits: 0 };
+      d.visits = (d.visits || 0) + (delta.visits || 0);
+      STAT_MAPS.forEach((m) => Object.entries(delta[m] || {}).forEach(([k, n]) => { d[m] = d[m] || {}; d[m][k] = (d[m][k] || 0) + n; }));
+      all[id] = d; this._write("cat_stats", all);
+    },
+    async getStats(slug, days) {
+      const all = this._read("cat_stats", {});
+      return lastDays(days).map((day) => all[`${slug}_${day}`] || { slug, day, visits: 0 });
+    },
     async listQuotes(owner) {
       return Object.entries(this._read("cat_quotes", {}))
         .filter(([, q]) => q.slug === owner.slug)
@@ -445,6 +462,24 @@
       const s = await this.db.collection("quotes").doc(id).get();
       return s.exists ? s.data() : null;
     },
+    async track(slug, delta) {
+      const inc = firebase.firestore.FieldValue.increment;
+      const day = dayKey();
+      const data = { slug, day };
+      if (delta.visits) data.visits = inc(delta.visits);
+      STAT_MAPS.forEach((m) => {
+        const e = Object.entries(delta[m] || {});
+        if (e.length) data[m] = Object.fromEntries(e.map(([k, n]) => [k, inc(n)]));
+      });
+      await this.db.collection("stats").doc(`${slug}_${day}`).set(data, { merge: true });
+    },
+    async getStats(slug, days) {
+      // lê dia a dia pelo id (sem consulta), em paralelo
+      return Promise.all(lastDays(days).map(async (day) => {
+        const s = await this.db.collection("stats").doc(`${slug}_${day}`).get();
+        return s.exists ? s.data() : { slug, day, visits: 0 };
+      }));
+    },
     async listQuotes(owner) {
       // só os orçamentos da própria loja (ownerUid gravado na criação)
       const snap = await this.db.collection("quotes").where("ownerUid", "==", owner.uid).limit(300).get();
@@ -483,7 +518,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");
