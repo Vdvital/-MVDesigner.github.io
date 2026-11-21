@@ -548,3 +548,26 @@ input[aria-invalid=true]{border-color:var(--bad)}
 .pix-how li::before{width:24px;height:24px;display:flex;box-sizing:border-box}
 .ped-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .proof-note{color:var(--ok)!important;font-weight:600}
+
+/* cores do produto */
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px #0000002e,0 0 0 1.5px #fff;flex:0 0 auto;vertical-align:middle}
+.sw.lg{width:22px;height:22px}
+.color-dots{display:inline-flex;align-items:center;gap:0;margin:4px 0 2px;padding-left:3px}
+.color-dots .sw{margin-left:-3px}
+.color-dots b{font-size:11px;font-weight:800;color:var(--muted);margin-left:5px}
+.color-dots.sm .sw{width:12px;height:12px}
+.color-list{margin:8px 0 4px}
+.cl-title{display:block;font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.color-list ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.color-list li{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:4px 10px 4px 5px;font-size:13px;font-weight:600}
+.p-mini .color-dots{display:flex;margin:3px 0 1px}
+.p-mini .sw{box-shadow:inset 0 0 0 1px #ffffff33,0 0 0 1.5px var(--bg)}
+.color-preview{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.color-preview:empty{display:none}
+.cp-item{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:3px 10px 3px 4px;font-size:12.5px}
+.cp-item small{color:var(--warn);font-weight:800}
+.color-quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.color-quick button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:99px;padding:3px 9px 3px 4px;font-size:12px;cursor:pointer}
+.color-quick button[aria-pressed=true]{border-color:var(--accent);color:var(--ink);background:#ff6a3618}
+.color-quick .sw{width:14px;height:14px}
+.colors-field{grid-column:1/-1}

@@ -98,6 +98,59 @@
     const t = String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     return { isNew: /novidade|\bnovo\b|\bnova\b|lancamento|new/.test(t), tagPromo: /promo|oferta|liquida/.test(t) };
   };
+  /* ---------- cores do produto (variações sortidas) ---------- */
+  const COLOR_MAP = {
+    "preto": "#1b1b1b", "branco": "#ffffff", "cinza": "#9a9a9a", "cinza claro": "#cfcfcf", "cinza escuro": "#5c5c5c", "grafite": "#3d4145", "chumbo": "#4a4e52",
+    "vermelho": "#d62828", "vinho": "#7b1e2b", "bordo": "#7b1e2b", "bordô": "#7b1e2b", "rosa": "#f4a6c0", "rosa claro": "#f9cfdc", "rosa bebe": "#f9cfdc", "rosa bebê": "#f9cfdc", "pink": "#ff3e9a", "magenta": "#d6247f", "fucsia": "#d6247f", "fúcsia": "#d6247f",
+    "laranja": "#ff7a1a", "coral": "#ff6f61", "salmao": "#fa8072", "salmão": "#fa8072", "pessego": "#ffcba4", "pêssego": "#ffcba4",
+    "amarelo": "#ffd60a", "amarelo claro": "#fff3a3", "mostarda": "#d8a31a", "dourado": "#c9a227", "ouro": "#c9a227", "cobre": "#b87333", "bronze": "#a97142",
+    "verde": "#2e9e4f", "verde claro": "#8fd694", "verde limao": "#a6e22e", "verde limão": "#a6e22e", "verde escuro": "#1f5f3a", "verde musgo": "#5b6b2f", "verde agua": "#7fd1c2", "verde água": "#7fd1c2", "menta": "#98e2c6", "oliva": "#708238",
+    "azul": "#1e6bd6", "azul claro": "#8ec5ff", "azul bebe": "#bfe0ff", "azul bebê": "#bfe0ff", "azul marinho": "#1b2a4a", "marinho": "#1b2a4a", "azul royal": "#2547c8", "turquesa": "#30c5c0", "tiffany": "#81d8d0", "ciano": "#00b7d6", "petroleo": "#1f5c66", "petróleo": "#1f5c66",
+    "roxo": "#6f3fb3", "lilas": "#c3a6e6", "lilás": "#c3a6e6", "lavanda": "#b9a7e8", "violeta": "#8f4fd1", "uva": "#5a2a6e",
+    "marrom": "#7a4b2a", "cafe": "#5a3a24", "café": "#5a3a24", "chocolate": "#5a3a24", "caramelo": "#b5733a", "bege": "#e6d3b3", "nude": "#e3bfa3", "creme": "#f5ecd7", "off white": "#f4f1ea", "areia": "#d9c7a7", "natural": "#e8dcc4", "madeira": "#a9764a", "terracota": "#c0613c",
+    "prata": "#c0c4c8", "prateado": "#c0c4c8", "inox": "#b9bec3", "transparente": "transparent", "cristal": "transparent", "colorido": "multi", "sortido": "multi", "sortidas": "multi", "estampado": "multi"
+  };
+  const colorKey = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+  const COLOR_MAP_N = Object.fromEntries(Object.entries(COLOR_MAP).map(([k, v]) => [colorKey(k), v]));
+  /** "#1e6bd6", "transparent", "multi" ou "" (desconhecida). */
+  U.colorHex = (name) => {
+    const n = String(name || "").trim();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(n)) return n;
+    const k = colorKey(n);
+    if (COLOR_MAP_N[k]) return COLOR_MAP_N[k];
+    // "azul petróleo escuro" → usa a primeira palavra conhecida
+    const first = Object.keys(COLOR_MAP_N).filter((c) => k.startsWith(c + " ") || k === c).sort((a, b) => b.length - a.length)[0];
+    return first ? COLOR_MAP_N[first] : "";
+  };
+  /** Lê "Azul, Rosa / Verde; lilás" → ["Azul", "Rosa", "Verde", "Lilás"]. */
+  U.parseColors = (v) => [...new Set(String(v ?? "").split(/[,;\/|\n]+| e (?=[a-záéíóúâêôãõç])/i)
+    .map((c) => c.trim()).filter(Boolean)
+    .map((c) => c.charAt(0).toUpperCase() + c.slice(1)))].slice(0, 24);
+  U.COMMON_COLORS = ["Preto", "Branco", "Cinza", "Vermelho", "Rosa", "Pink", "Laranja", "Amarelo", "Verde", "Azul", "Azul marinho", "Lilás", "Roxo", "Marrom", "Bege", "Dourado", "Prata", "Transparente"];
+  const swatch = (c, size) => {
+    const h = U.colorHex(c);
+    const style = h === "multi" ? "background:conic-gradient(#d62828,#ffd60a,#2e9e4f,#1e6bd6,#6f3fb3,#d62828)"
+      : h === "transparent" ? "background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/6px 6px"
+      : h ? `background:${h}` : "background:repeating-linear-gradient(45deg,#bbb 0 2px,#eee 2px 4px)";
+    return `<span class="sw${size ? " " + size : ""}" style="${style}" title="${U.esc(c)}"></span>`;
+  };
+  U.swatch = swatch;
+  /** Bolinhas de cor (até `max`, depois "+N"). */
+  U.colorDots = (p, max = 6, cls = "") => {
+    const cs = (p && p.colors) || [];
+    if (!cs.length) return "";
+    const shown = cs.slice(0, max), rest = cs.length - shown.length;
+    return `<span class="color-dots ${cls}" role="img" aria-label="Cores: ${U.esc(cs.join(", "))}">${shown.map((c) => swatch(c)).join("")}${rest > 0 ? `<b>+${rest}</b>` : ""}</span>`;
+  };
+  /** Lista com bolinha + nome (página do produto). */
+  U.colorList = (p) => {
+    const cs = (p && p.colors) || [];
+    if (!cs.length) return "";
+    return `<div class="color-list"><span class="cl-title">${cs.length > 1 ? (p.boxQty ? "Cores sortidas na caixa" : "Cores disponíveis") : "Cor"}</span>
+      <ul>${cs.map((c) => `<li>${swatch(c, "lg")}<span>${U.esc(c)}</span></li>`).join("")}</ul></div>`;
+  };
+  U.colorsText = (p) => ((p && p.colors) || []).join(", ");
+
   U.tagText = (p) => [p.isNew && "Novidade", p.tagPromo && "Promoção"].filter(Boolean).join(", ");
 
   U.discount = (p) => (p.promoPrice && p.price && p.promoPrice < p.price ? Math.round((1 - p.promoPrice / p.price) * 100) : 0);
@@ -266,6 +319,7 @@
     { key: "category", label: "Categoria", alias: ["categoria", "linha", "grupo", "departamento"] },
     { key: "price", label: "Preço", alias: ["preco", "preço", "valor", "preco normal", "preço normal", "de"] },
     { key: "promoPrice", label: "Preço promocional", alias: ["preco promocional", "preço promocional", "promocao", "promoção", "promo", "por", "oferta"] },
+    { key: "colors", label: "Cores", alias: ["cores", "cor", "cores sortidas", "cor sortida", "variacao", "variação", "variacoes", "variações", "variacao de cor", "variação de cor", "cores disponiveis", "cores disponíveis", "colors", "color"] },
     { key: "tags", label: "Tag", alias: ["tag", "tags", "etiqueta", "etiquetas", "selo", "selos", "destaque", "novidade/promoção", "novidade/promocao", "novidade ou promoção"] },
     { key: "boxQty", label: "Qtd. por caixa", alias: ["qtd por caixa", "quantidade por caixa", "qtd caixa", "quantidade caixa", "qtd cx", "caixa", "cx", "caixa com", "embalagem", "master", "unidades por caixa", "un por caixa", "qtde caixa"] },
     { key: "imageUrl", label: "Link da imagem", alias: ["imagem", "link da imagem", "foto", "url"] }
@@ -297,6 +351,8 @@
       ...(map.boxQty ? { boxQty: U.parseBox(r[map.boxQty]) } : {}),
       // coluna Tag: "Novidade", "Promoção" ou as duas (sem a coluna, mantém o que já estava marcado)
       ...(map.tags ? U.parseTags(r[map.tags]) : {}),
+      // coluna Cores: "Azul, Rosa, Verde" (sem a coluna, mantém as cores já cadastradas)
+      ...(map.colors ? { colors: U.parseColors(r[map.colors]) } : {}),
       images: []
     })).filter((p) => p.code);
   };
@@ -308,10 +364,11 @@
       "Preço": p.price ?? "", "Preço promocional": p.promoPrice ?? "",
       "Qtd. por caixa": p.boxQty ?? "",
       "Tag": U.tagText(p),
+      "Cores": U.colorsText(p),
       "Link da imagem": p.images && p.images.length ? U.driveImg(p.images[0], 1200) : (p.imageUrl || "")
     }));
-    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ "Código": "1020", "Nome": "Garrafa térmica 1L", "Descrição": "Aço inox, mantém a temperatura por 12h", "Categoria": "Utilidades", "Preço": 89.9, "Preço promocional": 69.9, "Qtd. por caixa": 12, "Tag": "Novidade, Promoção", "Link da imagem": "" }]);
-    ws["!cols"] = [{ wch: 12 }, { wch: 32 }, { wch: 44 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 40 }];
+    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ "Código": "1020", "Nome": "Garrafa térmica 1L", "Descrição": "Aço inox, mantém a temperatura por 12h", "Categoria": "Utilidades", "Preço": 89.9, "Preço promocional": 69.9, "Qtd. por caixa": 12, "Tag": "Novidade, Promoção", "Cores": "Azul, Rosa, Verde, Lilás", "Link da imagem": "" }]);
+    ws["!cols"] = [{ wch: 12 }, { wch: 32 }, { wch: 44 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 28 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
     XLSX.writeFile(wb, filename);

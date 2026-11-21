@@ -336,7 +336,7 @@
         ${U.imgTag(p, 300, "thumb")}
         <span class="flags">${off ? `<span class="flag">-${off}%</span>` : p.tagPromo ? `<span class="flag">PROMO</span>` : ""}${p.isNew ? `<span class="flag new">NOVO</span>` : ""}</span>
         ${!(p.images?.length || p.imageUrl) ? `<span class="nophoto">sem foto</span>` : ""}
-        <div class="info"><span class="code-row"><span class="code">${esc(p.code)}</span>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Sem nome")}</b>
+        <div class="info"><span class="code-row"><span class="code">${esc(p.code)}</span>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Sem nome")}</b>${U.colorDots(p, 6, "sm")}
         <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "<span class='code'>sem preço</span>"}</span></div>
         <span class="edit" aria-hidden="true">Editar ✎</span>
       </button>`;
@@ -402,6 +402,8 @@
     $("#pe-box").value = p.boxQty || "";
     $("#pe-new").checked = !!p.isNew;
     $("#pe-tagpromo").checked = !!p.tagPromo;
+    $("#pe-colors").value = (p.colors || []).join(", ");
+    paintColors();
     $("#pe-drive").textContent = p.images?.length ? `${p.images.length} foto(s) do Drive ligada(s) a este código.` : "";
     $("#pe-delete").hidden = i < 0;
     dlgProd.showModal();
@@ -448,7 +450,8 @@
         code, name: $("#pe-name").value.trim(), description: $("#pe-desc").value.trim(), category: $("#pe-cat").value.trim(),
         price: U.parseMoney($("#pe-price").value), promoPrice: U.parseMoney($("#pe-promo").value), imageUrl: $("#pe-img").value.trim(),
         boxQty: U.parseBox($("#pe-box").value),
-        isNew: $("#pe-new").checked, tagPromo: $("#pe-tagpromo").checked
+        isNew: $("#pe-new").checked, tagPromo: $("#pe-tagpromo").checked,
+        colors: U.parseColors($("#pe-colors").value)
       };
       if (editIndex >= 0) products[editIndex] = p; else products.unshift(p);
     } else return;
@@ -658,5 +661,22 @@
       if (go) window.open(`https://wa.me/${U.renewPhone()}?text=${encodeURIComponent(text)}`, "_blank");
     } catch (err) { toast("Não foi possível registrar agora. Envie o comprovante pelo WhatsApp.", "err"); }
     pixTx = null;
+  });
+
+  /* ---------- cores do produto no editor ---------- */
+  function paintColors() {
+    const cs = U.parseColors($("#pe-colors").value);
+    const keys = cs.map((c) => c.toLowerCase());
+    $("#pe-colors-preview").innerHTML = cs.length ? cs.map((c) => `<span class="cp-item">${U.swatch(c)}${esc(c)}${U.colorHex(c) ? "" : ` <small title="Cor não reconhecida: aparece com listras">?</small>`}</span>`).join("") : "";
+    $("#pe-colors-quick").innerHTML = U.COMMON_COLORS.map((c) => `<button type="button" data-color="${esc(c)}" aria-pressed="${keys.includes(c.toLowerCase())}">${U.swatch(c)}${esc(c)}</button>`).join("");
+  }
+  $("#pe-colors").addEventListener("input", paintColors);
+  $("#pe-colors-quick").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-color]"); if (!b) return;
+    const cs = U.parseColors($("#pe-colors").value), c = b.dataset.color;
+    const i = cs.findIndex((x) => x.toLowerCase() === c.toLowerCase());
+    if (i >= 0) cs.splice(i, 1); else cs.push(c);
+    $("#pe-colors").value = cs.join(", ");
+    paintColors();
   });
 })();
