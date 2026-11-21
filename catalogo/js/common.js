@@ -17,6 +17,21 @@
     setTimeout(() => t.remove(), 4300);
   };
 
+  /** Aviso com um botão (ex.: "Desfazer"). O botão some depois de alguns segundos. */
+  U.toastAction = (msg, label, onClick, ms = 7000) => {
+    let box = document.getElementById("toasts");
+    if (!box) { box = document.createElement("div"); box.id = "toasts"; box.setAttribute("role", "status"); document.body.appendChild(box); }
+    const t = document.createElement("div");
+    t.className = "toast action";
+    t.innerHTML = `<span></span><button type="button"></button>`;
+    t.querySelector("span").textContent = msg;
+    const b = t.querySelector("button"); b.textContent = label;
+    const close = () => { t.classList.add("out"); setTimeout(() => t.parentNode && t.parentNode.removeChild(t), 450); };
+    b.onclick = () => { close(); onClick(); };
+    box.appendChild(t);
+    setTimeout(close, ms);
+  };
+
   /* ---------- dinheiro e datas ---------- */
   U.parseMoney = (v) => {
     if (typeof v === "number") return isFinite(v) ? v : null;

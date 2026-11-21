@@ -26,12 +26,13 @@
   $("#share-wa").addEventListener("click", () => markShared());
 
   /* ---------- abas ---------- */
-  const TABS = ["produtos", "loja", "fotos", "equipe", "compartilhar"];
+  const TABS = ["produtos", "loja", "fotos", "equipe", "orcamentos", "compartilhar"];
   function showTab(name, focus) {
     if (!TABS.includes(name)) name = "produtos";
     $$(".tabs-nav [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
     $$(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
     if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+    if (name === "orcamentos") loadQuotes();
     if (focus) { const t = $(`.tab-panel[data-panel="${name}"] input:not([type=file]):not([readonly]), .tab-panel[data-panel="${name}"] button`); t && t.focus({ preventScroll: true }); }
   }
   $(".tabs-nav").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
@@ -426,9 +427,18 @@
   dlgProd.addEventListener("close", async () => {
     const v = dlgProd.returnValue;
     if (v === "delete" && editIndex >= 0) {
-      const name = products[editIndex].name || products[editIndex].code;
-      if (!(await U.ask({ title: "Excluir produto?", text: `"${name}" sai do catálogo.`, ok: "Excluir", danger: true }))) return;
-      products.splice(editIndex, 1);
+      // exclui na hora e oferece "Desfazer" por alguns segundos
+      const idx = editIndex, removed = products[idx];
+      products.splice(idx, 1);
+      renderProducts();
+      if (!(await save())) return;
+      U.toastAction(`"${removed.name || removed.code}" excluído.`, "Desfazer", async () => {
+        if (products.some((p) => String(p.code) === String(removed.code))) return toast("Já existe outro produto com esse código.", "err");
+        products.splice(Math.min(idx, products.length), 0, removed);
+        renderProducts();
+        await save("Produto restaurado.");
+      });
+      return;
     } else if (v === "save") {
       const code = $("#pe-code").value.trim();
       const p = {
@@ -443,5 +453,57 @@
     } else return;
     renderProducts();
     await save("Produtos salvos!");
+  });
+
+  /* ---------- histórico de orçamentos ---------- */
+  var quotes = null; // var: a aba pode ser aberta pelo endereço (#orcamentos) antes desta linha
+  function qTotal(q) { return (q.items || []).reduce((t, it) => t + (it.unit != null ? it.unit * it.qty : 0), 0); }
+  async function loadQuotes(force) {
+    if (quotes && !force) return renderQuotes();
+    try { quotes = await DB.listQuotes(me); }
+    catch (e) { quotes = []; $("#qh-list").innerHTML = `<tr><td colspan="6" class="empty">Não foi possível carregar os orçamentos. ${DB.mode === "firebase" ? "Confira se as regras novas do Firestore foram publicadas." : ""}</td></tr>`; return; }
+    quotes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    $("#tab-count-quotes").textContent = quotes.length || "";
+    const sellers = [...new Set(quotes.map((q) => (q.seller && q.seller.name) || q.sellerName).filter(Boolean))].sort();
+    $("#qh-seller").innerHTML = `<option value="">Todos os vendedores</option>` + sellers.map((n) => `<option>${esc(n)}</option>`).join("");
+    renderQuotes();
+  }
+  function renderQuotes() {
+    const term = $("#qh-search").value.trim().toLowerCase(), seller = $("#qh-seller").value, days = Number($("#qh-period").value);
+    const since = days ? Date.now() - days * 86400000 : 0;
+    const list = (quotes || []).filter((q) => {
+      const sname = (q.seller && q.seller.name) || q.sellerName || "";
+      if (seller && sname !== seller) return false;
+      if (since && (q.createdAt || 0) < since) return false;
+      return !term || [q.number, q.client, q.clientDoc, q.clientPhone, sname].some((v) => String(v || "").toLowerCase().includes(term));
+    });
+    const sum = list.reduce((t, q) => t + qTotal(q), 0);
+    $("#qh-stats").innerHTML = `
+      <div><small>Orçamentos</small><b>${list.length}</b></div>
+      <div><small>Valor somado</small><b>${U.money(sum) || "R$ 0,00"}</b></div>
+      <div><small>Ticket médio</small><b>${list.length ? U.money(sum / list.length) : "—"}</b></div>`;
+    const base = new URL("orcamento.html", location.href).href;
+    $("#qh-list").innerHTML = list.length ? list.map((q) => {
+      const link = `${base}?id=${encodeURIComponent(q.id)}`;
+      const phone = String(q.clientPhone || "").replace(/\D/g, "");
+      const wa = phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(`Olá! Segue o orçamento ${q.number} — ${store.name || ""}:\n${link}`)}` : "";
+      const units = (q.items || []).reduce((t, it) => t + it.qty, 0);
+      return `<tr>
+        <td><b>${esc(q.number)}</b><div class="muted">${U.dateTime(q.createdAt)}</div></td>
+        <td><b>${esc(q.client || "—")}</b><div class="muted">${esc([q.clientDoc, q.clientPhone].filter(Boolean).join(" · "))}</div></td>
+        <td>${esc((q.seller && q.seller.name) || q.sellerName || "—")}<div class="muted">${esc((q.seller && q.seller.role) || "")}</div></td>
+        <td>${(q.items || []).length}<div class="muted">${units} un</div></td>
+        <td><b>${U.money(qTotal(q)) || "—"}</b></td>
+        <td class="actions">
+          <a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir PDF</a>
+          ${wa ? `<a class="btn sm wa" href="${esc(wa)}" target="_blank" rel="noopener">Enviar ao cliente</a>` : ""}
+          <button class="btn sm ghost" data-copy="${esc(link)}">Copiar link</button>
+        </td></tr>`;
+    }).join("") : `<tr><td colspan="6" class="empty">${quotes && quotes.length ? "Nenhum orçamento com esses filtros." : "Nenhum orçamento ainda. Quando a equipe enviar um orçamento pelo catálogo, ele aparece aqui."}</td></tr>`;
+  }
+  ["#qh-search", "#qh-seller", "#qh-period"].forEach((s) => $(s).addEventListener("input", renderQuotes));
+  $("#qh-list").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-copy]"); if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast("Link do orçamento copiado."); } catch { prompt("Copie o link:", b.dataset.copy); }
   });
 })();

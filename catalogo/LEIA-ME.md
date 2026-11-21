@@ -105,3 +105,15 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - O CNPJ ganha máscara automática e tem os dígitos verificadores conferidos (CPF também é aceito). O telefone ganha máscara `(11) 99999-9999`.
 - Os dados vão na mensagem do WhatsApp, no orçamento salvo, na página do orçamento e no PDF (bloco Cliente).
 - O comprador não precisa digitar de novo: os dados ficam salvos no aparelho dele. Para vendedores e representantes os campos começam vazios (cada orçamento é de um cliente).
+
+## Melhorias de uso (pacote 2)
+
+- **Esqueci minha senha** no login: envia o e-mail de redefinição pelo Firebase.
+- **Barra "Finalizar pedido"** fixa no rodapé do celular, com a quantidade de produtos e unidades.
+- **Pedido por caixa**: em produtos com CX, os botões + e − andam de caixa em caixa (ex.: 2 cx · 24 un). O carrinho avisa quando a quantidade não fecha caixa. Mensagens e PDF mostram unidades e caixas.
+- **Histórico de orçamentos** (aba Orçamentos do painel): busca por cliente, CNPJ, vendedor ou número; filtro por vendedor e período; total somado e ticket médio; botões para abrir o PDF, enviar ao cliente e copiar o link. Mostra os orçamentos criados a partir desta versão.
+- **Desfazer exclusão** de produto por alguns segundos.
+- **Voltar ao topo** no catálogo.
+- **Renovar em 1 clique** no aviso de vencimento do administrador (+30 dias, +90 dias, +1 ano).
+
+**Importante:** publique de novo o `firestore.rules` (os orçamentos agora podem ser listados pela própria loja).

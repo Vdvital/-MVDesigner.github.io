@@ -53,6 +53,17 @@
     $("#staff-login").hidden = false;
   }
   const byCode = new Map(products.map((p) => [String(p.code), p]));
+
+  /* pedido por caixa: o carrinho guarda unidades; produtos com CX andam de caixa em caixa */
+  const boxOf = (code) => (byCode.get(String(code)) || {}).boxQty || 0;
+  const stepOf = (code) => boxOf(code) || 1;
+  const boxesTxt = (code, n) => {
+    const b = boxOf(code); if (!b) return "";
+    const cx = Math.floor(n / b), rest = n % b;
+    return rest ? `${cx ? cx + " cx + " : ""}${rest} un` : `${cx} cx`;
+  };
+  /** "24 un (2 cx)" para produto com caixa; "3x" para os outros. */
+  const qtyTxt = (code, n) => (boxOf(code) ? `${n} un (${boxesTxt(code, n)})` : `${n}x`);
   document.title = store.name || "Catálogo";
   if (store.accent) document.documentElement.style.setProperty("--accent", store.accent);
   // logo da loja: ícone da aba do navegador e selo no topo do catálogo
@@ -110,8 +121,8 @@
   function buyInner(code) {
     const n = cart && cart[code];
     return n
-      ? `<div class="stepper" role="group" aria-label="Quantidade no carrinho"><button type="button" data-dec="${esc(code)}" aria-label="Tirar um">−</button><span aria-live="polite"><b>${n}</b> no carrinho</span><button type="button" data-inc="${esc(code)}" aria-label="Colocar mais um">+</button></div>`
-      : `<button class="add" data-add="${esc(code)}">+ Adicionar</button>`;
+      ? `<div class="stepper" role="group" aria-label="Quantidade no carrinho"><button type="button" data-dec="${esc(code)}" aria-label="${boxOf(code) ? "Tirar uma caixa" : "Tirar um"}">−</button><span aria-live="polite">${boxOf(code) ? `<b>${boxesTxt(code, n)}</b> · ${n} un` : `<b>${n}</b> no carrinho`}</span><button type="button" data-inc="${esc(code)}" aria-label="${boxOf(code) ? "Colocar mais uma caixa" : "Colocar mais um"}">+</button></div>`
+      : `<button class="add" data-add="${esc(code)}">${boxOf(code) ? `+ Adicionar caixa` : "+ Adicionar"}</button>`;
   }
   const refreshBuy = () => $$("[data-buy]").forEach((el) => { el.innerHTML = buyInner(el.dataset.buy); });
 
@@ -272,7 +283,7 @@
   function addToCart(code, qty = 1, silent) {
     cart[code] = Math.min(9999, (cart[code] || 0) + qty);
     persist(); updateCart();
-    if (!silent) U.toast(`${cart[code]} no carrinho · ${byCode.get(code)?.name || ""}`);
+    if (!silent) U.toast(`${boxOf(code) ? boxesTxt(code, cart[code]) + " (" + cart[code] + " un)" : cart[code]} no carrinho · ${byCode.get(code)?.name || ""}`);
     ["#cart-open", "#cart-float"].forEach((s) => { const el = $(s); el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); });
   }
 
@@ -283,6 +294,12 @@
     const count = codes.reduce((n, c) => n + cart[c], 0);
     $("#cart-count").textContent = count; $("#cart-count").hidden = !count;
     $("#cart-float-count").textContent = count; $("#cart-float").hidden = !count;
+    // barra fixa de finalizar pedido (celular)
+    const items = codes.length;
+    $("#checkout-bar").hidden = !items;
+    document.body.classList.toggle("has-checkout", !!items);
+    $("#cb-badge").textContent = items;
+    $("#cb-count").textContent = `${items} ${items === 1 ? "produto" : "produtos"} · ${count} ${count === 1 ? "unidade" : "unidades"}`;
     let total = 0, noPrice = false;
     $("#cart-list").innerHTML = codes.map((c) => {
       const p = byCode.get(c), unit = unitPrice(p);
@@ -291,7 +308,8 @@
         ${U.imgTag(p, 160, "c-img")}
         <div class="c-info"><span class="code-row"><small>Cód. ${esc(c)}</small>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Produto")}</b>
           <span>${unit != null ? U.money(unit) + " un." : canSee ? "Sem preço" : ""}</span>
-          <div class="qty sm"><button type="button" data-step="-1" aria-label="Diminuir">−</button><input type="number" min="1" value="${cart[c]}" aria-label="Quantidade de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Aumentar">+</button></div>
+          ${boxOf(c) ? `<span class="c-box${cart[c] % boxOf(c) ? " warn" : ""}">${boxesTxt(c, cart[c])}${cart[c] % boxOf(c) ? " · não fecha caixa" : ""}</span>` : ""}
+          <div class="qty sm"><button type="button" data-step="-1" aria-label="${boxOf(c) ? "Tirar uma caixa" : "Diminuir"}">−</button><input type="number" min="1" step="${stepOf(c)}" value="${cart[c]}" aria-label="Unidades de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="${boxOf(c) ? "Colocar mais uma caixa" : "Aumentar"}">+</button><span class="qty-unit">un</span></div>
         </div>
         <div class="c-side"><strong>${unit != null ? U.money(unit * cart[c]) : ""}</strong><button type="button" class="link" data-remove aria-label="Remover ${esc(p.name || c)}">Remover</button></div>
       </li>`;
@@ -341,7 +359,7 @@
     const c = li.dataset.code;
     if (e.target.closest("[data-remove]")) delete cart[c];
     else if (e.target.closest("[data-step]")) {
-      cart[c] += Number(e.target.closest("[data-step]").dataset.step);
+      cart[c] += Number(e.target.closest("[data-step]").dataset.step) * stepOf(c);
       if (cart[c] < 1) delete cart[c];
     } else return;
     persist(); updateCart();
@@ -357,6 +375,12 @@
   const openCart = () => { updateCart(); drawer.showModal(); };
   $("#cart-open").onclick = openCart;
   $("#cart-float").onclick = openCart;
+  $("#checkout-go").onclick = openCart;
+  $("#cb-label").textContent = canSee ? "Montar orçamento" : "Finalizar pedido";
+  // voltar ao topo em catálogos longos
+  const toTop = $("#to-top");
+  addEventListener("scroll", () => { toTop.hidden = scrollY < 1200; }, { passive: true });
+  toTop.onclick = () => scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   $("#cart-close").onclick = () => drawer.close();
   drawer.addEventListener("click", (e) => { if (e.target === drawer) drawer.close(); });
   /* ---------- dados do cliente: nome, CNPJ e contato ---------- */
@@ -394,7 +418,7 @@
     const rows = Object.keys(cart).map((c) => {
       const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
       if (unit != null) total += unit * q;
-      return `• ${q}x — Cód. ${c} — ${p.name || ""}${p.boxQty ? ` (cx ${p.boxQty})` : ""}${unit != null ? ` — ${U.money(unit * q)}` : " (sem preço)"}`;
+      return `• ${qtyTxt(c, q)} — Cód. ${c} — ${p.name || ""}${unit != null ? ` — ${U.money(unit * q)}` : " (sem preço)"}`;
     });
     const obs = $("#c-obs").value.trim();
     return [
@@ -418,7 +442,7 @@
         price: p.price ?? null, promoPrice: p.promoPrice ?? null, qty, unit
       }));
       const id = await DB.saveQuote({
-        slug, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), items,
+        slug, ownerUid: cat.uid, sellerName: viewer.name, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), items,
         store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36", logo: store.logo || "" },
         seller: sellerInfo()
       });
@@ -480,7 +504,7 @@
     }
     try { localStorage.setItem("cat_cliente", JSON.stringify(cust)); } catch { /* ignore */ }
     const boxTxt = (c) => (byCode.get(c).boxQty ? ` (cx ${byCode.get(c).boxQty})` : "");
-    const lines = Object.keys(cart).map((c) => `• ${cart[c]}x — Cód. ${c} — ${byCode.get(c).name || ""}${boxTxt(c)}`);
+    const lines = Object.keys(cart).map((c) => `• ${qtyTxt(c, cart[c])} — Cód. ${c} — ${byCode.get(c).name || ""}`);
     const obs = $("#c-obs").value.trim();
     const hi = sellerName() ? `Olá, ${sellerName()}!` : "Olá!";
     const msg = [
@@ -500,13 +524,14 @@
   let current = null;
   document.addEventListener("click", (e) => {
     const add = e.target.closest("[data-add]");
-    if (add) return addToCart(add.dataset.add, 1, true);
+    if (add) return addToCart(add.dataset.add, stepOf(add.dataset.add), true);
     const inc = e.target.closest("[data-inc]");
-    if (inc) return addToCart(inc.dataset.inc, 1, true);
+    if (inc) return addToCart(inc.dataset.inc, stepOf(inc.dataset.inc), true);
     const dec = e.target.closest("[data-dec]");
     if (dec) {
       const c = dec.dataset.dec;
-      if (cart[c] > 1) cart[c] -= 1; else cart = Object.fromEntries(Object.entries(cart).filter(([k]) => k !== c));
+      const st = stepOf(c);
+      if (cart[c] > st) cart[c] -= st; else cart = Object.fromEntries(Object.entries(cart).filter(([k]) => k !== c));
       persist(); updateCart(); return;
     }
     const b = e.target.closest(".open[data-code]");
@@ -531,6 +556,9 @@
     $("#d-price").outerHTML = priceHtml(p, "d-price");
     $("#d-desc").textContent = p.description || "";
     $("#d-qty").value = 1;
+    $("#d-unit").textContent = p.boxQty ? "cx" : "un";
+    $("#d-boxhint").hidden = !p.boxQty;
+    if (p.boxQty) $("#d-boxhint").textContent = `Pedido por caixa: 1 cx = ${p.boxQty} unidades.`;
     const waBtn = $("#d-wa");
     waBtn.hidden = !wa;
     if (wa) waBtn.href = waLink(`Olá! Tenho uma dúvida sobre o produto:\nCód. ${p.code} — ${p.name || ""}\n${location.href.split("#")[0]}`);
@@ -541,7 +569,8 @@
   });
   $("#d-add").onclick = () => {
     if (!current) return;
-    addToCart(String(current.code), Math.max(1, Math.floor(Number($("#d-qty").value) || 1)));
+    const n = Math.max(1, Math.floor(Number($("#d-qty").value) || 1));
+    addToCart(String(current.code), n * stepOf(current.code)); // em caixas quando o produto tem CX
     dlg.close();
   };
   $("#d-close").onclick = () => dlg.close();
