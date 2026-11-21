@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Assinar | Catálogo Online</title>
 <meta name="description" content="Crie o catálogo online da sua loja: produtos pelo Excel, fotos do Google Drive, preços só para a sua equipe e pedidos pelo WhatsApp.">
-<link rel="stylesheet" href="css/app.css?v=202611212213">
+<link rel="stylesheet" href="css/app.css?v=202611212224">
 </head>
 <body>
 <main class="login enter signup">
@@ -12,10 +12,12 @@
     <a class="brand" href="index.html">mv<span>catálogo online</span></a>
     <h1><span class="ln">Seu catálogo</span><span class="ln">no ar hoje.</span></h1>
     <ul class="perks">
+      <li>Catálogo online com a sua marca</li>
       <li>Produtos pelo Excel e fotos pelo Google Drive</li>
       <li>Preços só para você e sua equipe de vendas</li>
-      <li>Pedidos e orçamentos em PDF pelo WhatsApp</li>
+      <li>Pedidos pelo WhatsApp e orçamentos em PDF</li>
       <li>Painel com os produtos mais procurados</li>
+      <li>Suporte pelo WhatsApp</li>
     </ul>
   </section>
 
@@ -46,9 +48,86 @@
         <div class="field"><label for="f-email">E-mail (será o seu login)</label><input id="f-email" type="email" required autocomplete="email" placeholder="voce@empresa.com"></div>
 
         <div class="plan-card" id="plan-card"></div>
+
+        <section class="incluso" aria-labelledby="inc-title">
+          <h3 id="inc-title">Tudo o que está incluído</h3>
+          <div class="inc-grid">
+            <article>
+              <span class="inc-ico" aria-hidden="true">🛍️</span>
+              <h4>Catálogo online com a sua marca</h4>
+              <ul>
+                <li>Link próprio para enviar aos clientes</li>
+                <li>Capa, logo no ícone da aba e cor da sua marca</li>
+                <li>Categorias, busca e filtros de preço</li>
+                <li>Selos <b>Novidade</b> e <b>Promoção</b> animados</li>
+                <li>Quantidade por caixa (CX) em cada produto</li>
+                <li>Funciona no celular e no computador</li>
+              </ul>
+            </article>
+            <article>
+              <span class="inc-ico" aria-hidden="true">📊</span>
+              <h4>Produtos sem retrabalho</h4>
+              <ul>
+                <li>Importe e exporte tudo pelo <b>Excel</b></li>
+                <li>Fotos puxadas do <b>Google Drive</b> pelo código do produto</li>
+                <li>Edição rápida no painel, com desfazer</li>
+                <li>Até milhares de produtos por catálogo</li>
+              </ul>
+            </article>
+            <article>
+              <span class="inc-ico" aria-hidden="true">🔒</span>
+              <h4>Preços protegidos</h4>
+              <ul>
+                <li>Seus clientes veem "Preço sob consulta"</li>
+                <li>Preços só para você, vendedores e representantes logados</li>
+                <li><b>Modo apresentação</b> para mostrar os produtos sem valores</li>
+              </ul>
+            </article>
+            <article>
+              <span class="inc-ico" aria-hidden="true">👥</span>
+              <h4>Equipe de vendas</h4>
+              <ul>
+                <li>Contas para <b>vendedores e representantes</b></li>
+                <li>Cada um com o próprio WhatsApp</li>
+                <li>Bloqueie ou exclua acessos quando quiser</li>
+              </ul>
+            </article>
+            <article>
+              <span class="inc-ico" aria-hidden="true">🧾</span>
+              <h4>Pedidos e orçamentos</h4>
+              <ul>
+                <li>Carrinho com pedido direto no <b>WhatsApp</b></li>
+                <li>Nome, CNPJ e contato do cliente em cada pedido</li>
+                <li><b>Orçamento em PDF</b> com a sua marca, fotos e total</li>
+                <li>Histórico de orçamentos com busca e filtros</li>
+              </ul>
+            </article>
+            <article>
+              <span class="inc-ico" aria-hidden="true">📈</span>
+              <h4>Inteligência de vendas</h4>
+              <ul>
+                <li>Painel <b>Mais procurados</b>: visitas, produtos mais vistos e mais pedidos</li>
+                <li>O que os clientes buscaram</li>
+                <li>O que <b>buscaram e não encontraram</b>: oportunidades de venda</li>
+              </ul>
+            </article>
+          </div>
+          <p class="inc-support">💬 Suporte pelo WhatsApp · Sem instalar nada · Atualizações incluídas</p>
+        </section>
         <label class="terms"><input type="checkbox" id="f-terms" required> Li e concordo: o acesso é liberado após a confirmação do pagamento e renovado a cada período pago.</label>
         <button class="btn primary" style="width:100%" id="go-pay">Continuar para o pagamento</button>
         <p class="hint" style="margin-top:14px">Já tem conta? <a href="index.html">Entrar</a></p>
+
+        <section class="faq" aria-labelledby="faq-title">
+          <h3 id="faq-title">Perguntas frequentes</h3>
+          <details><summary>Quando meu acesso é liberado?</summary><p>Assim que confirmarmos o Pix na conta. Você recebe um e-mail para criar a sua senha e já pode montar o catálogo. Enviar o comprovante pelo WhatsApp agiliza a liberação.</p></details>
+          <details><summary>Preciso instalar algum programa?</summary><p>Não. Tudo funciona no navegador do celular ou do computador: o seu painel, o catálogo dos clientes e o acesso da equipe.</p></details>
+          <details><summary>Quantos produtos posso cadastrar?</summary><p>Milhares. Cada catálogo comporta cerca de 2.000 produtos com fotos, importados de uma vez pela planilha do Excel.</p></details>
+          <details><summary>Meus clientes veem os meus preços?</summary><p>Não. Quem abre o link do catálogo vê os produtos com "Preço sob consulta" e pede pelo WhatsApp. Os preços aparecem só para você e para a sua equipe logada.</p></details>
+          <details><summary>Como recebo os pedidos?</summary><p>Pelo WhatsApp. O cliente monta o carrinho, informa nome, CNPJ e contato, e a mensagem chega pronta para você ou para o vendedor escolhido. A equipe também gera orçamentos em PDF.</p></details>
+          <details><summary>Tem fidelidade? Como funciona a renovação?</summary><p>Não tem fidelidade nem cobrança automática. Você paga o período por Pix (mensal ou anual). Perto do vencimento o painel avisa e você renova com Pix em poucos cliques. Se não renovar, o acesso é encerrado no fim do período.</p></details>
+          <details><summary>Qual a diferença entre o plano mensal e o anual?</summary><p>Os recursos são os mesmos. No anual você paga 12 meses de uma vez com 5% de desconto e não precisa renovar todo mês.</p></details>
+        </section>
       </form>
 
       <!-- 2. PAGAMENTO -->
@@ -74,10 +153,10 @@
   </section>
 </main>
 
-<script src="config.js?v=202611212213"></script>
-<script src="js/db.js?v=202611212213"></script>
-<script src="js/common.js?v=202611212213"></script>
-<script src="js/pix.js?v=202611212213"></script>
+<script src="config.js?v=202611212224"></script>
+<script src="js/db.js?v=202611212224"></script>
+<script src="js/common.js?v=202611212224"></script>
+<script src="js/pix.js?v=202611212224"></script>
 <script>
 (async () => {
   const { $ } = U;
@@ -92,7 +171,7 @@
   $("#slug-base").textContent = "loja=";
   // escolha do plano (mensal ou anual)
   $("#plan-card").innerHTML = `<div class="plan-choose"></div>
-    <ul class="plan-perks"><li>Catálogo sem limite de visitas</li><li>Equipe de vendedores e representantes</li><li>Suporte pelo WhatsApp</li></ul>`;
+    <p class="plan-note">Todos os recursos abaixo estão incluídos nos dois planos. Pagamento único por período, sem renovação automática.</p>`;
   Pix.planPicker($("#plan-card .plan-choose"), (p) => { plano = p; }, new URLSearchParams(location.search).get("plano"));
 
   /* máscaras e endereço automático */
