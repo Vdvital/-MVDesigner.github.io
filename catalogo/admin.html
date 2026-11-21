@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Painel do Administrador | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611212041">
+<link rel="stylesheet" href="css/app.css?v=202611212111">
 </head>
 <body>
 <header class="topbar">
@@ -22,6 +22,17 @@
     <button class="stat" data-filter="ativos" aria-label="Filtrar ativos"><small>Ativos</small><strong id="st-active" style="color:var(--ok)">0</strong></button>
     <button class="stat" data-filter="expirando" aria-label="Filtrar os que vencem em 7 dias"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong></button>
     <button class="stat" data-filter="off" aria-label="Filtrar vencidos e bloqueados"><small>Vencidos / bloqueados</small><strong id="st-off" style="color:var(--bad)">0</strong></button>
+  </section>
+
+  <section class="card pedidos" id="pedidos" aria-labelledby="ped-title">
+    <div class="ped-head">
+      <div><h2 id="ped-title">Pedidos de liberação <span class="pill expirando" id="ped-count" hidden></span></h2>
+        <p class="sub">Novos cadastros e renovações pagos por Pix. Confira o pagamento no seu banco e aprove.</p></div>
+      <select id="ped-filter" aria-label="Filtrar pedidos">
+        <option value="abertos">Em aberto</option><option value="aprovado">Aprovados</option><option value="">Todos</option>
+      </select>
+    </div>
+    <ul class="ped-list" id="ped-list"><li class="hint">Carregando…</li></ul>
   </section>
 
   <div class="grid-2">
@@ -138,9 +149,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611212041"></script>
-<script src="js/db.js?v=202611212041"></script>
-<script src="js/common.js?v=202611212041"></script>
-<script src="js/admin.js?v=202611212041"></script>
+<script src="config.js?v=202611212111"></script>
+<script src="js/db.js?v=202611212111"></script>
+<script src="js/common.js?v=202611212111"></script>
+<script src="js/pix.js?v=202611212111"></script>
+<script src="js/admin.js?v=202611212111"></script>
 </body>
 </html>

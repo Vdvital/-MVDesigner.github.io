@@ -619,4 +619,31 @@
   let dashResize;
   addEventListener("resize", () => { clearTimeout(dashResize); dashResize = setTimeout(() => { if (dashData && !$('[data-panel="procura"]').hidden) renderDash(); }, 200); });
   $("#dash-more").addEventListener("click", () => { dashLimit += 20; renderDash(); });
+
+  /* ---------- renovação do plano por Pix ---------- */
+  const dlgPix = $("#dlg-pix");
+  let pixTx = null;
+  U.$$("[data-renew-pix]").forEach((b) => b.addEventListener("click", async () => {
+    const { plano } = Pix.cfg();
+    pixTx = Pix.newTxid("RN");
+    const novo = Math.max(Date.now(), me.expiresAt || 0) + plano.dias * DB.DAY;
+    $("#pix-sub").textContent = `Plano ${plano.nome} · ${Pix.money(plano.valor)} · +${plano.dias} dias (acesso até ${U.date(novo)} depois da liberação).`;
+    dlgPix.showModal();
+    const code = await Pix.mountPay($("#pix-area"), { valor: plano.valor, txid: pixTx, descricao: `Renovacao ${me.slug}` });
+    $("#pix-paid").hidden = !code;
+  }));
+  dlgPix.addEventListener("close", async () => {
+    if (dlgPix.returnValue !== "paid" || !pixTx) return;
+    const { plano } = Pix.cfg();
+    try {
+      const id = await DB.createPedido({ tipo: "renovacao", loja: store.name || me.name, slug: me.slug, responsavel: me.responsavel || me.name,
+        email: me.email, whatsapp: store.whatsapp || me.whatsapp || "", cnpj: me.cnpj || "", plano: plano.nome, valor: plano.valor, dias: plano.dias, txid: pixTx });
+      await DB.pedidoPago(id);
+      const text = [`Olá! Paguei a renovação do *Catálogo Online* por Pix. Segue o comprovante.`, "",
+        `Loja: ${store.name || me.name}`, `E-mail: ${me.email}`, `Valor: ${Pix.money(plano.valor)}`, `Pedido: ${pixTx}`].join("\n");
+      const go = await U.ask({ title: "Pagamento informado!", text: "Assim que confirmarmos o Pix, seu acesso é renovado. Envie o comprovante pelo WhatsApp para agilizar.", ok: "Enviar comprovante", cancel: "Depois" });
+      if (go) window.open(`https://wa.me/${U.renewPhone()}?text=${encodeURIComponent(text)}`, "_blank");
+    } catch (err) { toast("Não foi possível registrar agora. Envie o comprovante pelo WhatsApp.", "err"); }
+    pixTx = null;
+  });
 })();

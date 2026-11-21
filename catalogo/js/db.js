@@ -145,14 +145,14 @@
       return { uid, ...profile };
     },
 
-    async createUser({ name, email, password, slug, expiresAt }) {
+    async createUser({ name, email, password, slug, expiresAt, whatsapp = "", cnpj = "", responsavel = "" }) {
       email = email.trim().toLowerCase();
       slug = slugify(slug || name);
       if (!slug) throw new Error("Informe o endereço do catálogo.");
       if (this._catBySlug(slug)) throw new Error("Esse endereço de catálogo já está em uso.");
-      const p = await this._addAccount({ name, email, role: "user", slug, expiresAt, active: true, createdAt: Date.now(), lastLogin: null }, password);
+      const p = await this._addAccount({ name, email, role: "user", slug, expiresAt, active: true, createdAt: Date.now(), lastLogin: null, whatsapp, cnpj, responsavel }, password);
       const cats = this._catalogs();
-      cats[p.uid] = { uid: p.uid, slug, expiresAt, active: true, store: emptyStore(name), products: [], updatedAt: Date.now() };
+      cats[p.uid] = { uid: p.uid, slug, expiresAt, active: true, store: { ...emptyStore(name), whatsapp: String(whatsapp).replace(/\D/g, "") }, products: [], updatedAt: Date.now() };
       this._write("cat_catalogs", cats);
       return p;
     },
@@ -231,6 +231,19 @@
       return id;
     },
     async getQuote(id) { return this._read("cat_quotes", {})[id] || null; },
+    async createPedido(data) {
+      const all = this._read("cat_pedidos", {});
+      const id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      all[id] = { ...data, status: "aguardando_pagamento", createdAt: Date.now() };
+      this._write("cat_pedidos", all); return id;
+    },
+    async pedidoPago(id) {
+      const all = this._read("cat_pedidos", {});
+      if (all[id] && all[id].status === "aguardando_pagamento") { all[id].status = "pagamento_informado"; all[id].paidAt = Date.now(); this._write("cat_pedidos", all); }
+    },
+    async listPedidos() { return Object.entries(this._read("cat_pedidos", {})).map(([id, x]) => ({ id, ...x })); },
+    async updatePedido(id, patch) { const all = this._read("cat_pedidos", {}); if (all[id]) { Object.assign(all[id], patch); this._write("cat_pedidos", all); } },
+    async deletePedido(id) { const all = this._read("cat_pedidos", {}); this._write("cat_pedidos", Object.fromEntries(Object.entries(all).filter(([k]) => k !== id))); },
     async track(slug, delta) {
       const all = this._read("cat_stats", {});
       const day = dayKey(), id = `${slug}_${day}`;
@@ -358,16 +371,16 @@
       } catch (e) { throw authError(e); }
     },
 
-    async createUser({ name, email, password, slug, expiresAt }) {
+    async createUser({ name, email, password, slug, expiresAt, whatsapp = "", cnpj = "", responsavel = "" }) {
       email = email.trim().toLowerCase();
       slug = slugify(slug || name);
       if (!slug) throw new Error("Informe o endereço do catálogo.");
       const catRef = this._cat(slug);
       if ((await catRef.get()).exists) throw new Error("Esse endereço de catálogo já está em uso.");
       const uid = await this._newAuth(email, password);
-      const profile = { name, email, role: "user", slug, expiresAt, active: true, createdAt: Date.now(), lastLogin: null };
+      const profile = { name, email, role: "user", slug, expiresAt, active: true, createdAt: Date.now(), lastLogin: null, whatsapp, cnpj, responsavel };
       await this._users().doc(uid).set(profile);
-      await catRef.set({ uid, slug, expiresAt, active: true, store: emptyStore(name), products: [], updatedAt: Date.now() });
+      await catRef.set({ uid, slug, expiresAt, active: true, store: { ...emptyStore(name), whatsapp: String(whatsapp).replace(/\D/g, "") }, products: [], updatedAt: Date.now() });
       return { uid, ...profile };
     },
 
@@ -480,6 +493,19 @@
         return s.exists ? s.data() : { slug, day, visits: 0 };
       }));
     },
+    async createPedido(data) {
+      await this._ready;
+      const u = this.auth.currentUser;
+      const ref = await this.db.collection("pedidos").add({ ...data, ...(u ? { uid: u.uid } : {}), status: "aguardando_pagamento", createdAt: Date.now() });
+      return ref.id;
+    },
+    async pedidoPago(id) { await this.db.collection("pedidos").doc(id).update({ status: "pagamento_informado", paidAt: Date.now() }); },
+    async listPedidos() {
+      const snap = await this.db.collection("pedidos").orderBy("createdAt", "desc").limit(200).get();
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    },
+    async updatePedido(id, patch) { await this.db.collection("pedidos").doc(id).update(patch); },
+    async deletePedido(id) { await this.db.collection("pedidos").doc(id).delete(); },
     async listQuotes(owner) {
       // só os orçamentos da própria loja (ownerUid gravado na criação)
       const snap = await this.db.collection("quotes").where("ownerUid", "==", owner.uid).limit(300).get();
@@ -518,7 +544,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

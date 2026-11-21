@@ -48,6 +48,22 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
     }
 
+    // ---------------- Pedidos de liberação (assinatura por Pix) ----------------
+    // Qualquer pessoa cria o pedido ao se cadastrar; a loja logada cria o de renovação.
+    // Quem criou só pode marcar "já paguei". Só o admin lista, aprova e exclui.
+    match /pedidos/{id} {
+      allow create: if request.resource.data.status == 'aguardando_pagamento'
+        && request.resource.data.tipo in ['novo', 'renovacao']
+        && request.resource.data.keys().hasOnly(['tipo', 'status', 'loja', 'slug', 'responsavel', 'email', 'whatsapp', 'cnpj',
+             'plano', 'valor', 'dias', 'txid', 'uid', 'createdAt'])
+        && (request.resource.data.tipo == 'novo' || (signedIn() && request.resource.data.uid == request.auth.uid));
+      allow update: if isAdmin() || (
+        resource.data.status == 'aguardando_pagamento'
+        && request.resource.data.status == 'pagamento_informado'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt']));
+      allow get, list, delete: if isAdmin();
+    }
+
     // ---------------- Orçamentos ----------------
     // Abertos pelo link (id aleatório, impossível de adivinhar); ninguém lista todos.
     match /quotes/{id} {

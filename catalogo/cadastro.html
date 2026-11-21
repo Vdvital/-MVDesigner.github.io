@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
+<title>Assinar | Catálogo Online</title>
+<meta name="description" content="Crie o catálogo online da sua loja: produtos pelo Excel, fotos do Google Drive, preços só para a sua equipe e pedidos pelo WhatsApp.">
+<link rel="stylesheet" href="css/app.css?v=202611212111">
+</head>
+<body>
+<main class="login enter signup">
+  <section class="login-art" aria-hidden="true">
+    <a class="brand" href="index.html">mv<span>catálogo online</span></a>
+    <h1><span class="ln">Seu catálogo</span><span class="ln">no ar hoje.</span></h1>
+    <ul class="perks">
+      <li>Produtos pelo Excel e fotos pelo Google Drive</li>
+      <li>Preços só para você e sua equipe de vendas</li>
+      <li>Pedidos e orçamentos em PDF pelo WhatsApp</li>
+      <li>Painel com os produtos mais procurados</li>
+    </ul>
+  </section>
+
+  <section class="login-form">
+    <div class="signup-wrap">
+      <ol class="steps-bar" aria-label="Etapas">
+        <li class="on" id="sb-1"><span>1</span>Cadastro</li>
+        <li id="sb-2"><span>2</span>Pagamento</li>
+        <li id="sb-3"><span>3</span>Liberação</li>
+      </ol>
+
+      <!-- 1. CADASTRO -->
+      <form id="step-1" novalidate>
+        <h2>Crie sua conta</h2>
+        <p>Preencha os dados da loja. Depois você paga o plano por Pix.</p>
+        <div id="msg" class="alert" role="alert" hidden></div>
+        <div class="field"><label for="f-loja">Nome da loja</label><input id="f-loja" maxlength="80" required placeholder="Ex.: Casa & Cia Utilidades" autocomplete="organization"></div>
+        <div class="field">
+          <label for="f-slug">Endereço do catálogo</label>
+          <div class="slug-box"><span id="slug-base">…/loja.html?loja=</span><input id="f-slug" maxlength="40" required placeholder="casa-e-cia"></div>
+          <p class="hint" id="slug-status"></p>
+        </div>
+        <div class="field"><label for="f-resp">Seu nome</label><input id="f-resp" maxlength="80" required autocomplete="name"></div>
+        <div class="row">
+          <div class="field"><label for="f-cnpj">CNPJ</label><input id="f-cnpj" inputmode="numeric" maxlength="18" required placeholder="00.000.000/0000-00"></div>
+          <div class="field"><label for="f-wa">WhatsApp</label><input id="f-wa" type="tel" inputmode="tel" maxlength="15" required placeholder="(11) 99999-9999" autocomplete="tel"></div>
+        </div>
+        <div class="field"><label for="f-email">E-mail (será o seu login)</label><input id="f-email" type="email" required autocomplete="email" placeholder="voce@empresa.com"></div>
+
+        <div class="plan-card" id="plan-card"></div>
+        <label class="terms"><input type="checkbox" id="f-terms" required> Li e concordo: o acesso é liberado após a confirmação do pagamento e renovado a cada período pago.</label>
+        <button class="btn primary" style="width:100%" id="go-pay">Continuar para o pagamento</button>
+        <p class="hint" style="margin-top:14px">Já tem conta? <a href="index.html">Entrar</a></p>
+      </form>
+
+      <!-- 2. PAGAMENTO -->
+      <section id="step-2" hidden aria-labelledby="pay-title">
+        <h2 id="pay-title">Pague com Pix</h2>
+        <p id="pay-sub"></p>
+        <div id="pay-box"></div>
+        <button class="btn primary" style="width:100%;margin-top:16px" id="paid">Já paguei</button>
+        <p class="hint" style="margin-top:10px">Depois de pagar, toque em <b>Já paguei</b> e envie o comprovante pelo WhatsApp. Isso acelera a liberação.</p>
+        <button class="link-btn" id="back-1" type="button" style="margin-top:12px">← Corrigir meus dados</button>
+      </section>
+
+      <!-- 3. AGUARDANDO LIBERAÇÃO -->
+      <section id="step-3" hidden aria-labelledby="done-title">
+        <div class="done-mark" aria-hidden="true">✓</div>
+        <h2 id="done-title">Pedido recebido!</h2>
+        <p>Assim que confirmarmos o pagamento, sua conta é liberada e você recebe um <b>e-mail para criar a sua senha</b>.</p>
+        <ul class="done-list" id="done-list"></ul>
+        <a class="btn primary" style="width:100%" id="send-proof" target="_blank" rel="noopener">Enviar comprovante pelo WhatsApp</a>
+        <a class="btn ghost" style="width:100%;margin-top:8px" href="index.html">Voltar ao login</a>
+      </section>
+    </div>
+  </section>
+</main>
+
+<script src="config.js?v=202611212111"></script>
+<script src="js/db.js?v=202611212111"></script>
+<script src="js/common.js?v=202611212111"></script>
+<script src="js/pix.js?v=202611212111"></script>
+<script>
+(async () => {
+  const { $ } = U;
+  const { plano } = Pix.cfg();
+  const msg = $("#msg");
+  const show = (t, cls = "alert") => { msg.className = cls; msg.textContent = t; msg.hidden = !t; if (t) msg.scrollIntoView({ block: "center", behavior: "smooth" }); };
+  const step = (n) => {
+    [1, 2, 3].forEach((i) => { $("#step-" + i).hidden = i !== n; $("#sb-" + i).classList.toggle("on", i <= n); });
+    scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const base = new URL("loja.html", location.href).href + "?loja=";
+  $("#slug-base").textContent = "loja=";
+  $("#plan-card").innerHTML = `
+    <div><small>Plano ${U.esc(plano.nome)}</small><b>${Pix.money(plano.valor)}</b><span>a cada ${plano.dias} dias</span></div>
+    <ul><li>Catálogos e produtos sem limite de visitas</li><li>Equipe de vendedores e representantes</li><li>Suporte pelo WhatsApp</li></ul>`;
+
+  /* máscaras e endereço automático */
+  let slugTouched = false, slugOk = false, slugTimer;
+  $("#f-cnpj").addEventListener("input", (e) => { e.target.value = U.maskDoc(e.target.value); });
+  $("#f-wa").addEventListener("input", (e) => { e.target.value = U.maskPhone(e.target.value); });
+  $("#f-loja").addEventListener("input", () => { if (!slugTouched) { $("#f-slug").value = DB.slugify($("#f-loja").value); checkSlug(); } });
+  $("#f-slug").addEventListener("input", () => { slugTouched = true; checkSlug(); });
+  function checkSlug() {
+    clearTimeout(slugTimer);
+    const s = DB.slugify($("#f-slug").value), st = $("#slug-status");
+    slugOk = false;
+    if (!s) { st.textContent = ""; return; }
+    st.textContent = "Verificando…"; st.className = "hint";
+    slugTimer = setTimeout(async () => {
+      try {
+        const exists = await DB.getCatalogBySlug(s);
+        slugOk = !exists;
+        st.textContent = exists ? "Esse endereço já está em uso. Tente outro." : `Disponível: ${base}${s}`;
+        st.className = "hint " + (exists ? "bad" : "good");
+      } catch { slugOk = true; st.textContent = ""; }
+    }, 450);
+  }
+
+  /* 1 → 2 */
+  let pedido = null;
+  $("#step-1").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const d = {
+      loja: $("#f-loja").value.trim(), slug: DB.slugify($("#f-slug").value), responsavel: $("#f-resp").value.trim(),
+      cnpj: U.maskDoc($("#f-cnpj").value), whatsapp: U.maskPhone($("#f-wa").value), email: $("#f-email").value.trim().toLowerCase()
+    };
+    const bad = (sel, t) => { $(sel).setAttribute("aria-invalid", "true"); $(sel).focus(); show(t); };
+    document.querySelectorAll("#step-1 input").forEach((i) => i.setAttribute("aria-invalid", "false"));
+    if (d.loja.length < 2) return bad("#f-loja", "Informe o nome da loja.");
+    if (!d.slug) return bad("#f-slug", "Escolha o endereço do catálogo.");
+    if (!slugOk && (await DB.getCatalogBySlug(d.slug).catch(() => null))) return bad("#f-slug", "Esse endereço de catálogo já está em uso.");
+    if (d.responsavel.length < 2) return bad("#f-resp", "Informe o seu nome.");
+    if (!U.validDoc(d.cnpj)) return bad("#f-cnpj", "CNPJ inválido. Confira os números.");
+    if (!U.validPhone(d.whatsapp)) return bad("#f-wa", "Informe o WhatsApp com DDD.");
+    if (!/^\S+@\S+\.\S+$/.test(d.email)) return bad("#f-email", "Informe um e-mail válido.");
+    if (!$("#f-terms").checked) return show("Marque que você concorda com as condições do plano.");
+    show("");
+    const btn = $("#go-pay"); btn.disabled = true; btn.classList.add("loading");
+    try {
+      const txid = Pix.newTxid("MV");
+      const id = await DB.createPedido({ tipo: "novo", ...d, plano: plano.nome, valor: plano.valor, dias: plano.dias, txid });
+      pedido = { id, txid, ...d };
+      $("#pay-sub").textContent = `Plano ${plano.nome} · ${Pix.money(plano.valor)} · ${plano.dias} dias de acesso para ${d.loja}.`;
+      await Pix.mountPay($("#pay-box"), { valor: plano.valor, txid, descricao: `Plano ${plano.nome} ${d.slug}` });
+      step(2);
+    } catch (err) { show("Não foi possível registrar o pedido agora. Tente de novo em instantes."); }
+    btn.disabled = false; btn.classList.remove("loading");
+  });
+  $("#back-1").onclick = () => step(1);
+
+  /* 2 → 3 */
+  $("#paid").addEventListener("click", async () => {
+    if (!pedido) return;
+    const btn = $("#paid"); btn.disabled = true;
+    try { await DB.pedidoPago(pedido.id); } catch { /* o pedido já está registrado; segue para o comprovante */ }
+    const text = [
+      "Olá! Acabei de pagar o plano do *Catálogo Online* por Pix. Segue o comprovante.", "",
+      `Loja: ${pedido.loja}`, `Endereço: ${pedido.slug}`, `Responsável: ${pedido.responsavel}`, `CNPJ: ${pedido.cnpj}`,
+      `E-mail: ${pedido.email}`, `Valor: ${Pix.money(plano.valor)}`, `Pedido: ${pedido.txid}`
+    ].join("\n");
+    $("#send-proof").href = `https://wa.me/${U.renewPhone()}?text=${encodeURIComponent(text)}`;
+    $("#done-list").innerHTML = `<li><span>Loja</span><b>${U.esc(pedido.loja)}</b></li><li><span>Login</span><b>${U.esc(pedido.email)}</b></li><li><span>Pedido</span><b>${U.esc(pedido.txid)}</b></li>`;
+    step(3);
+    btn.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>
