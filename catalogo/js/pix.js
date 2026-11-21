@@ -68,8 +68,21 @@
 
   const money = (n) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  /** Chave Pix mascarada para o cliente conferir o recebedor (CPF ***.541.138-**, celular (**) *****-1234…). */
+  function maskKey(k) {
+    const d = String(k).replace(/\D/g, "");
+    if (/@/.test(k)) { const [u, dom] = k.split("@"); return `${u.slice(0, 2)}***@${dom}`; }
+    if (/^\+/.test(k)) return `(**) *****-${d.slice(-4)}`;
+    if (d.length === 11) return `CPF ***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+    if (d.length === 14) return `CNPJ **.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-**`;
+    return `${String(k).slice(0, 4)}…${String(k).slice(-4)}`;
+  }
+  const isPhone = () => matchMedia("(max-width: 760px), (pointer: coarse)").matches;
+
   /**
-   * Monta o bloco de pagamento (QR Code + copia e cola + botão copiar) dentro de `el`.
+   * Monta o bloco de pagamento dentro de `el`.
+   * Celular: botão grande "Copiar código Pix" + passo a passo do copia e cola; QR Code opcional (outro aparelho).
+   * Computador: QR Code em destaque + passo a passo da câmera; copia e cola como alternativa.
    * o: { valor, txid, descricao }. Retorna o código copia e cola (ou "" se o Pix não estiver configurado).
    */
   async function mountPay(el, o) {
@@ -79,26 +92,66 @@
       return "";
     }
     const code = payload({ chave: pix.chave, nome: pix.nome, cidade: pix.cidade, valor: o.valor, txid: o.txid, descricao: o.descricao });
-    el.innerHTML = `
-      <div class="pix-box">
-        <div class="pix-qr" aria-live="polite"><div class="pix-qr-loading">Gerando QR Code…</div></div>
-        <div class="pix-info">
-          <div class="pix-amount"><small>Valor</small><b>${money(o.valor)}</b></div>
-          <ol class="pix-steps">
-            <li>Abra o app do seu banco e escolha <b>Pix</b>.</li>
-            <li>Escaneie o QR Code ou use o <b>Pix copia e cola</b>.</li>
-            <li>Confira o recebedor <b>${(pix.nome || "").replace(/</g, "")}</b> e pague.</li>
-          </ol>
-          <label class="pix-label" for="pix-code-${o.txid}">Pix copia e cola</label>
-          <div class="pix-copy"><input id="pix-code-${o.txid}" readonly value="${code}"><button type="button" class="btn sm primary">Copiar</button></div>
+    const phone = isPhone();
+    const recebedor = `<div class="pix-who" title="Confira estes dados no app do banco antes de confirmar">
+        <span class="pix-lock" aria-hidden="true">🔒</span>
+        <span><small>Recebedor</small><b>${clean(pix.nome, 40) || "—"}</b><em>${maskKey(pix.chave)}</em></span>
+        <span class="pix-val"><small>Valor</small><b>${money(o.valor)}</b></span>
+      </div>`;
+    const copyBlock = `
+      <button type="button" class="btn primary pix-copy-big" data-copy>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M8 8h11v13H8zM5 16H4V3h11v1"/></svg>
+        <span>Copiar código Pix</span>
+      </button>
+      <div class="pix-code"><span>Pix copia e cola</span><code>${code}</code></div>`;
+    const qrBlock = `<div class="pix-qr" aria-live="polite"><div class="pix-qr-loading">Gerando QR Code…</div></div>`;
+    el.innerHTML = phone ? `
+      <div class="pix-pay is-phone">
+        ${recebedor}
+        ${copyBlock}
+        <ol class="pix-how">
+          <li><b>Toque em “Copiar código Pix”</b> acima.</li>
+          <li>Abra o <b>app do seu banco</b> e entre em <b>Pix → Pix copia e cola</b>.</li>
+          <li><b>Cole o código</b>, confira o recebedor e o valor, e confirme.</li>
+          <li>Volte para esta página e toque em <b>Já paguei</b>.</li>
+        </ol>
+        <details class="pix-other"><summary>Vai pagar com outro celular? Mostrar QR Code</summary>${qrBlock}</details>
+      </div>` : `
+      <div class="pix-pay is-desk">
+        ${recebedor}
+        <div class="pix-desk-grid">
+          ${qrBlock}
+          <div>
+            <ol class="pix-how">
+              <li>Abra o <b>app do seu banco</b> no celular.</li>
+              <li>Escolha <b>Pix → Pagar com QR Code</b>.</li>
+              <li><b>Aponte a câmera</b> para o código ao lado.</li>
+              <li>Confira o recebedor e o valor, e <b>confirme</b>.</li>
+            </ol>
+            <p class="pix-or">Prefere copiar e colar?</p>
+            ${copyBlock}
+          </div>
         </div>
       </div>`;
-    const input = el.querySelector(".pix-copy input"), btn = el.querySelector(".pix-copy button");
+    const btn = el.querySelector("[data-copy]");
     btn.onclick = async () => {
-      try { await navigator.clipboard.writeText(code); } catch { input.select(); document.execCommand("copy"); }
-      btn.textContent = "Copiado ✓"; setTimeout(() => { btn.textContent = "Copiar"; }, 2000);
+      let ok = true;
+      try { await navigator.clipboard.writeText(code); }
+      catch {
+        ok = false;
+        const r = document.createRange(); r.selectNodeContents(el.querySelector(".pix-code code"));
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        try { ok = document.execCommand("copy"); } catch { ok = false; }
+      }
+      btn.classList.add("done");
+      btn.querySelector("span").textContent = ok ? "Código copiado! Agora cole no app do banco" : "Selecionei o código: copie e cole no banco";
+      if (window.U && ok) U.toast("Código Pix copiado. Abra o app do banco → Pix → Pix copia e cola.");
+      setTimeout(() => { btn.classList.remove("done"); btn.querySelector("span").textContent = "Copiar código Pix"; }, 4000);
     };
-    renderQr(el.querySelector(".pix-qr"), code).catch((e) => { el.querySelector(".pix-qr").innerHTML = `<p class="hint">${e.message}</p>`; });
+    const qrEl = el.querySelector(".pix-qr");
+    const draw = () => renderQr(qrEl, code).catch((e) => { qrEl.innerHTML = `<p class="hint">${e.message}</p>`; });
+    if (phone) el.querySelector(".pix-other").addEventListener("toggle", function once() { draw(); this.removeEventListener("toggle", once); });
+    else draw();
     return code;
   }
 
@@ -127,5 +180,5 @@
     return () => cur;
   }
 
-  window.Pix = { payload, crc16, renderQr, cfg, newTxid, mountPay, money, planPicker };
+  window.Pix = { payload, crc16, renderQr, cfg, newTxid, mountPay, money, planPicker, maskKey };
 })();

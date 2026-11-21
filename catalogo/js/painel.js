@@ -631,11 +631,20 @@
     $("#pix-sub").textContent = `Plano ${plano.nome} · ${Pix.money(plano.valor)} · +${plano.dias} dias (acesso até ${U.date(novo)} depois da liberação).`;
     const code = await Pix.mountPay($("#pix-area"), { valor: plano.valor, txid: pixTx, descricao: `Renovacao ${me.slug}` });
     $("#pix-paid").hidden = !code;
+    $("#pix-paid").textContent = "✓ Já paguei";
   }
   U.$$("[data-renew-pix]").forEach((b) => b.addEventListener("click", () => {
     dlgPix.showModal();
     Pix.planPicker($("#pix-plans"), showRenewPay);
   }));
+  // confirma antes de registrar, para ninguém avisar sem ter pago
+  dlgPix.querySelector("form").addEventListener("submit", async (e) => {
+    if (!e.submitter || e.submitter.value !== "paid") return;
+    e.preventDefault();
+    const plano = renewPlan || Pix.cfg().plano;
+    const ok = await U.ask({ title: "Você já concluiu o Pix?", text: `Confirme que o pagamento de ${Pix.money(plano.valor)} foi concluído no app do seu banco.`, ok: "Sim, já paguei", cancel: "Ainda não" });
+    if (ok) dlgPix.close("paid");
+  });
   dlgPix.addEventListener("close", async () => {
     if (dlgPix.returnValue !== "paid" || !pixTx) return;
     const plano = renewPlan || Pix.cfg().plano;
