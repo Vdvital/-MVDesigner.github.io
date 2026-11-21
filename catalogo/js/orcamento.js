@@ -127,7 +127,7 @@
         "",
         String(it.p.code),
         { content: (it.p.name || "Produto") + (it.p.category ? `\n${it.p.category}` : "") + (it.p.boxQty ? `\nCaixa com ${it.p.boxQty} un.` : "") + (it.p.isNew ? "\nNovidade" : "") + (promo ? `\nPromoção: de ${money(it.p.price)}` : ""), _promo: promo, _cat: !!it.p.category },
-        it.p.boxQty ? `${it.qty} un\n${it.qty % it.p.boxQty ? Math.floor(it.qty / it.p.boxQty) + " cx + " + (it.qty % it.p.boxQty) + " un" : it.qty / it.p.boxQty + " cx"}` : String(it.qty),
+        it.p.boxQty ? `${it.qty % it.p.boxQty ? Math.floor(it.qty / it.p.boxQty) + " cx + " + (it.qty % it.p.boxQty) + " un" : it.qty / it.p.boxQty + " cx"}\n${it.qty} un` : `${it.qty} cx`,
         it.unit != null ? money(it.unit) : "A consultar",
         sub != null ? money(sub) : "—"
       ];
