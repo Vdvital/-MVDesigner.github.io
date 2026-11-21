@@ -117,3 +117,13 @@ No modo Firebase, a troca de senha é feita por e-mail de redefinição. Cada ca
 - **Renovar em 1 clique** no aviso de vencimento do administrador (+30 dias, +90 dias, +1 ano).
 
 **Importante:** publique de novo o `firestore.rules` (os orçamentos agora podem ser listados pela própria loja).
+
+## Painel "Mais procurados"
+
+- Nova aba **📈 Mais procurados** no painel da loja, com período de 7, 30 ou 90 dias.
+- Números: visitas (uma por pessoa por dia, com tendência), produtos vistos, adições ao carrinho e itens em pedidos.
+- Gráfico de visitas por dia (com tabela) e ranking dos produtos mais procurados (vistos, carrinho, pedidos e procura geral).
+- O que os clientes buscaram, o que **buscaram e não encontraram** (oportunidades) e as categorias mais abertas.
+- Acessos da loja e da equipe não contam como visita. Os eventos são juntados e gravados de uma vez (a cada 15 s ou ao sair), um registro por loja por dia em `stats/{loja}_{data}`.
+
+**Importante:** publique de novo o `firestore.rules` (coleção `stats`).

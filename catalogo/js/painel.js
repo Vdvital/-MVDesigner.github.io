@@ -26,13 +26,14 @@
   $("#share-wa").addEventListener("click", () => markShared());
 
   /* ---------- abas ---------- */
-  const TABS = ["produtos", "loja", "fotos", "equipe", "orcamentos", "compartilhar"];
+  const TABS = ["produtos", "loja", "fotos", "equipe", "procura", "orcamentos", "compartilhar"];
   function showTab(name, focus) {
     if (!TABS.includes(name)) name = "produtos";
     $$(".tabs-nav [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
     $$(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
     if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
     if (name === "orcamentos") loadQuotes();
+    if (name === "procura") loadDash();
     if (focus) { const t = $(`.tab-panel[data-panel="${name}"] input:not([type=file]):not([readonly]), .tab-panel[data-panel="${name}"] button`); t && t.focus({ preventScroll: true }); }
   }
   $(".tabs-nav").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
@@ -506,4 +507,116 @@
     const b = e.target.closest("[data-copy]"); if (!b) return;
     try { await navigator.clipboard.writeText(b.dataset.copy); toast("Link do orçamento copiado."); } catch { prompt("Copie o link:", b.dataset.copy); }
   });
+
+  /* ---------- painel "Mais procurados" ---------- */
+  var dashDays = 30, dashData = null, dashLimit = 10; // var: a aba pode abrir pelo endereço antes desta linha
+  async function loadDash() {
+    $("#dash-kpis").innerHTML = `<p class="hint">Carregando…</p>`;
+    try { dashData = await DB.getStats(me.slug, dashDays || 30); }
+    catch (e) {
+      $("#dash-kpis").innerHTML = `<p class="hint">Não foi possível carregar. ${DB.mode === "firebase" ? "Confira se as regras novas do Firestore foram publicadas." : ""}</p>`;
+      return;
+    }
+    renderDash();
+  }
+  function sumMap(days, key) {
+    const out = {};
+    days.forEach((d) => Object.entries(d[key] || {}).forEach(([k, n]) => { out[k] = (out[k] || 0) + n; }));
+    return out;
+  }
+  const fmtN = (n) => Number(n || 0).toLocaleString("pt-BR");
+  const label = (k) => k.replace(/_/g, " ");
+  function renderDash() {
+    const days = dashData || [];
+    const v = sumMap(days, "v"), c = sumMap(days, "c"), o = sumMap(days, "o");
+    const visits = days.reduce((t, d) => t + (d.visits || 0), 0);
+    const tot = (m) => Object.values(m).reduce((a, b) => a + b, 0);
+    // metade anterior x metade recente, para indicar tendência
+    const half = Math.floor(days.length / 2);
+    const prev = days.slice(0, half).reduce((t, d) => t + (d.visits || 0), 0), recent = days.slice(half).reduce((t, d) => t + (d.visits || 0), 0);
+    const trend = prev ? Math.round(((recent - prev) / prev) * 100) : null;
+    $("#dash-kpis").innerHTML = [
+      ["Visitas", visits, trend == null ? "" : `<span class="trend ${trend >= 0 ? "up" : "down"}">${trend >= 0 ? "▲" : "▼"} ${Math.abs(trend)}% <small>vs. início do período</small></span>`],
+      ["Produtos vistos", tot(v), ""],
+      ["Adições ao carrinho", tot(c), ""],
+      ["Itens em pedidos", tot(o), ""]
+    ].map(([t, n, extra]) => `<div class="kpi"><small>${t}</small><b>${fmtN(n)}</b>${extra}</div>`).join("");
+
+    // gráfico de colunas: visitas por dia (uma série, sem legenda; o título diz o que é)
+    const max = Math.max(1, ...days.map((d) => d.visits || 0));
+    const W = Math.max(300, Math.round($("#dash-chart").clientWidth || 720)), H = W < 500 ? 160 : 190, padL = 34, padB = 22, padT = 10;
+    const bw = (W - padL) / days.length, barW = Math.min(24, Math.max(3, bw - 2));
+    const nice = (m) => { const p = Math.pow(10, Math.floor(Math.log10(m))); return Math.ceil(m / p) * p; };
+    const top = nice(max), y = (n) => padT + (H - padT - padB) * (1 - n / top);
+    const ticks = [0, top / 2, top];
+    const fmtDay = (k) => { const [yy, mm, dd] = k.split("-"); return `${dd}/${mm}`; };
+    const every = Math.max(1, Math.ceil(days.length / Math.max(3, Math.floor((W - padL) / 64))));
+    // rótulo do último dia só se não encostar no anterior
+    const lastLabeled = Math.floor((days.length - 1) / every) * every;
+    const showLabel = (i) => i % every === 0 || (i === days.length - 1 && days.length - 1 - lastLabeled >= Math.ceil(every * 0.75));
+    $("#dash-chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitas por dia nos últimos ${days.length} dias. Total ${visits}.">
+      ${ticks.map((t) => `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" class="grid"/><text x="${padL - 6}" y="${y(t) + 4}" class="tick" text-anchor="end">${fmtN(t)}</text>`).join("")}
+      ${days.map((d, i) => {
+        const n = d.visits || 0, x = padL + i * bw + (bw - barW) / 2, h = (H - padT - padB) * (n / top);
+        const r = Math.min(4, h / 2, barW / 2);
+        const path = h > 0 ? `M${x},${y(0)} V${y(n) + r} Q${x},${y(n)} ${x + r},${y(n)} H${x + barW - r} Q${x + barW},${y(n)} ${x + barW},${y(n) + r} V${y(0)} Z` : "";
+        return `<g class="col" tabindex="0" data-tip="${fmtDay(d.day)}: ${fmtN(n)} ${n === 1 ? "visita" : "visitas"}">
+          <rect x="${padL + i * bw}" y="${padT}" width="${bw}" height="${H - padT - padB}" class="hit"/>
+          ${path ? `<path d="${path}" class="bar"/>` : ""}
+          ${showLabel(i) ? `<text x="${x + barW / 2}" y="${H - 6}" class="tick" text-anchor="middle">${fmtDay(d.day)}</text>` : ""}
+        </g>`;
+      }).join("")}
+    </svg><div class="tip" id="dash-tip" hidden></div>`;
+    $("#dash-chart-table").innerHTML = `<table><thead><tr><th>Dia</th><th class="num">Visitas</th></tr></thead><tbody>${days.map((d) => `<tr><td>${fmtDay(d.day)}</td><td class="num">${fmtN(d.visits)}</td></tr>`).join("")}</tbody></table>`;
+
+    // ranking de produtos
+    const byKey = new Map(products.map((p) => [String(p.code).replace(/[.\/\[\]*`~#$]/g, "_").slice(0, 60), p]));
+    const keys = [...new Set([...Object.keys(v), ...Object.keys(c), ...Object.keys(o)])];
+    const sort = $("#dash-sort").value;
+    const score = (k) => (v[k] || 0) + 2 * (c[k] || 0) + 3 * (o[k] || 0);
+    const val = (k) => (sort === "score" ? score(k) : ({ v, c, o }[sort][k] || 0));
+    const rows = keys.map((k) => ({ k, p: byKey.get(k), s: val(k) })).filter((r) => r.s > 0).sort((a, b) => b.s - a.s);
+    const best = rows.length ? rows[0].s : 1;
+    $("#dash-products").innerHTML = rows.length ? rows.slice(0, dashLimit).map((r, i) => {
+      const p = r.p || { code: r.k, name: "(produto removido)", images: [] };
+      return `<tr>
+        <td class="pos">${i + 1}</td>
+        <td><div class="prod">${U.imgTag(p, 120, "th")}<div><b>${esc(p.name || "Produto")}</b><small>Cód. ${esc(p.code)}${U.tagText(p) ? " · " + esc(U.tagText(p)) : ""}</small></div></div></td>
+        <td class="num" data-label="Vistos">${fmtN(v[r.k])}</td><td class="num" data-label="No carrinho">${fmtN(c[r.k])}</td><td class="num" data-label="Pedidos">${fmtN(o[r.k])}</td>
+        <td><div class="meter" title="${fmtN(r.s)}"><i style="width:${Math.max(4, (r.s / best) * 100)}%"></i></div></td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="6" class="empty">Ainda não há dados neste período. Compartilhe o link do catálogo e os números aparecem aqui.</td></tr>`;
+    $("#dash-more").hidden = rows.length <= dashLimit;
+
+    const mini = (m, el, empty) => {
+      const list = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const top1 = list.length ? list[0][1] : 1;
+      $(el).innerHTML = list.length ? list.map(([k, n]) => `<li><span>${esc(label(k))}</span><div class="meter"><i style="width:${Math.max(6, (n / top1) * 100)}%"></i></div><b>${fmtN(n)}</b></li>`).join("") : `<li class="none">${empty}</li>`;
+    };
+    mini(sumMap(days, "s"), "#dash-search", "Nenhuma busca ainda.");
+    mini(sumMap(days, "sz"), "#dash-miss", "Ótimo: tudo que buscaram foi encontrado.");
+    // categorias: mostra o nome original
+    const catNames = new Map(products.map((p) => p.category).filter(Boolean).map((c) => [c.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/[^a-z0-9-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40), c]));
+    const cats = {}; Object.entries(sumMap(days, "cat")).forEach(([k, n]) => { cats[catNames.get(k) || k] = n; });
+    mini(cats, "#dash-cats", "Nenhuma categoria aberta ainda.");
+  }
+  // tooltip das colunas (mouse e teclado)
+  $("#dash-chart").addEventListener("pointerover", (e) => showTip(e.target.closest(".col")));
+  $("#dash-chart").addEventListener("focusin", (e) => showTip(e.target.closest(".col")));
+  $("#dash-chart").addEventListener("pointerleave", () => { const t = $("#dash-tip"); if (t) t.hidden = true; });
+  function showTip(g) {
+    const t = $("#dash-tip"); if (!t || !g) return;
+    const box = $("#dash-chart").getBoundingClientRect(), r = g.querySelector(".hit").getBoundingClientRect();
+    t.textContent = g.dataset.tip; t.hidden = false;
+    t.style.left = `${Math.min(box.width - 140, Math.max(0, r.left - box.left + r.width / 2 - 70))}px`;
+  }
+  $$("#dash-period [data-days]").forEach((b) => b.addEventListener("click", () => {
+    dashDays = Number(b.dataset.days);
+    $$("#dash-period [data-days]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    loadDash();
+  }));
+  $("#dash-sort").addEventListener("change", () => { dashLimit = 10; renderDash(); });
+  let dashResize;
+  addEventListener("resize", () => { clearTimeout(dashResize); dashResize = setTimeout(() => { if (dashData && !$('[data-panel="procura"]').hidden) renderDash(); }, 200); });
+  $("#dash-more").addEventListener("click", () => { dashLimit += 20; renderDash(); });
 })();

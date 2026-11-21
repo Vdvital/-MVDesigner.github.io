@@ -63,6 +63,18 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ---------------- Estatísticas de procura (um registro por loja por dia) ----------------
+    // Visitantes do catálogo só somam contadores; só a loja, a equipe e o admin leem.
+    match /stats/{id} {
+      allow get: if isAdmin() || ownsCatalog(id.split('_')[0]) || isTeamOf(id.split('_')[0]);
+      allow list: if false;
+      allow create, update: if request.resource.data.slug == id.split('_')[0]
+        && request.resource.data.day == id.split('_')[1]
+        && request.resource.data.keys().hasOnly(['slug', 'day', 'visits', 'v', 'c', 'o', 's', 'sz', 'cat'])
+        && exists(/databases/$(database)/documents/catalogs/$(request.resource.data.slug));
+      allow delete: if isAdmin();
+    }
+
     // ---------------- Catálogo público (sem preços) ----------------
     match /catalogs/{slug} {
       allow read: if true;

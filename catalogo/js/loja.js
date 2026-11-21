@@ -54,6 +54,32 @@
   }
   const byCode = new Map(products.map((p) => [String(p.code), p]));
 
+  /* ---------- estatísticas de procura (para o painel "Mais procurados" da loja) ----------
+     Junta os eventos na memória e grava de uma vez (a cada 15 s e ao sair), para gastar pouco do banco.
+     A equipe logada não conta como visitante; só os pedidos/orçamentos dela entram. */
+  const statKey = (v) => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[^a-z0-9-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+  const codeKey = (c) => String(c).replace(/[.\/\[\]*`~#$]/g, "_").slice(0, 60);
+  let stat = { visits: 0, v: {}, c: {}, o: {}, s: {}, sz: {}, cat: {} }, statDirty = false;
+  function track(kind, key, n = 1, always = false) {
+    if (isStaff && !always) return;
+    if (kind === "visits") stat.visits += n;
+    else { if (!key) return; stat[kind][key] = (stat[kind][key] || 0) + n; }
+    statDirty = true;
+  }
+  async function flushStats() {
+    if (!statDirty) return;
+    const delta = stat; stat = { visits: 0, v: {}, c: {}, o: {}, s: {}, sz: {}, cat: {} }; statDirty = false;
+    try { await DB.track(slug, delta); } catch { /* estatística nunca atrapalha a venda */ }
+  }
+  setInterval(flushStats, 15000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushStats(); });
+  addEventListener("pagehide", flushStats);
+  // uma visita por pessoa por dia
+  try {
+    const vk = `cat_visit_${slug}_${new Date().toDateString()}`;
+    if (!localStorage.getItem(vk)) { localStorage.setItem(vk, "1"); track("visits"); }
+  } catch { track("visits"); }
+
   /* pedido por caixa: o carrinho guarda unidades; produtos com CX andam de caixa em caixa */
   const boxOf = (code) => (byCode.get(String(code)) || {}).boxQty || 0;
   const stepOf = (code) => boxOf(code) || 1;
@@ -150,6 +176,7 @@
   }).join("");
 
   function setCategory(c) {
+    if (c) track("cat", statKey(c));
     activeCat = c; shown = PAGE;
     $$("#chips button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.cat === c)));
     $("#all-label").textContent = c || "Produtos";
@@ -174,7 +201,18 @@
 
   /* ---------- busca e lista ---------- */
   const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  $("#q").addEventListener("input", () => { shown = PAGE; showView("produtos"); render(); });
+  let searchTimer;
+  $("#q").addEventListener("input", () => {
+    shown = PAGE; showView("produtos"); render();
+    // registra a busca quando a pessoa para de digitar (e se não achou nada)
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const term = statKey($("#q").value);
+      if (term.length < 3) return;
+      track("s", term);
+      if (!$("#empty").hidden) track("sz", term);
+    }, 1400);
+  });
 
   /* ---------- filtro de preço ---------- */
   const priced = products.map(unitPrice).filter((v) => v != null);
@@ -281,6 +319,7 @@
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch { /* navegador sem armazenamento */ } };
 
   function addToCart(code, qty = 1, silent) {
+    track("c", codeKey(code));
     cart[code] = Math.min(9999, (cart[code] || 0) + qty);
     persist(); updateCart();
     if (!silent) U.toast(`${boxOf(code) ? boxesTxt(code, cart[code]) + " (" + cart[code] + " un)" : cart[code]} no carrinho · ${byCode.get(code)?.name || ""}`);
@@ -441,6 +480,7 @@
         code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "", boxQty: p.boxQty || null, isNew: !!p.isNew,
         price: p.price ?? null, promoPrice: p.promoPrice ?? null, qty, unit
       }));
+      Object.keys(cart).forEach((c) => track("o", codeKey(c), 1, true)); flushStats();
       const id = await DB.saveQuote({
         slug, ownerUid: cat.uid, sellerName: viewer.name, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), items,
         store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36", logo: store.logo || "" },
@@ -514,6 +554,7 @@
       obs ? `Obs.: ${obs}` : "",
       location.href.split("#")[0]
     ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n").trim();
+    Object.keys(cart).forEach((c) => track("o", codeKey(c), 1, true)); flushStats();
     const url = waLink(msg, sellerWa());
     if (!window.open(url, "_blank")) location.href = url;
   });
@@ -539,6 +580,7 @@
   });
   function open(p) {
     if (!p) return;
+    track("v", codeKey(p.code));
     current = p;
     const imgs = p.images && p.images.length ? p.images : [];
     const showImg = (i) => {
