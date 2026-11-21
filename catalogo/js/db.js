@@ -276,6 +276,7 @@
       await loadScript(base + "firebase-firestore-compat.js");
       this.app = firebase.initializeApp(CFG.firebase);
       this.auth = firebase.auth();
+      this.auth.languageCode = "pt"; // e-mails do Firebase (ex.: redefinir senha) em português
       this.db = firebase.firestore();
       this._ready = new Promise((ok) => {
         const off = this.auth.onAuthStateChanged((user) => { off(); ok(user); });
@@ -367,7 +368,15 @@
       return p;
     },
 
-    async sendReset(email) { await this.auth.sendPasswordResetEmail(email); },
+    async sendReset(email) {
+      // depois de criar a senha nova, o botão "Continuar" do Firebase volta para o login do catálogo
+      const url = new URL("index.html", location.href).href;
+      try { await this.auth.sendPasswordResetEmail(email, { url }); }
+      catch (e) {
+        if (/unauthorized-continue-uri|invalid-continue-uri/.test(e.code || "")) await this.auth.sendPasswordResetEmail(email);
+        else throw e;
+      }
+    },
 
     async deleteUser(uid) {
       const ref = this._users().doc(uid);
