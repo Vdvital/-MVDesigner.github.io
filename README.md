@@ -9,14 +9,27 @@ Modelo de portfólio responsivo em português, em HTML, CSS e JavaScript. Não e
 3. Selecione **main** e a pasta **/ (root)**. Clique em **Save**.
 4. Aguarde o GitHub mostrar o endereço publicado nessa mesma tela.
 
-O nome deste repositório faz dele um site de projeto. Use o endereço mostrado pelo GitHub Pages; ele não é automaticamente um domínio próprio.
+## Domínio próprio: mvcatalogo.com.br
 
-## Personalizar
+| Endereço | O que abre |
+| --- | --- |
+| `https://mvcatalogo.com.br` | Login do catálogo (a raiz redireciona para `catalogo/`) |
+| `https://mvcatalogo.com.br/catalogo/loja.html?loja=endereco` | Catálogo público de cada loja |
+| `https://mvcatalogo.com.br/portfolio/` | Portfólio MV Designer |
 
-- `index.html`: nome, apresentação, serviços e endereço de e-mail.
-- `script.js`: número do WhatsApp e lista `projects` com títulos, categorias, imagens e descrições.
-- `styles.css`: cores e layout. As cores principais ficam em `:root`.
-- `assets/`: substitua ou adicione as imagens dos seus projetos.
+- O domínio está cadastrado em **Settings → Pages → Custom domain** (o GitHub guarda isso no arquivo `CNAME`; não apague esse arquivo).
+- DNS no Registro.br (modo avançado): registros `A` para `185.199.108.153`, `185.199.109.153`, `185.199.110.153` e `185.199.111.153`, registros `AAAA` para `2606:50c0:8000::153` a `2606:50c0:8003::153` e `www` como `CNAME` para `vdvital.github.io`.
+- Os endereços antigos `vdvital.github.io/-MVDesigner.github.io/...` passam a redirecionar para o domínio novo.
+- No Firebase (**Authentication → Configurações → Domínios autorizados**) e na chave da API do Google, o domínio `mvcatalogo.com.br` também precisa estar autorizado.
+
+## Personalizar o portfólio
+
+Os arquivos do portfólio ficam na pasta `portfolio/`:
+
+- `portfolio/index.html`: nome, apresentação, serviços e endereço de e-mail.
+- `portfolio/script.js`: número do WhatsApp e lista `projects` com títulos, categorias, imagens e descrições.
+- `portfolio/styles.css`: cores e layout. As cores principais ficam em `:root`.
+- `portfolio/assets/`: substitua ou adicione as imagens dos seus projetos.
 
 **Contato reutilizado do portfólio existente:** WhatsApp (11) 99397-5886 e marcos.vital2008@outlook.com. Confira se permanecem atuais.
 
@@ -35,4 +48,4 @@ A pasta `catalogo/` tem um sistema de catálogos com painel de administrador, co
 
 ## Prévia local
 
-Abra `index.html` no navegador ou rode `python3 -m http.server 8080` nesta pasta e acesse `http://localhost:8080`.
+Rode `python3 -m http.server 8080` nesta pasta e acesse `http://localhost:8080` (catálogo) ou `http://localhost:8080/portfolio/` (portfólio).
