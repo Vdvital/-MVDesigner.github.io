@@ -242,6 +242,15 @@
       if (all[id] && all[id].status === "aguardando_pagamento") { all[id].status = "pagamento_informado"; all[id].paidAt = Date.now(); this._write("cat_pedidos", all); }
     },
     async listPedidos() { return Object.entries(this._read("cat_pedidos", {})).map(([id, x]) => ({ id, ...x })); },
+    watchPedidos(cb) {
+      // modo de teste: confere a cada 5 s e quando outra aba grava
+      const run = () => this.listPedidos().then(cb);
+      run();
+      const t = setInterval(run, 5000);
+      const onStorage = (e) => { if (e.key === "cat_pedidos") run(); };
+      addEventListener("storage", onStorage);
+      return () => { clearInterval(t); removeEventListener("storage", onStorage); };
+    },
     async updatePedido(id, patch) { const all = this._read("cat_pedidos", {}); if (all[id]) { Object.assign(all[id], patch); this._write("cat_pedidos", all); } },
     async deletePedido(id) { const all = this._read("cat_pedidos", {}); this._write("cat_pedidos", Object.fromEntries(Object.entries(all).filter(([k]) => k !== id))); },
     async track(slug, delta) {
@@ -504,6 +513,11 @@
       const snap = await this.db.collection("pedidos").orderBy("createdAt", "desc").limit(200).get();
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     },
+    watchPedidos(cb, onError) {
+      // tempo real: o Firestore avisa assim que um pedido é criado ou muda
+      return this.db.collection("pedidos").orderBy("createdAt", "desc").limit(200)
+        .onSnapshot((snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => onError && onError(e));
+    },
     async updatePedido(id, patch) { await this.db.collection("pedidos").doc(id).update(patch); },
     async deletePedido(id) { await this.db.collection("pedidos").doc(id).delete(); },
     async listQuotes(owner) {
@@ -538,6 +552,7 @@
   let initPromise = null;
 
   window.DB = {
+    async watchPedidos(cb, onError) { await window.DB.init(); return impl.watchPedidos(cb, onError); },
     mode: CFG.modo === "firebase" ? "firebase" : "local",
     DAY, TEAM, ROLE_LABEL, accessStatus, slugify, hasLegacyPrices,
     init() { return (initPromise = initPromise || impl.init()); }

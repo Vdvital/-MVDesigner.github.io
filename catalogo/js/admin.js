@@ -338,8 +338,65 @@
     await load();
   }
 
-  await loadPedidos();
-  setInterval(loadPedidos, 60000);
+  /* ---------- alerta de novo pagamento ---------- */
+  const SEEN = "cat_ped_seen", baseTitle = document.title;
+  let seen = new Set(); try { seen = new Set(JSON.parse(localStorage.getItem(SEEN)) || []); } catch { /* ignore */ }
+  let firstSnap = true, unseen = 0;
+  const saveSeen = () => { try { localStorage.setItem(SEEN, JSON.stringify([...seen].slice(-500))); } catch { /* ignore */ } };
+  const notifySupported = "Notification" in window;
+  function paintNotifyBtn() {
+    const b = $("#ped-notify");
+    if (!notifySupported) { b.hidden = true; return; }
+    const st = Notification.permission;
+    b.textContent = st === "granted" ? "🔔 Alertas ativados" : st === "denied" ? "🔕 Alertas bloqueados" : "🔔 Ativar alertas";
+    b.disabled = st !== "default";
+    b.title = st === "denied" ? "Libere as notificações deste site nas configurações do navegador." : "";
+  }
+  $("#ped-notify").onclick = async () => { try { await Notification.requestPermission(); } catch { /* ignore */ } paintNotifyBtn(); if (Notification.permission === "granted") beep(); };
+  paintNotifyBtn();
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [[880, 0], [1320, 0.18]].forEach(([f, t]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = f; o.type = "sine"; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.35);
+        o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.4);
+      });
+    } catch { /* sem som */ }
+  }
+  const paintTitle = () => { document.title = unseen ? `(${unseen}) Novo pagamento · ${baseTitle}` : baseTitle; };
+  addEventListener("focus", () => { unseen = 0; paintTitle(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { unseen = 0; paintTitle(); } });
+  function alertNew(p) {
+    const title = p.tipo === "renovacao" ? "Renovação paga" : "Novo cliente pagou";
+    const body = `${p.loja || ""} · ${Pix.money(p.valor || 0)} · ${p.plano || ""}. Confira o Pix e libere.`;
+    toast(`💰 ${title}: ${p.loja}`);
+    beep();
+    if (document.hidden || !document.hasFocus()) { unseen++; paintTitle(); }
+    if (notifySupported && Notification.permission === "granted") {
+      try {
+        const n = new Notification(title, { body, tag: "ped-" + p.id, requireInteraction: true });
+        n.onclick = () => { focus(); $("#pedidos").scrollIntoView({ behavior: "smooth" }); n.close(); };
+      } catch { /* alguns celulares só notificam por service worker */ }
+    }
+  }
+  function onPedidos(list) {
+    pedidos = list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const paid = pedidos.filter((p) => p.status === "pagamento_informado");
+    if (firstSnap) {
+      // ao abrir o painel: avisa só do que chegou desde a última visita
+      const news = paid.filter((p) => !seen.has(p.id));
+      if (news.length) { toast(`💰 ${news.length} ${news.length === 1 ? "pagamento novo" : "pagamentos novos"} para liberar.`); beep(); }
+      firstSnap = false;
+    } else {
+      paid.filter((p) => !seen.has(p.id)).forEach(alertNew);
+    }
+    paid.forEach((p) => seen.add(p.id)); saveSeen();
+    renderPedidos();
+  }
+  DB.watchPedidos(onPedidos, () => loadPedidos()).catch(() => loadPedidos());
   await load();
   setInterval(render, 60000);
 })();

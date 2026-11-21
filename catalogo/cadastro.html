@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Assinar | Catálogo Online</title>
 <meta name="description" content="Crie o catálogo online da sua loja: produtos pelo Excel, fotos do Google Drive, preços só para a sua equipe e pedidos pelo WhatsApp.">
-<link rel="stylesheet" href="css/app.css?v=202611212236">
+<link rel="stylesheet" href="css/app.css?v=202611212257">
 </head>
 <body>
 <main class="login enter signup">
@@ -153,6 +153,7 @@
         <ol class="timeline">
           <li class="ok"><span class="tl-dot" aria-hidden="true">✓</span><div><b>Pedido e pagamento registrados</b><small id="tl-1"></small></div></li>
           <li class="now"><span class="tl-dot" aria-hidden="true">2</span><div><b>Envie o comprovante</b><small>Pelo WhatsApp, com um toque. É o que mais acelera a liberação.</small>
+            <small class="proof-note" id="proof-note" hidden>Abrimos o WhatsApp com a mensagem pronta: é só anexar o comprovante e enviar. Se não abriu, toque no botão abaixo.</small>
             <a class="btn primary wa-btn" id="send-proof" target="_blank" rel="noopener">Enviar comprovante pelo WhatsApp</a></div></li>
           <li><span class="tl-dot" aria-hidden="true">3</span><div><b>Conferimos o Pix e liberamos a conta</b><small>Você recebe a confirmação no WhatsApp.</small></div></li>
           <li><span class="tl-dot" aria-hidden="true">4</span><div><b>Crie a sua senha pelo e-mail</b><small id="tl-4"></small></div></li>
@@ -165,10 +166,10 @@
   </section>
 </main>
 
-<script src="config.js?v=202611212236"></script>
-<script src="js/db.js?v=202611212236"></script>
-<script src="js/common.js?v=202611212236"></script>
-<script src="js/pix.js?v=202611212236"></script>
+<script src="config.js?v=202611212257"></script>
+<script src="js/db.js?v=202611212257"></script>
+<script src="js/common.js?v=202611212257"></script>
+<script src="js/pix.js?v=202611212257"></script>
 <script>
 (async () => {
   const { $ } = U;
@@ -293,10 +294,13 @@
       ok: "Sim, já paguei", cancel: "Ainda não"
     });
     if (!ok) return;
+    // abre o WhatsApp já no clique (o navegador bloqueia se abrir depois de esperar) e avisa o administrador
+    const win = window.open("", "_blank");
     const btn = $("#paid"); btn.disabled = true;
     try { await DB.pedidoPago(pedido.id); } catch { /* o pedido já está registrado; segue para o comprovante */ }
     savePend({ ...readPend(), id: pedido.id, txid: pedido.txid, d: { loja: pedido.loja, slug: pedido.slug, responsavel: pedido.responsavel, cnpj: pedido.cnpj, whatsapp: pedido.whatsapp, email: pedido.email }, planoId: plano.id, paid: true, at: Date.now() });
     showDone();
+    if (win && !win.closed) { win.location.href = $("#send-proof").href; $("#proof-note").hidden = false; }
     btn.disabled = false;
   });
 })();
