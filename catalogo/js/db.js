@@ -274,6 +274,8 @@
         d.n += 1; d.u[me.uid] = (d.u[me.uid] || 0) + 1; all[day] = d; this._write("cat_acessos", all);
       }
     },
+    async getAviso() { return this._read("cat_aviso", null); },
+    async saveAviso(a) { this._write("cat_aviso", a); },
     async listAcessos(days) {
       const all = this._read("cat_acessos", {});
       return lastDays(days).map((day) => all[day] || { day, n: 0, u: {} });
@@ -526,6 +528,11 @@
         await this.db.collection("acessos").doc(day).set({ day, n: inc(1), u: { [me.uid]: inc(1) } }, { merge: true });
       }
     },
+    async getAviso() {
+      const s = await this.db.collection("avisos").doc("atual").get();
+      return s.exists ? s.data() : null;
+    },
+    async saveAviso(a) { await this.db.collection("avisos").doc("atual").set(a || { ativo: false, updatedAt: Date.now() }); },
     async listAcessos(days) {
       const list = lastDays(days);
       const snap = await this.db.collection("acessos").where("day", ">=", list[0]).get();
@@ -593,7 +600,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats", "getAviso", "saveAviso"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

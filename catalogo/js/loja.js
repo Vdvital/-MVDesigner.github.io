@@ -32,6 +32,7 @@
   document.body.classList.toggle("staff", canSee);
   if (isStaff) {
     $("#staff-bar").hidden = false;
+    if (!presentation && viewer.role !== "admin") U.showAviso($("#aviso-banner"), viewer);
     $("#staff-who").textContent = `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`;
     $("#staff-msg").textContent = presentation ? "Modo apresentação: sem preços na tela."
       : canSee ? "Você está vendo os preços." : "Não foi possível carregar os preços.";

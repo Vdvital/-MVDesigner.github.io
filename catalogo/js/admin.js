@@ -561,4 +561,70 @@
   loadAcessos();
   setInterval(() => { if (!document.hidden) loadAcessos(); }, 60000);
   let acResize; addEventListener("resize", () => { clearTimeout(acResize); acResize = setTimeout(renderAcessos, 200); });
+  /* ---------- Aviso para todas as lojas ---------- */
+  var aviso = null, avTipo = "novidade";
+  const dlgAviso = $("#dlg-aviso");
+  async function loadAviso() {
+    try { aviso = await DB.getAviso(); }
+    catch { $("#aviso-current").innerHTML = `<p class="hint">Não foi possível carregar o aviso. ${DB.mode === "firebase" ? "Publique as regras novas do Firestore." : ""}</p>`; return; }
+    renderAviso();
+  }
+  function renderAviso() {
+    const on = U.avisoValido(aviso);
+    $("#aviso-new").textContent = on ? "Trocar aviso" : "Novo aviso";
+    if (!on) {
+      $("#aviso-current").innerHTML = `<p class="av-empty">Nenhum aviso no ar. Use para contar uma novidade, avisar de uma manutenção ou lembrar algo importante. Aparece no painel de todas as lojas.</p>`;
+      return;
+    }
+    const until = aviso.expiresAt ? `até ${U.dateTime(aviso.expiresAt)}` : "até você tirar";
+    $("#aviso-current").innerHTML = `<div class="aviso-banner t-${esc(aviso.tipo || "info")}">${U.avisoHtml(aviso, false)}</div>
+      <div class="av-status"><span><span class="online-tag">● No ar</span> · publicado ${U.dateTime(aviso.createdAt)} · ${until} · ${aviso.publico === "donos" ? "só donos das lojas" : "lojas e equipes"}</span>
+      <span><button type="button" class="btn sm" id="aviso-edit">Editar</button> <button type="button" class="btn sm danger" id="aviso-off">Tirar do ar</button></span></div>`;
+    $("#aviso-edit").onclick = () => openAviso(aviso);
+    $("#aviso-off").onclick = async () => {
+      if (!(await U.ask({ title: "Tirar o aviso do ar?", text: "Ele some do painel de todas as lojas.", ok: "Tirar do ar", danger: true }))) return;
+      try { await DB.saveAviso({ ...aviso, ativo: false, updatedAt: Date.now() }); toast("Aviso retirado."); await loadAviso(); } catch (e) { toast(e.message, "err"); }
+    };
+  }
+  const avForm = () => ({
+    tipo: avTipo, titulo: $("#av-titulo").value.trim(), texto: $("#av-texto").value.trim(),
+    linkTexto: $("#av-ltxt").value.trim(), linkUrl: $("#av-lurl").value.trim(), publico: $("#av-publico").value
+  });
+  function previewAviso() {
+    const a = avForm();
+    $("#av-count").textContent = `${a.texto.length}/300`;
+    $("#av-preview").className = `aviso-banner t-${a.tipo}`;
+    $("#av-preview").innerHTML = U.avisoHtml({ ...a, texto: a.texto || "Sua mensagem aparece aqui." }, true);
+  }
+  function setTipo(t) { avTipo = t; $$("#av-tipo [data-tipo]").forEach((b) => { b.classList.toggle("on", b.dataset.tipo === t); b.setAttribute("aria-checked", String(b.dataset.tipo === t)); }); }
+  function openAviso(a) {
+    const editing = a && U.avisoValido(a);
+    setTipo(editing ? a.tipo || "info" : "novidade");
+    $("#av-titulo").value = editing ? a.titulo || "" : "";
+    $("#av-texto").value = editing ? a.texto || "" : "";
+    $("#av-ltxt").value = editing ? a.linkTexto || "" : "";
+    $("#av-lurl").value = editing ? a.linkUrl || "" : "";
+    $("#av-publico").value = editing ? a.publico || "todos" : "todos";
+    $(".av-more").open = !!(editing && a.linkUrl);
+    previewAviso(); dlgAviso.showModal(); setTimeout(() => $("#av-titulo").focus(), 50);
+  }
+  $$("#av-tipo [data-tipo]").forEach((b) => b.addEventListener("click", () => { setTipo(b.dataset.tipo); previewAviso(); }));
+  ["#av-titulo", "#av-texto", "#av-ltxt", "#av-lurl"].forEach((s) => $(s).addEventListener("input", previewAviso));
+  $("#aviso-new").onclick = () => openAviso(null);
+  $("#aviso-close").onclick = $("#aviso-cancel").onclick = () => dlgAviso.close();
+  $("#aviso-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const a = avForm();
+    if (!a.texto) return toast("Escreva a mensagem do aviso.", "err");
+    if (a.linkUrl && !/^https?:\/\//i.test(a.linkUrl)) return toast("O link precisa começar com https://", "err");
+    const dias = Number($("#av-dias").value);
+    const btn = $("#aviso-pub"); btn.disabled = true;
+    try {
+      // id novo = as lojas que clicaram "Entendi" no aviso anterior veem este
+      await DB.saveAviso({ ...a, ativo: true, id: Date.now().toString(36), createdAt: Date.now(), expiresAt: dias ? Date.now() + dias * DB.DAY : null });
+      dlgAviso.close(); toast("📣 Aviso publicado para as lojas."); await loadAviso();
+    } catch (err) { toast(err.message, "err"); }
+    btn.disabled = false;
+  });
+  loadAviso();
 })();

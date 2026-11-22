@@ -175,6 +175,38 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
   };
 
+  /* ---------- Aviso do administrador ---------- */
+  U.AVISO_TIPOS = {
+    novidade: { icon: "🎉", label: "Novidade" },
+    info: { icon: "ℹ️", label: "Informação" },
+    manutencao: { icon: "🛠️", label: "Manutenção" },
+    importante: { icon: "⚠️", label: "Importante" }
+  };
+  U.avisoValido = (a, me) => !!a && a.ativo && (!a.expiresAt || a.expiresAt > Date.now())
+    && (!me || a.publico !== "donos" || me.role === "user");
+  /** Monta o HTML do aviso (também usado na pré-visualização do admin). */
+  U.avisoHtml = (a, closable = true) => {
+    const t = U.AVISO_TIPOS[a.tipo] || U.AVISO_TIPOS.info;
+    const link = a.linkUrl && /^https?:\/\//i.test(a.linkUrl) ? `<a class="av-link" href="${U.esc(a.linkUrl)}" target="_blank" rel="noopener">${U.esc(a.linkTexto || "Saiba mais")} →</a>` : "";
+    return `<span class="av-ic" aria-hidden="true">${t.icon}</span>
+      <div class="av-body"><small>${t.label} · Aviso do Catálogo Online</small>${a.titulo ? `<b>${U.esc(a.titulo)}</b>` : ""}<p>${U.esc(a.texto || "")}</p>${link}</div>
+      ${closable && a.tipo !== "importante" ? `<button type="button" class="av-close" aria-label="Fechar aviso">Entendi</button>` : ""}`;
+  };
+  /** Mostra o aviso ativo para a loja/equipe; "Entendi" esconde até sair um aviso novo. */
+  U.showAviso = async (el, me) => {
+    if (!el) return;
+    let a = null; try { a = await DB.getAviso(); } catch { return; }
+    if (!U.avisoValido(a, me)) { el.hidden = true; return; }
+    const key = `cat_aviso_ok_${me ? me.uid : ""}`;
+    try { if (localStorage.getItem(key) === String(a.id)) return; } catch { /* mostra */ }
+    el.className = `aviso-banner t-${a.tipo || "info"}`;
+    el.setAttribute("role", a.tipo === "importante" ? "alert" : "status");
+    el.innerHTML = U.avisoHtml(a);
+    el.hidden = false;
+    const close = el.querySelector(".av-close");
+    if (close) close.onclick = () => { try { localStorage.setItem(key, String(a.id)); } catch { /* ignore */ } el.hidden = true; };
+  };
+
   U.requireLogin = async (role) => {
     const me = await DB.current();
     if (!me) { location.replace("index.html"); return null; }

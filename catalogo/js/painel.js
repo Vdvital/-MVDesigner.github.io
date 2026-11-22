@@ -1,6 +1,7 @@
 (async () => {
   const { $, $$, esc, toast } = U;
   const me = await U.requireLogin();
+  if (me) U.showAviso(document.getElementById("aviso-banner"), me);
   if (!me) return;
   if (me.role === "admin") { location.replace("admin.html"); return; }
   U.modeBanner();

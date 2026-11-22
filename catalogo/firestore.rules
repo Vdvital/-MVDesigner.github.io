@@ -91,6 +91,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---------------- Aviso do administrador para todas as lojas ----------------
+    match /avisos/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
     // ---------------- Acessos ao sistema (um registro por dia; só o admin lê) ----------------
     // Cada pessoa logada soma 1 por dia no próprio contador.
     match /acessos/{day} {
