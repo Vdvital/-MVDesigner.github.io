@@ -572,5 +572,7 @@ input[aria-invalid=true]{border-color:var(--bad)}
 .color-quick .sw{width:14px;height:14px}
 .colors-field{grid-column:1/-1}
 /* selo de conexão segura (login e cadastro) */
-.login-form .secure-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin:22px 0 0;font-size:12px;color:var(--muted)}
+.login-form .secure-badge{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin:22px 0 0;font-size:12px;color:var(--muted)}
 .secure-badge svg{width:13px;height:13px;fill:var(--ok);flex:none}
+.secure-badge a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.secure-badge a:hover,.secure-badge a:focus-visible{color:var(--ok)}
