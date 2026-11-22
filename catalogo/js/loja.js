@@ -21,6 +21,7 @@
   let viewer = null;
   try { viewer = await DB.current(); } catch { viewer = null; }
   const isStaff = !!viewer && (viewer.role === "admin" || (viewer.slug === slug && ["user", ...DB.TEAM].includes(viewer.role)));
+  if (viewer) U.presence(viewer);
   // Modo apresentação: a equipe mostra os produtos ao cliente sem nenhum preço na tela
   const presentation = new URLSearchParams(location.search).get("apresentacao") === "1";
   const pageUrl = (extra) => `${location.origin}${location.pathname}?loja=${encodeURIComponent(slug)}${extra || ""}`;

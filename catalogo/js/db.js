@@ -265,6 +265,23 @@
       const all = this._read("cat_stats", {});
       return lastDays(days).map((day) => all[`${slug}_${day}`] || { slug, day, visits: 0 });
     },
+    async seen(me, first) {
+      const users = this._users(); const u = users.find((x) => x.uid === me.uid);
+      if (u) { u.lastSeen = Date.now(); this._write("cat_users", users); }
+      if (first) {
+        const all = this._read("cat_acessos", {}); const day = dayKey();
+        const d = all[day] || { day, n: 0, u: {} };
+        d.n += 1; d.u[me.uid] = (d.u[me.uid] || 0) + 1; all[day] = d; this._write("cat_acessos", all);
+      }
+    },
+    async listAcessos(days) {
+      const all = this._read("cat_acessos", {});
+      return lastDays(days).map((day) => all[day] || { day, n: 0, u: {} });
+    },
+    async listAllStats(days) {
+      const from = lastDays(days)[0];
+      return Object.values(this._read("cat_stats", {})).filter((d) => d.day >= from);
+    },
     async listQuotes(owner) {
       return Object.entries(this._read("cat_quotes", {}))
         .filter(([, q]) => q.slug === owner.slug)
@@ -502,6 +519,23 @@
         return s.exists ? s.data() : { slug, day, visits: 0 };
       }));
     },
+    async seen(me, first) {
+      await this._users().doc(me.uid).update({ lastSeen: Date.now() });
+      if (first) {
+        const inc = firebase.firestore.FieldValue.increment, day = dayKey();
+        await this.db.collection("acessos").doc(day).set({ day, n: inc(1), u: { [me.uid]: inc(1) } }, { merge: true });
+      }
+    },
+    async listAcessos(days) {
+      const list = lastDays(days);
+      const snap = await this.db.collection("acessos").where("day", ">=", list[0]).get();
+      const by = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+      return list.map((day) => by[day] || { day, n: 0, u: {} });
+    },
+    async listAllStats(days) {
+      const snap = await this.db.collection("stats").where("day", ">=", lastDays(days)[0]).limit(5000).get();
+      return snap.docs.map((d) => d.data());
+    },
     async createPedido(data) {
       await this._ready;
       const u = this.auth.currentUser;
@@ -559,7 +593,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

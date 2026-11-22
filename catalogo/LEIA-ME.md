@@ -164,3 +164,16 @@ O login, o cadastro e o rodapé do catálogo mostram selos de confiança. Todos 
 - **Verificar no Google:** um link que abre o relatório de Navegação Segura do Google para o seu domínio, para qualquer pessoa conferir.
 
 Para mudar os selos, edite `TRUST` e `TRUST_SETS` em `js/common.js`.
+
+## Acessos ao sistema (só para o administrador)
+
+O painel do administrador tem a seção **Acessos ao sistema**, com quatro números:
+
+- **Online agora:** lojas, vendedores e representantes que usaram o sistema nos últimos 5 minutos.
+- **Pessoas no sistema:** quantas pessoas diferentes entraram no período.
+- **Entradas:** conta uma por pessoa por dia.
+- **Visitas aos catálogos:** visitas dos clientes, somando todas as lojas.
+
+A seção também tem um gráfico por dia (de visitas ou de pessoas), a lista de quem está online e as lojas mais acessadas.
+
+> Depois de atualizar, publique de novo o `firestore.rules` no Console do Firebase. Ele traz a coleção `acessos`, o campo `lastSeen` e a leitura das estatísticas pelo admin.
