@@ -3,8 +3,8 @@
 <head>
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
-<title>Painel do Administrador | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611221400">
+<title>Administração | Catálogo Online</title>
+<link rel="stylesheet" href="css/app.css?v=202611221500">
 </head>
 <body>
 <header class="topbar">
@@ -14,16 +14,88 @@
 
 <main class="wrap">
   <div class="page-head">
-    <div><h1>Usuários e acessos</h1><p>Crie contas e controle por quanto tempo cada catálogo fica no ar.</p></div>
+    <div><h1 id="hello">Olá!</h1><p id="today-sum">Carregando o resumo de hoje…</p></div>
+    <button type="button" class="btn primary" data-open-new>+ Nova loja</button>
   </div>
 
-  <section class="stats" aria-label="Resumo">
-    <button class="stat" data-filter="" aria-label="Mostrar todos os usuários"><small>Usuários</small><strong id="st-total">0</strong></button>
-    <button class="stat" data-filter="ativos" aria-label="Filtrar ativos"><small>Ativos</small><strong id="st-active" style="color:var(--ok)">0</strong></button>
-    <button class="stat" data-filter="expirando" aria-label="Filtrar os que vencem em 7 dias"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong></button>
-    <button class="stat" data-filter="off" aria-label="Filtrar vencidos e bloqueados"><small>Vencidos / bloqueados</small><strong id="st-off" style="color:var(--bad)">0</strong></button>
-  </section>
+  <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
+    <button role="tab" data-tab="inicio" aria-selected="true">Início</button>
+    <button role="tab" data-tab="pedidos" aria-selected="false">Pedidos <span class="count hot" id="tb-ped"></span></button>
+    <button role="tab" data-tab="lojas" aria-selected="false">Lojas <span class="count" id="tb-lojas"></span></button>
+    <button role="tab" data-tab="acessos" aria-selected="false">Acessos <span class="count live" id="tb-online"></span></button>
+  </nav>
 
+  <!-- INÍCIO -->
+  <div class="tab-panel" data-panel="inicio">
+    <section class="card todo" aria-labelledby="todo-title">
+      <h2 id="todo-title">Para fazer agora</h2>
+      <ul class="todo-list" id="todo"><li class="hint">Carregando…</li></ul>
+    </section>
+
+    <section class="stats" aria-label="Resumo das lojas">
+      <button class="stat" data-filter="" aria-label="Ver todas as lojas"><small>Lojas</small><strong id="st-total">0</strong><span class="stat-go">Ver lista →</span></button>
+      <button class="stat" data-filter="ativos" aria-label="Ver lojas ativas"><small>Ativas</small><strong id="st-active" style="color:var(--ok)">0</strong><span class="stat-go">Ver lista →</span></button>
+      <button class="stat" data-filter="expirando" aria-label="Ver lojas que vencem em 7 dias"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong><span class="stat-go">Ver lista →</span></button>
+      <button class="stat" data-filter="off" aria-label="Ver lojas vencidas e bloqueadas"><small>Vencidas / bloqueadas</small><strong id="st-off" style="color:var(--bad)">0</strong><span class="stat-go">Ver lista →</span></button>
+    </section>
+
+    <div class="home-grid">
+      <section class="card" aria-labelledby="ho-title">
+        <div class="card-head"><h2 id="ho-title">Online agora <span class="live-dot" aria-hidden="true"></span></h2><button type="button" class="link-btn" data-goto="acessos">Ver acessos →</button></div>
+        <ul class="ac-online" id="home-online"><li class="none">Carregando…</li></ul>
+      </section>
+      <section class="card" aria-labelledby="hr-title">
+        <div class="card-head"><h2 id="hr-title">Últimas lojas</h2><button type="button" class="link-btn" data-goto="lojas">Ver todas →</button></div>
+        <ul class="recent" id="home-recent"></ul>
+      </section>
+    </div>
+  </div>
+
+  <!-- PEDIDOS -->
+  <div class="tab-panel" data-panel="pedidos" hidden>
+  <section class="card pedidos" id="pedidos" aria-labelledby="ped-title">
+    <div class="ped-head">
+      <div><h2 id="ped-title">Pedidos de liberação <span class="pill expirando" id="ped-count" hidden></span></h2>
+        <p class="sub">Novos cadastros e renovações pagos por Pix. Confira o pagamento no seu banco e aprove.</p></div>
+      <div class="ped-tools">
+      <button type="button" class="btn sm" id="ped-notify">🔔 Ativar alertas</button>
+      <select id="ped-filter" aria-label="Filtrar pedidos">
+        <option value="abertos">Em aberto</option><option value="aprovado">Aprovados</option><option value="">Todos</option>
+      </select>
+      </div>
+    </div>
+    <ul class="ped-list" id="ped-list"><li class="hint">Carregando…</li></ul>
+  </section>
+  </div>
+
+  <!-- LOJAS -->
+  <div class="tab-panel" data-panel="lojas" hidden>
+    <section class="card" aria-labelledby="list-title">
+      <div class="ped-head"><div><h2 id="list-title">Lojas cadastradas</h2>
+      <p class="sub">Renove, bloqueie ou remova o acesso a qualquer momento.</p></div></div>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Buscar por nome, e-mail ou endereço" aria-label="Buscar loja">
+        <select id="filter" aria-label="Filtrar por situação">
+          <option value="">Todas as situações</option>
+          <option value="ativos">Todos os ativos</option>
+          <option value="ativo">Ativos</option>
+          <option value="expirando">Vencem em 7 dias</option>
+          <option value="expirado">Vencidos</option>
+          <option value="bloqueado">Bloqueados</option>
+          <option value="off">Vencidos ou bloqueados</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Loja</th><th>Acesso</th><th>Catálogo</th><th>Último acesso</th><th><span class="sr-only">Ações</span></th></tr></thead>
+          <tbody id="users"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ACESSOS -->
+  <div class="tab-panel" data-panel="acessos" hidden>
   <section class="card dash acessos" id="acessos" aria-labelledby="ac-title">
     <div class="dash-head">
       <div><h2 id="ac-title">Acessos ao sistema</h2><p class="sub">Quem está usando o sistema e quantas pessoas entram nos catálogos. Só você vê este painel.</p></div>
@@ -59,27 +131,14 @@
       </table></div>
     </div>
   </section>
+  </div>
+</main>
 
-  <section class="card pedidos" id="pedidos" aria-labelledby="ped-title">
-    <div class="ped-head">
-      <div><h2 id="ped-title">Pedidos de liberação <span class="pill expirando" id="ped-count" hidden></span></h2>
-        <p class="sub">Novos cadastros e renovações pagos por Pix. Confira o pagamento no seu banco e aprove.</p></div>
-      <div class="ped-tools">
-      <button type="button" class="btn sm" id="ped-notify">🔔 Ativar alertas</button>
-      <select id="ped-filter" aria-label="Filtrar pedidos">
-        <option value="abertos">Em aberto</option><option value="aprovado">Aprovados</option><option value="">Todos</option>
-      </select>
-      </div>
-    </div>
-    <ul class="ped-list" id="ped-list"><li class="hint">Carregando…</li></ul>
-  </section>
-
-  <div class="grid-2">
-    <!-- CRIAR USUÁRIO (somente admin) -->
-    <details class="card create-card" id="create-card" open>
-      <summary><h2 id="new-title">+ Criar usuário</h2><span class="chev" aria-hidden="true">▾</span></summary>
-      <p class="sub">Só o administrador pode criar contas.</p>
-      <form id="new-user" autocomplete="off">
+<!-- Nova loja -->
+<dialog id="dlg-new" class="dlg-new" aria-labelledby="new-title">
+  <div class="dlg-new-head"><div><h2 id="new-title">Nova loja</h2><p class="hint">Crie a conta e defina por quanto tempo o catálogo fica no ar.</p></div>
+    <button type="button" class="btn sm ghost" id="new-close" aria-label="Fechar">✕</button></div>
+  <form id="new-user" autocomplete="off">
         <div class="field"><label for="nu-name">Nome da loja ou cliente</label><input id="nu-name" required maxlength="80" placeholder="Ex.: Casa & Cia Utilidades"></div>
         <div class="field"><label for="nu-email">E-mail de login</label><input id="nu-email" type="email" required placeholder="cliente@email.com"></div>
         <div class="field">
@@ -104,35 +163,9 @@
           <label for="nu-until" style="margin-top:10px">ou até a data</label>
           <input id="nu-until" type="date">
         </div>
-        <button class="btn primary" style="width:100%" id="nu-submit">Criar usuário</button>
+        <button class="btn primary" style="width:100%" id="nu-submit">Criar loja</button>
       </form>
-    </details>
-
-    <!-- LISTA DE USUÁRIOS -->
-    <section class="card" aria-labelledby="list-title">
-      <h2 id="list-title">Usuários cadastrados</h2>
-      <p class="sub">Renove, bloqueie ou remova o acesso a qualquer momento.</p>
-      <div class="toolbar">
-        <input id="search" type="search" placeholder="Buscar por nome, e-mail ou endereço" aria-label="Buscar usuário">
-        <select id="filter" aria-label="Filtrar por situação">
-          <option value="">Todas as situações</option>
-          <option value="ativos">Todos os ativos</option>
-          <option value="ativo">Ativos</option>
-          <option value="expirando">Vencem em 7 dias</option>
-          <option value="expirado">Vencidos</option>
-          <option value="bloqueado">Bloqueados</option>
-          <option value="off">Vencidos ou bloqueados</option>
-        </select>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Usuário</th><th>Acesso</th><th>Catálogo</th><th>Último login</th><th><span class="sr-only">Ações</span></th></tr></thead>
-          <tbody id="users"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-</main>
+</dialog>
 
 <!-- Tempo de acesso -->
 <dialog id="dlg-time" aria-labelledby="dlg-time-title">
@@ -188,10 +221,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611221400"></script>
-<script src="js/db.js?v=202611221400"></script>
-<script src="js/common.js?v=202611221400"></script>
-<script src="js/pix.js?v=202611221400"></script>
-<script src="js/admin.js?v=202611221400"></script>
+<script src="config.js?v=202611221500"></script>
+<script src="js/db.js?v=202611221500"></script>
+<script src="js/common.js?v=202611221500"></script>
+<script src="js/pix.js?v=202611221500"></script>
+<script src="js/admin.js?v=202611221500"></script>
 </body>
 </html>

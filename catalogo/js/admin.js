@@ -4,6 +4,8 @@
   if (!me) return;
   U.modeBanner();
   $("#me-email").textContent = me.email;
+  const hour = new Date().getHours();
+  $("#hello").textContent = `${hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"}${me.name && me.name !== "Administrador" ? ", " + me.name.split(" ")[0] : ""}!`;
   $("#logout").onclick = (e) => U.logout(e.currentTarget);
 
   const base = new URL("loja.html", location.href).href;
@@ -54,11 +56,31 @@
       const u = await DB.createUser({ name, email, password, slug: slugEl.value, expiresAt });
       toast(`Usuário criado. Envie o login: ${u.email}`);
       e.target.reset(); slugTouched = false; updateSlugPreview();
+      $("#dlg-new").close(); showTab("lojas");
       $$("#nu-quick button").forEach((x) => x.classList.toggle("on", x.dataset.days === "30")); chosenDays = 30;
       await load();
     } catch (err) { toast(err.message, "err"); }
     btn.disabled = false;
   });
+
+  const dlgNew = $("#dlg-new");
+  $$("[data-open-new]").forEach((b) => b.addEventListener("click", () => { dlgNew.showModal(); setTimeout(() => nameEl.focus(), 50); }));
+  $("#new-close").onclick = () => dlgNew.close();
+  dlgNew.addEventListener("click", (e) => { if (e.target === dlgNew) dlgNew.close(); });
+
+  /* ---------------- abas ---------------- */
+  const TABS = ["inicio", "pedidos", "lojas", "acessos"];
+  function showTab(name) {
+    if (!TABS.includes(name)) name = "inicio";
+    $$(".tabs-nav [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+    $$(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+    if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+    if (name === "acessos" && typeof renderAcessos === "function") setTimeout(renderAcessos, 0);
+  }
+  $(".tabs-nav").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-goto]"); if (b) { showTab(b.dataset.goto); scrollTo({ top: 0, behavior: "smooth" }); } });
+  addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+  showTab(location.hash.slice(1));
 
   /* ---------------- lista ---------------- */
   async function load() {
@@ -68,16 +90,53 @@
     // Vendedores e representantes são geridos por cada loja; aqui aparecem só como contagem.
     teamCount = {};
     users.filter((u) => DB.TEAM.includes(u.role)).forEach((u) => { teamCount[u.ownerUid] = (teamCount[u.ownerUid] || 0) + 1; });
-    users = users.filter((u) => !DB.TEAM.includes(u.role));
-    users.sort((a, b) => (a.role === "admin" ? -1 : b.role === "admin" ? 1 : (b.createdAt || 0) - (a.createdAt || 0)));
-    const clients = users.filter((u) => u.role !== "admin");
+    users = users.filter((u) => u.role === "user");
+    users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const clients = users;
     const sits = clients.map(situation);
     $("#st-total").textContent = clients.length;
     $("#st-active").textContent = sits.filter((s) => s === "ativo" || s === "expirando").length;
     $("#st-soon").textContent = sits.filter((s) => s === "expirando").length;
     $("#st-off").textContent = sits.filter((s) => s === "expirado" || s === "bloqueado").length;
-    render();
+    $("#tb-lojas").textContent = clients.length || "";
+    render(); renderHome();
   }
+
+  /* ---------------- início: o que fazer agora ---------------- */
+  const lastAccess = (u) => Math.max(u.lastSeen || 0, u.lastLogin || 0);
+  const isOnline = (u) => u.lastSeen && Date.now() - u.lastSeen < 5 * 60000;
+  function renderHome() {
+    const paid = (typeof pedidos !== "undefined" ? pedidos : []).filter((p) => p.status === "pagamento_informado");
+    const waiting = (typeof pedidos !== "undefined" ? pedidos : []).filter((p) => p.status === "aguardando_pagamento");
+    const soon = users.filter((u) => situation(u) === "expirando").sort((a, b) => a.expiresAt - b.expiresAt);
+    const expired = users.filter((u) => situation(u) === "expirado");
+    const never = users.filter((u) => situation(u) !== "bloqueado" && !lastAccess(u) && Date.now() - (u.createdAt || 0) > 2 * DB.DAY);
+    const items = [];
+    paid.forEach((p) => items.push(`<li class="t-money"><span class="t-ic" aria-hidden="true">💰</span><div><b>Conferir o Pix de ${esc(p.loja)}</b><small>${p.tipo === "renovacao" ? "Renovação" : "Novo cadastro"} · ${Pix.money(p.valor || 0)} · informado ${U.dateTime(p.paidAt || p.createdAt)}</small></div><button class="btn sm primary" data-goto="pedidos">Liberar</button></li>`));
+    soon.forEach((u) => items.push(`<li class="t-warn" data-uid="${esc(u.uid)}"><span class="t-ic" aria-hidden="true">⏳</span><div><b>${esc(u.name)} vence ${U.daysLeft(u.expiresAt) <= 1 ? "amanhã" : `em ${U.daysLeft(u.expiresAt)} dias`}</b><small>Até ${U.date(u.expiresAt)}. Mande o aviso de renovação.</small></div><button class="btn sm" data-act="remind">Avisar</button></li>`));
+    expired.forEach((u) => items.push(`<li class="t-bad" data-uid="${esc(u.uid)}"><span class="t-ic" aria-hidden="true">⛔</span><div><b>${esc(u.name)} está vencido</b><small>Venceu em ${U.date(u.expiresAt)}. O catálogo está fora do ar.</small></div><button class="btn sm" data-act="remind">Avisar</button></li>`));
+    never.slice(0, 3).forEach((u) => items.push(`<li data-uid="${esc(u.uid)}"><span class="t-ic" aria-hidden="true">👋</span><div><b>${esc(u.name)} ainda não entrou</b><small>Conta criada em ${U.date(u.createdAt)}. Vale ajudar no primeiro acesso.</small></div>${stats[u.uid] && stats[u.uid].whatsapp ? `<a class="btn sm wa" target="_blank" rel="noopener" href="https://wa.me/55${esc(String(stats[u.uid].whatsapp).replace(/\D/g, ""))}">WhatsApp</a>` : ""}</li>`));
+    $("#todo").innerHTML = items.length ? items.join("") : `<li class="t-ok"><span class="t-ic" aria-hidden="true">✅</span><div><b>Tudo em dia!</b><small>Nenhum pagamento para conferir e nenhuma loja vencendo.</small></div></li>`;
+
+    const parts = [];
+    if (paid.length) parts.push(`<b class="hl">${paid.length} ${paid.length === 1 ? "pagamento" : "pagamentos"} para conferir</b>`);
+    if (soon.length) parts.push(`${soon.length} ${soon.length === 1 ? "loja vence" : "lojas vencem"} esta semana`);
+    if (waiting.length) parts.push(`${waiting.length} aguardando Pix`);
+    const online = ((acData && acData.us) || users).filter((u) => u.role !== "admin" && isOnline(u)).length;
+    if (online) parts.push(`${online} online agora`);
+    $("#today-sum").innerHTML = parts.length ? parts.join(" · ") : "Tudo em dia por aqui. 👌";
+    $("#tb-ped").textContent = paid.length || "";
+
+    $("#home-recent").innerHTML = users.slice(0, 5).map((u) => {
+      const sit = situation(u);
+      const labels = { ativo: "Ativa", expirando: "Vence logo", expirado: "Vencida", bloqueado: "Bloqueada" };
+      return `<li><span class="av" aria-hidden="true">${esc((u.name || "?").charAt(0).toUpperCase())}</span><div><b>${esc(u.name)}</b><small>${u.createdAt ? `Criada em ${U.date(u.createdAt)} · ` : ""}/${esc(u.slug || "")}</small></div><span class="pill ${sit}">${labels[sit]}</span></li>`;
+    }).join("") || `<li class="none">Nenhuma loja ainda. Clique em <b>+ Nova loja</b> para começar.</li>`;
+  }
+  $("#todo").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const u = users.find((x) => x.uid === b.closest("li").dataset.uid); if (u && b.dataset.act === "remind") openRemind(u);
+  });
 
   function accessCell(u) {
     if (u.role === "admin") return `<span class="pill admin">Administrador</span>`;
@@ -112,16 +171,34 @@
         <td><b>${esc(u.name)}</b><div class="muted">${esc(u.email)}</div></td>
         <td>${accessCell(u)}</td>
         <td>${u.slug ? `<a href="${esc(catalogUrl(u.slug))}" target="_blank" rel="noopener">/${esc(u.slug)}</a><div class="muted">${stats[u.uid] ? stats[u.uid].products : 0} produtos${teamCount[u.uid] ? ` · equipe: ${teamCount[u.uid]}` : ""}</div>` : "—"}</td>
-        <td class="muted">${U.dateTime(u.lastLogin)}</td>
-        <td class="actions">${u.role === "admin" ? "" : `
-          ${U.renewState(u) && u.active !== false ? `<button class="btn sm remind" data-act="remind">Avisar ⏳</button>` : ""}
-          <button class="btn sm" data-act="time">Tempo</button>
-          <button class="btn sm" data-act="toggle">${u.active === false ? "Desbloquear" : "Bloquear"}</button>
-          <button class="btn sm" data-act="pass">Senha</button>
-          <button class="btn sm danger" data-act="del" aria-label="Excluir ${esc(u.name)}">Excluir</button>`}
+        <td class="muted">${isOnline(u) ? `<span class="online-tag">● online agora</span>` : lastAccess(u) ? U.dateTime(lastAccess(u)) : "nunca entrou"}</td>
+        <td class="actions">
+          ${U.renewState(u) && u.active !== false ? `<button class="btn sm remind" data-act="remind">Avisar ⏳</button>` : `<button class="btn sm" data-act="time">+ Tempo</button>`}
+          <details class="more">
+            <summary class="btn sm" aria-label="Mais ações para ${esc(u.name)}">⋯</summary>
+            <div class="more-menu" role="menu">
+              <button type="button" role="menuitem" data-act="time">⏱ Tempo de acesso</button>
+              <a role="menuitem" href="${esc(catalogUrl(u.slug))}" target="_blank" rel="noopener">↗ Abrir catálogo</a>
+              <button type="button" role="menuitem" data-act="copy">🔗 Copiar link do catálogo</button>
+              <button type="button" role="menuitem" data-act="pass">🔑 ${DB.mode === "firebase" ? "Enviar redefinição de senha" : "Trocar senha"}</button>
+              <button type="button" role="menuitem" data-act="toggle">${u.active === false ? "🔓 Desbloquear" : "🔒 Bloquear"}</button>
+              <button type="button" role="menuitem" class="danger" data-act="del">🗑 Excluir loja</button>
+            </div>
+          </details>
         </td>
-      </tr>`).join("") : `<tr><td colspan="5" class="empty">Nenhum usuário encontrado.</td></tr>`;
+      </tr>`).join("") : `<tr><td colspan="5" class="empty">${users.length ? "Nenhuma loja com esses filtros." : "Nenhuma loja ainda. Clique em <b>+ Nova loja</b> para criar a primeira."}</td></tr>`;
   }
+  document.addEventListener("click", (e) => { $$("details.more[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
+  // o menu "⋯" abre por cima de tudo (a tabela tem rolagem e cortaria o menu)
+  $("#users").addEventListener("toggle", (e) => {
+    const d = e.target; if (!d.matches || !d.matches("details.more") || !d.open) return;
+    $$("details.more[open]").forEach((x) => { if (x !== d) x.open = false; });
+    const m = d.querySelector(".more-menu"), r = d.querySelector("summary").getBoundingClientRect();
+    const w = 240, h = m.offsetHeight || 280;
+    m.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.right - w))}px`;
+    m.style.top = `${r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6}px`;
+  }, true);
+  addEventListener("scroll", () => $$("details.more[open]").forEach((d) => { d.open = false; }), { passive: true });
   $("#search").addEventListener("input", render);
   $("#filter").addEventListener("change", render);
 
@@ -129,11 +206,14 @@
     const btn = e.target.closest("button[data-act]"); if (!btn) return;
     const u = users.find((x) => x.uid === btn.closest("tr").dataset.uid); if (!u) return;
     const act = btn.dataset.act;
+    const menu = btn.closest("details.more"); if (menu) menu.open = false;
     try {
+      if (act === "copy") { try { await navigator.clipboard.writeText(catalogUrl(u.slug)); toast("Link do catálogo copiado."); } catch { prompt("Copie o link:", catalogUrl(u.slug)); } return; }
       if (act === "time") return openTime(u);
       if (act === "remind") return openRemind(u);
       if (act === "pass") return openPass(u);
       if (act === "toggle") {
+        if (u.active !== false && !(await U.ask({ title: `Bloquear ${u.name}?`, text: "O catálogo sai do ar e a loja e a equipe não conseguem entrar até você desbloquear.", ok: "Bloquear", danger: true }))) return;
         await DB.updateUser(u.uid, { active: u.active === false });
         toast(u.active === false ? "Acesso desbloqueado." : "Acesso bloqueado. O catálogo saiu do ar.");
       }
@@ -242,13 +322,11 @@
   // os números do topo filtram a lista
   U.$$(".stats [data-filter]").forEach((b) => b.addEventListener("click", () => {
     $("#filter").value = b.dataset.filter; render();
-    $("#list-title").scrollIntoView({ behavior: "smooth", block: "start" });
+    showTab("lojas"); scrollTo({ top: 0, behavior: "smooth" });
   }));
-  // no celular o formulário de criar começa fechado, para a lista aparecer logo
-  if (matchMedia("(max-width: 760px)").matches) $("#create-card").open = false;
 
   /* ---------- pedidos de liberação (cadastro e renovação por Pix) ---------- */
-  let pedidos = [];
+  var pedidos = [];
   const STATUS = {
     aguardando_pagamento: ["Aguardando pagamento", "expirando"],
     pagamento_informado: ["Pagamento informado", "ativo"],
@@ -259,7 +337,7 @@
     try { pedidos = await DB.listPedidos(); }
     catch (e) { $("#ped-list").innerHTML = `<li class="hint">Não foi possível carregar os pedidos. ${DB.mode === "firebase" ? "Confira se as regras novas do Firestore foram publicadas." : ""}</li>`; return; }
     pedidos.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    renderPedidos();
+    renderPedidos(); renderHome();
   }
   function renderPedidos() {
     const f = $("#ped-filter").value;
@@ -378,7 +456,7 @@
     if (notifySupported && Notification.permission === "granted") {
       try {
         const n = new Notification(title, { body, tag: "ped-" + p.id, requireInteraction: true });
-        n.onclick = () => { focus(); $("#pedidos").scrollIntoView({ behavior: "smooth" }); n.close(); };
+        n.onclick = () => { focus(); showTab("pedidos"); n.close(); };
       } catch { /* alguns celulares só notificam por service worker */ }
     }
   }
@@ -394,13 +472,13 @@
       paid.filter((p) => !seen.has(p.id)).forEach(alertNew);
     }
     paid.forEach((p) => seen.add(p.id)); saveSeen();
-    renderPedidos();
+    renderPedidos(); renderHome();
   }
   DB.watchPedidos(onPedidos, () => loadPedidos()).catch(() => loadPedidos());
   await load();
-  setInterval(render, 60000);
+  setInterval(() => { render(); renderHome(); }, 60000);
   /* ---------- Acessos ao sistema (só o admin) ---------- */
-  let acDays = 30, acSeries = "visits", acData = null;
+  var acDays = 30, acSeries = "visits", acData = null;
   const ONLINE_MS = 5 * 60000;
   const fmtN = (n) => Number(n || 0).toLocaleString("pt-BR");
   const ago = (t) => {
@@ -420,7 +498,7 @@
     }
   }
   function renderAcessos() {
-    if (!acData) return;
+    if (!acData || $("#acessos").closest("[hidden]") && !$("#home-online")) return;
     const { acc, st, us } = acData;
     const byUid = new Map(us.map((u) => [u.uid, u]));
     const storeOf = (u) => (u ? (u.role === "user" ? u.slug : (byUid.get(u.ownerUid) || u).slug) : "");
@@ -444,9 +522,11 @@
     $("#ac-chart-title").textContent = acSeries === "visits" ? "Visitas aos catálogos por dia" : "Pessoas no sistema por dia";
     U.columnChart($("#ac-chart"), series, acSeries === "visits" ? ["visita", "visitas"] : ["pessoa", "pessoas"]);
 
+    $("#tb-online").textContent = online.length || "";
+    renderHome();
     // online agora
     const roleTxt = (u) => (u.role === "user" ? "Loja" : DB.ROLE_LABEL[u.role] || "");
-    $("#ac-online").innerHTML = online.length ? online.map((u) => {
+    $("#ac-online").innerHTML = $("#home-online").innerHTML = online.length ? online.map((u) => {
       const s = storeOf(u);
       return `<li><span class="av" aria-hidden="true">${esc((u.name || u.email || "?").trim().charAt(0).toUpperCase())}</span>
         <div><b>${esc(u.name || u.email)}</b><small>${esc(roleTxt(u))}${s && u.role !== "user" ? " · " + esc(s) : ""}</small></div><time>${ago(u.lastSeen)}</time></li>`;
