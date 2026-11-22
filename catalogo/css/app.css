@@ -182,7 +182,7 @@ dialog.ask h2{margin-bottom:8px}
 .products{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 .p-mini{transition:border-color .15s,transform .15s}
 .p-mini:hover{border-color:var(--accent);transform:translateY(-2px)}
-.p-mini .edit{position:absolute;right:8px;bottom:8px;font-size:11px;font-weight:800;color:var(--accent);opacity:0;transition:opacity .15s}
+.p-mini .edit{position:absolute;right:8px;bottom:8px;font-size:11px;font-weight:800;color:var(--accent);opacity:.55;transition:opacity .15s}
 .p-mini:hover .edit,.p-mini:focus-visible .edit{opacity:1}
 .empty-state{grid-column:1/-1;text-align:center;padding:40px 16px;border:1.5px dashed var(--line);border-radius:14px}
 .empty-state h3{margin:0 0 6px;font-size:18px}
@@ -614,4 +614,57 @@ a.trust-item:hover{border-color:var(--ok)}
   .ac-table td{padding:0;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;text-align:right}
   .ac-table td:first-child{display:block;text-align:left;font-size:14px}
   .ac-table td[data-label]::before{content:attr(data-label);color:var(--muted);text-align:left}
+}
+
+/* ---------- painel do admin: abas, início, menu de ações ---------- */
+#today-sum .hl{color:var(--ok)}
+.tabs-nav .count.hot{background:var(--ok);color:#0b2a17}
+.tabs-nav .count.live{background:#5fd38d22;color:var(--ok)}
+.todo{margin-bottom:18px}
+.todo h2{margin-bottom:12px}
+.todo-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.todo-list li{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:12px;padding:10px 12px}
+.todo-list li>div{flex:1;min-width:0}
+.todo-list b{display:block;font-size:14px}
+.todo-list small{color:var(--muted);font-size:12.5px}
+.todo-list .t-ic{font-size:20px;width:28px;text-align:center;flex:none}
+.todo-list .t-money{border-left-color:var(--ok)}
+.todo-list .t-warn{border-left-color:var(--warn)}
+.todo-list .t-bad{border-left-color:var(--bad)}
+.todo-list .t-ok{border-left-color:var(--ok)}
+.todo-list a.btn{text-decoration:none}
+.stat .stat-go{display:block;margin-top:6px;font-size:12px;color:var(--muted);opacity:.55;transition:opacity .15s}
+button.stat:hover .stat-go,button.stat:focus-visible .stat-go{opacity:1}
+.home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.card-head h2{margin:0}
+.link-btn{background:none;border:0;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0}
+.link-btn:hover{color:var(--ink)}
+.recent{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.recent li{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.recent li>div{flex:1;min-width:0}
+.recent b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent small{color:var(--muted);font-size:12px}
+.recent .av{width:30px;height:30px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.recent li.none{display:block;color:var(--muted);font-size:13px;text-align:center;padding:16px}
+.online-tag{color:var(--ok);font-weight:700;white-space:nowrap}
+/* menu "⋯" */
+.actions{white-space:nowrap}
+details.more{display:inline-block;position:relative;vertical-align:middle}
+details.more>summary{list-style:none;min-width:36px}
+details.more>summary::-webkit-details-marker{display:none}
+.more-menu{position:fixed;z-index:60;width:240px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 14px 40px #000a;display:flex;flex-direction:column}
+.more-menu button,.more-menu a{background:none;border:0;color:var(--ink);text-align:left;font:inherit;font-size:13.5px;font-weight:600;padding:9px 10px;border-radius:8px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.more-menu button:hover,.more-menu a:hover,.more-menu button:focus-visible,.more-menu a:focus-visible{background:var(--surface)}
+.more-menu .danger{color:var(--bad)}
+/* janela "Nova loja" */
+dialog.dlg-new{width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 32px);overflow:auto}
+.dlg-new-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.dlg-new-head h2{margin:0}
+@media(max-width:760px){
+  .home-grid{grid-template-columns:1fr}
+  .page-head>.btn{width:100%}
+  .todo-list li{flex-wrap:wrap}
+  .todo-list li>.btn{margin-left:40px}
+  .stat .stat-go{opacity:1}
 }
