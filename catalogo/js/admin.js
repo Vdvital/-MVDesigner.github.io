@@ -399,4 +399,86 @@
   DB.watchPedidos(onPedidos, () => loadPedidos()).catch(() => loadPedidos());
   await load();
   setInterval(render, 60000);
+  /* ---------- Acessos ao sistema (só o admin) ---------- */
+  let acDays = 30, acSeries = "visits", acData = null;
+  const ONLINE_MS = 5 * 60000;
+  const fmtN = (n) => Number(n || 0).toLocaleString("pt-BR");
+  const ago = (t) => {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return "agora";
+    if (m < 60) return `há ${m} min`;
+    const h = Math.round(m / 60); if (h < 24) return `há ${h} h`;
+    const d = Math.round(h / 24); return d === 1 ? "ontem" : `há ${d} dias`;
+  };
+  async function loadAcessos() {
+    try {
+      const [acc, st, us] = await Promise.all([DB.listAcessos(acDays), DB.listAllStats(acDays), DB.listUsers()]);
+      acData = { acc, st, us };
+      renderAcessos();
+    } catch (e) {
+      $("#ac-kpis").innerHTML = `<p class="hint">Não foi possível carregar os acessos. ${DB.mode === "firebase" ? "Publique as regras novas do Firestore (arquivo firestore.rules)." : ""}</p>`;
+    }
+  }
+  function renderAcessos() {
+    if (!acData) return;
+    const { acc, st, us } = acData;
+    const byUid = new Map(us.map((u) => [u.uid, u]));
+    const storeOf = (u) => (u ? (u.role === "user" ? u.slug : (byUid.get(u.ownerUid) || u).slug) : "");
+    const people = new Set(); let entries = 0;
+    acc.forEach((d) => Object.keys(d.u || {}).forEach((uid) => { people.add(uid); entries += 1; }));
+    const visitsByDay = {}, visitsBySlug = {};
+    st.forEach((d) => { visitsByDay[d.day] = (visitsByDay[d.day] || 0) + (d.visits || 0); visitsBySlug[d.slug] = (visitsBySlug[d.slug] || 0) + (d.visits || 0); });
+    const visits = Object.values(visitsByDay).reduce((a, b) => a + b, 0);
+    const online = us.filter((u) => u.role !== "admin" && u.lastSeen && Date.now() - u.lastSeen < ONLINE_MS).sort((a, b) => b.lastSeen - a.lastSeen);
+    const storesVisited = Object.values(visitsBySlug).filter((n) => n > 0).length;
+    const period = acDays === 1 ? "hoje" : `em ${acDays} dias`;
+    $("#ac-kpis").innerHTML = [
+      ["Online agora", online.length, "nos últimos 5 minutos", "live"],
+      ["Pessoas no sistema", people.size, `lojas e equipes ${period}`],
+      ["Entradas", entries, `1 por pessoa por dia ${period}`],
+      ["Visitas aos catálogos", visits, `${storesVisited} ${storesVisited === 1 ? "loja visitada" : "lojas visitadas"} ${period}`]
+    ].map(([t, n, s, cls]) => `<div class="kpi ${cls || ""}"><small>${t}</small><b>${fmtN(n)}</b><span class="kpi-sub">${s}</span></div>`).join("");
+
+    // gráfico
+    const series = acc.map((d) => ({ day: d.day, n: acSeries === "visits" ? visitsByDay[d.day] || 0 : Object.keys(d.u || {}).length }));
+    $("#ac-chart-title").textContent = acSeries === "visits" ? "Visitas aos catálogos por dia" : "Pessoas no sistema por dia";
+    U.columnChart($("#ac-chart"), series, acSeries === "visits" ? ["visita", "visitas"] : ["pessoa", "pessoas"]);
+
+    // online agora
+    const roleTxt = (u) => (u.role === "user" ? "Loja" : DB.ROLE_LABEL[u.role] || "");
+    $("#ac-online").innerHTML = online.length ? online.map((u) => {
+      const s = storeOf(u);
+      return `<li><span class="av" aria-hidden="true">${esc((u.name || u.email || "?").trim().charAt(0).toUpperCase())}</span>
+        <div><b>${esc(u.name || u.email)}</b><small>${esc(roleTxt(u))}${s && u.role !== "user" ? " · " + esc(s) : ""}</small></div><time>${ago(u.lastSeen)}</time></li>`;
+    }).join("") : `<li class="none">Ninguém online agora.${(() => { const last = us.filter((u) => u.role !== "admin" && u.lastSeen).sort((a, b) => b.lastSeen - a.lastSeen)[0]; return last ? `<br><small>Último acesso: ${esc(last.name || last.email)}, ${ago(last.lastSeen)}.</small>` : ""; })()}</li>`;
+
+    // lojas
+    const teamEntries = {};
+    acc.forEach((d) => Object.keys(d.u || {}).forEach((uid) => { const s = storeOf(byUid.get(uid)); if (s) teamEntries[s] = (teamEntries[s] || 0) + 1; }));
+    const lastBySlug = {};
+    us.forEach((u) => { const s = storeOf(u); if (s && u.lastSeen) lastBySlug[s] = Math.max(lastBySlug[s] || 0, u.lastSeen); });
+    const owners = us.filter((u) => u.role === "user");
+    const rows = owners.map((u) => ({ u, v: visitsBySlug[u.slug] || 0, e: teamEntries[u.slug] || 0, last: lastBySlug[u.slug] || u.lastLogin || 0 }))
+      .sort((a, b) => b.v - a.v || b.e - a.e || b.last - a.last);
+    const best = Math.max(1, ...rows.map((r) => r.v));
+    $("#ac-stores").innerHTML = rows.length ? rows.slice(0, 15).map((r) => `<tr>
+        <td><b>${esc(r.u.name)}</b><small class="muted-block">${esc(r.u.slug)}</small></td>
+        <td class="num" data-label="Visitas no catálogo"><div class="ac-bar"><div class="meter"><i style="width:${r.v ? Math.max(4, (r.v / best) * 100) : 0}%"></i></div><b>${fmtN(r.v)}</b></div></td>
+        <td class="num" data-label="Entradas da equipe">${fmtN(r.e)}</td>
+        <td data-label="Último acesso">${r.last ? ago(r.last) : "nunca"}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="empty">Nenhuma loja cadastrada ainda.</td></tr>`;
+  }
+  $$("#ac-period [data-days]").forEach((b) => b.addEventListener("click", () => {
+    acDays = Number(b.dataset.days);
+    $$("#ac-period [data-days]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    loadAcessos();
+  }));
+  $$("#ac-series [data-series]").forEach((b) => b.addEventListener("click", () => {
+    acSeries = b.dataset.series;
+    $$("#ac-series [data-series]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderAcessos();
+  }));
+  loadAcessos();
+  setInterval(() => { if (!document.hidden) loadAcessos(); }, 60000);
+  let acResize; addEventListener("resize", () => { clearTimeout(acResize); acResize = setTimeout(renderAcessos, 200); });
 })();

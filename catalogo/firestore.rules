@@ -40,7 +40,7 @@ service cloud.firestore {
             && catalogActive(me().slug));
 
       allow update: if isAdmin()
-        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin', 'whatsapp']))
+        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin', 'lastSeen', 'whatsapp']))
         // a loja só bloqueia/desbloqueia, renomeia ou troca o WhatsApp da própria equipe
         || (signedIn() && resource.data.ownerUid == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'name', 'whatsapp']));
@@ -83,11 +83,27 @@ service cloud.firestore {
     // Visitantes do catálogo só somam contadores; só a loja, a equipe e o admin leem.
     match /stats/{id} {
       allow get: if isAdmin() || ownsCatalog(id.split('_')[0]) || isTeamOf(id.split('_')[0]);
-      allow list: if false;
+      allow list: if isAdmin();
       allow create, update: if request.resource.data.slug == id.split('_')[0]
         && request.resource.data.day == id.split('_')[1]
         && request.resource.data.keys().hasOnly(['slug', 'day', 'visits', 'v', 'c', 'o', 's', 'sz', 'cat'])
         && exists(/databases/$(database)/documents/catalogs/$(request.resource.data.slug));
+      allow delete: if isAdmin();
+    }
+
+    // ---------------- Acessos ao sistema (um registro por dia; só o admin lê) ----------------
+    // Cada pessoa logada soma 1 por dia no próprio contador.
+    match /acessos/{day} {
+      allow get, list: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.day == day
+        && request.resource.data.keys().hasOnly(['day', 'n', 'u'])
+        && request.resource.data.n == 1
+        && request.resource.data.u.keys().hasOnly([request.auth.uid]);
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['n', 'u'])
+        && request.resource.data.n == resource.data.n + 1
+        && request.resource.data.u.diff(resource.data.u).affectedKeys().hasOnly([request.auth.uid]);
       allow delete: if isAdmin();
     }
 

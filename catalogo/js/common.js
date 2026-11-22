@@ -160,12 +160,28 @@
   U.homeFor = (me) => me.role === "admin" ? "admin.html"
     : DB.TEAM.includes(me.role) ? `loja.html?loja=${encodeURIComponent(me.slug)}` : "painel.html";
 
+  /** Marca quem está usando o sistema: "online agora" e uma entrada por dia (só para o painel do admin). */
+  U.presence = (me) => {
+    if (!me || me.role === "admin" || U._presence) return;
+    const ping = () => {
+      if (document.hidden) return;
+      const day = new Date().toISOString().slice(0, 10), k = `cat_seen_${me.uid}`;
+      let first = false;
+      try { first = localStorage.getItem(k) !== day; if (first) localStorage.setItem(k, day); } catch { first = false; }
+      DB.seen(me, first).catch(() => { try { if (first) localStorage.removeItem(k); } catch { /* ignore */ } });
+    };
+    ping();
+    U._presence = setInterval(ping, 120000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
+  };
+
   U.requireLogin = async (role) => {
     const me = await DB.current();
     if (!me) { location.replace("index.html"); return null; }
     if (DB.TEAM.includes(me.role)) { location.replace(U.homeFor(me)); return null; }
     if (role === "admin" && me.role !== "admin") { location.replace("painel.html"); return null; }
     if (me.role !== "admin" && DB.accessStatus(me) !== "ativo") { await DB.logout(); location.replace("index.html?expirado=1"); return null; }
+    U.presence(me);
     return me;
   };
 
@@ -541,6 +557,39 @@
     const leaving = U.leaveTo(back, { title: "Até logo!", sub: "Você saiu com segurança.", icon: "out", color, from: btn });
     try { await DB.logout(); } catch { /* segue para o login mesmo assim */ }
     await leaving;
+  };
+
+  /** Gráfico de colunas simples (SVG) com dica ao passar o mouse. series: [{day:"AAAA-MM-DD", n}] */
+  U.columnChart = (el, series, unit = ["item", "itens"]) => {
+    const fmtN = (n) => Number(n || 0).toLocaleString("pt-BR");
+    const total = series.reduce((t, d) => t + (d.n || 0), 0);
+    const max = Math.max(1, ...series.map((d) => d.n || 0));
+    const W = Math.max(280, Math.round(el.clientWidth || 640)), H = W < 500 ? 160 : 190, padL = 34, padB = 22, padT = 10;
+    const bw = (W - padL) / Math.max(1, series.length), barW = Math.min(28, Math.max(3, bw - 2));
+    const p10 = Math.pow(10, Math.floor(Math.log10(max))), top = Math.max(2, Math.ceil(max / p10) * p10);
+    const y = (n) => padT + (H - padT - padB) * (1 - n / top);
+    const fmtDay = (k) => { const [, mm, dd] = k.split("-"); return `${dd}/${mm}`; };
+    const every = Math.max(1, Math.ceil(series.length / Math.max(3, Math.floor((W - padL) / 64))));
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.length} dias, total ${fmtN(total)} ${unit[1]}.">
+      ${[0, top / 2, top].map((t) => `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" class="grid"/><text x="${padL - 6}" y="${y(t) + 4}" class="tick" text-anchor="end">${fmtN(t)}</text>`).join("")}
+      ${series.map((d, i) => {
+        const n = d.n || 0, x = padL + i * bw + (bw - barW) / 2, h = (H - padT - padB) * (n / top), r = Math.min(4, h / 2, barW / 2);
+        const path = h > 0 ? `M${x},${y(0)} V${y(n) + r} Q${x},${y(n)} ${x + r},${y(n)} H${x + barW - r} Q${x + barW},${y(n)} ${x + barW},${y(n) + r} V${y(0)} Z` : "";
+        return `<g class="col" tabindex="0" data-tip="${fmtDay(d.day)}: ${fmtN(n)} ${n === 1 ? unit[0] : unit[1]}">
+          <rect x="${padL + i * bw}" y="${padT}" width="${bw}" height="${H - padT - padB}" class="hit"/>${path ? `<path d="${path}" class="bar"/>` : ""}
+          ${i % every === 0 ? `<text x="${x + barW / 2}" y="${H - 6}" class="tick" text-anchor="middle">${fmtDay(d.day)}</text>` : ""}</g>`;
+      }).join("")}
+    </svg><div class="tip" hidden></div>`;
+    const tip = el.querySelector(".tip");
+    const show = (g) => {
+      if (!g) return;
+      const box = el.getBoundingClientRect(), r = g.querySelector(".hit").getBoundingClientRect();
+      tip.textContent = g.dataset.tip; tip.hidden = false;
+      tip.style.left = `${Math.min(box.width - 140, Math.max(0, r.left - box.left + r.width / 2 - 70))}px`;
+    };
+    el.onpointerover = (e) => show(e.target.closest(".col"));
+    el.onfocusin = (e) => show(e.target.closest(".col"));
+    el.onpointerleave = () => { tip.hidden = true; };
   };
 
   /* ===== Selos de confiança (todos verdadeiros e verificáveis) ===== */

@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Painel do Administrador | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611221300">
+<link rel="stylesheet" href="css/app.css?v=202611221400">
 </head>
 <body>
 <header class="topbar">
@@ -22,6 +22,42 @@
     <button class="stat" data-filter="ativos" aria-label="Filtrar ativos"><small>Ativos</small><strong id="st-active" style="color:var(--ok)">0</strong></button>
     <button class="stat" data-filter="expirando" aria-label="Filtrar os que vencem em 7 dias"><small>Vencem em 7 dias</small><strong id="st-soon" style="color:var(--warn)">0</strong></button>
     <button class="stat" data-filter="off" aria-label="Filtrar vencidos e bloqueados"><small>Vencidos / bloqueados</small><strong id="st-off" style="color:var(--bad)">0</strong></button>
+  </section>
+
+  <section class="card dash acessos" id="acessos" aria-labelledby="ac-title">
+    <div class="dash-head">
+      <div><h2 id="ac-title">Acessos ao sistema</h2><p class="sub">Quem está usando o sistema e quantas pessoas entram nos catálogos. Só você vê este painel.</p></div>
+      <div class="seg" role="group" aria-label="Período" id="ac-period">
+        <button type="button" data-days="1" aria-pressed="false">Hoje</button>
+        <button type="button" data-days="7" aria-pressed="false">7 dias</button>
+        <button type="button" data-days="30" aria-pressed="true">30 dias</button>
+        <button type="button" data-days="90" aria-pressed="false">90 dias</button>
+      </div>
+    </div>
+    <div class="kpis" id="ac-kpis"><p class="hint">Carregando…</p></div>
+    <div class="ac-grid">
+      <div class="dash-block">
+        <div class="ac-chart-head">
+          <h3 id="ac-chart-title">Por dia</h3>
+          <div class="seg sm" role="group" aria-label="O que mostrar no gráfico" id="ac-series">
+            <button type="button" data-series="visits" aria-pressed="true">Visitas aos catálogos</button>
+            <button type="button" data-series="people" aria-pressed="false">Pessoas no sistema</button>
+          </div>
+        </div>
+        <div class="chart" id="ac-chart"></div>
+      </div>
+      <div class="dash-block">
+        <h3>Online agora <span class="live-dot" aria-hidden="true"></span></h3>
+        <ul class="ac-online" id="ac-online"></ul>
+      </div>
+    </div>
+    <div class="dash-block">
+      <h3>Lojas mais acessadas</h3>
+      <div class="table-wrap"><table class="ac-table">
+        <thead><tr><th>Loja</th><th class="num">Visitas no catálogo</th><th class="num">Entradas da equipe</th><th>Último acesso</th></tr></thead>
+        <tbody id="ac-stores"></tbody>
+      </table></div>
+    </div>
   </section>
 
   <section class="card pedidos" id="pedidos" aria-labelledby="ped-title">
@@ -152,10 +188,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611221300"></script>
-<script src="js/db.js?v=202611221300"></script>
-<script src="js/common.js?v=202611221300"></script>
-<script src="js/pix.js?v=202611221300"></script>
-<script src="js/admin.js?v=202611221300"></script>
+<script src="config.js?v=202611221400"></script>
+<script src="js/db.js?v=202611221400"></script>
+<script src="js/common.js?v=202611221400"></script>
+<script src="js/pix.js?v=202611221400"></script>
+<script src="js/admin.js?v=202611221400"></script>
 </body>
 </html>
