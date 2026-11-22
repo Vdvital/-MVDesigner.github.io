@@ -543,5 +543,38 @@
     await leaving;
   };
 
+  /* ===== Selos de confiança (todos verdadeiros e verificáveis) ===== */
+  const TRUST_ICONS = {
+    lock: '<path d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1Zm2 0h6V7a3 3 0 0 0-6 0v3Z"/>',
+    shield: '<path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1.2 13.6-3.5-3.5 1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3Z"/>',
+    cloud: '<path d="M19 18H7a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1 1 9Z"/>',
+    pix: '<path d="m12 2 4.2 4.2-2.1 2.1L12 6.2 9.9 8.3 7.8 6.2 12 2Zm-5.8 5.8 2.1 2.1L6.2 12l2.1 2.1-2.1 2.1L2 12l4.2-4.2Zm11.6 0L22 12l-4.2 4.2-2.1-2.1 2.1-2.1-2.1-2.1 2.1-2.1ZM12 9.9 14.1 12 12 14.1 9.9 12 12 9.9Zm-2.1 5.8 2.1 2.1 2.1-2.1 2.1 2.1L12 22l-4.2-4.2 2.1-2.1Z"/>',
+    search: '<path d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>'
+  };
+  const TRUST = {
+    https: { icon: "lock", t: "Conexão criptografada", s: "HTTPS · SSL" },
+    login: { icon: "shield", t: "Login protegido", s: "Google Firebase" },
+    cloud: { icon: "cloud", t: "Dados na nuvem", s: "Google Cloud" },
+    pix: { icon: "pix", t: "Pagamento via Pix", s: "Sistema do Banco Central" },
+    google: { icon: "search", t: "Verificar no Google", s: "Navegação segura ↗", link: true }
+  };
+  const TRUST_SETS = { login: ["https", "login", "cloud", "google"], pay: ["https", "pix", "cloud", "google"], shop: ["https", "cloud", "google"] };
+  U.trustBadges = () => {
+    const host = location.hostname;
+    const real = host && host !== "localhost" && !/^[\d.]+$/.test(host);
+    document.querySelectorAll("[data-trust]").forEach((box) => {
+      const keys = TRUST_SETS[box.dataset.trust] || TRUST_SETS.shop;
+      box.innerHTML = keys.filter((k) => k !== "google" || real).map((k) => {
+        const b = TRUST[k];
+        const inner = `<svg viewBox="0 0 24 24" aria-hidden="true">${TRUST_ICONS[b.icon]}</svg><span><b>${b.t}</b><small>${b.s}</small></span>`;
+        return b.link
+          ? `<a class="trust-item" href="https://transparencyreport.google.com/safe-browsing/search?url=${encodeURIComponent(host)}&hl=pt_BR" target="_blank" rel="noopener" title="Confira no relatório de Navegação Segura do Google">${inner}</a>`
+          : `<span class="trust-item">${inner}</span>`;
+      }).join("");
+      box.setAttribute("aria-label", "Selos de segurança");
+    });
+  };
+  U.trustBadges();
+
   window.U = U;
 })();

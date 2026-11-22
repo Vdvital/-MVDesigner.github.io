@@ -152,3 +152,15 @@ O sistema não confirma o Pix sozinho (isso exige um intermediador e servidor). 
 - O sistema reconhece cerca de 80 nomes de cores em português (e códigos como `#ff0000`); "Sortido"/"Colorido" vira um círculo multicolor. Cor desconhecida aparece com listras.
 - No catálogo: bolinhas de cor no anúncio e, na página do produto, a lista "Cores sortidas na caixa" (quando o produto tem Qtd. por caixa) ou "Cores disponíveis".
 - Também aparece no carrinho, nas mensagens de WhatsApp, na página e no PDF do orçamento e na exportação do Excel.
+
+## Selos de segurança
+
+O login, o cadastro e o rodapé do catálogo mostram selos de confiança. Todos são verdadeiros:
+
+- **Conexão criptografada:** o site abre por HTTPS.
+- **Login protegido:** o login usa o Google Firebase.
+- **Dados na nuvem:** os dados ficam no Google Cloud.
+- **Pagamento via Pix:** aparece só no cadastro.
+- **Verificar no Google:** um link que abre o relatório de Navegação Segura do Google para o seu domínio, para qualquer pessoa conferir.
+
+Para mudar os selos, edite `TRUST` e `TRUST_SETS` em `js/common.js`.
