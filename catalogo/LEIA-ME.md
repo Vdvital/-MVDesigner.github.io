@@ -177,3 +177,18 @@ O painel do administrador tem a seção **Acessos ao sistema**, com quatro núme
 A seção também tem um gráfico por dia (de visitas ou de pessoas), a lista de quem está online e as lojas mais acessadas.
 
 > Depois de atualizar, publique de novo o `firestore.rules` no Console do Firebase. Ele traz a coleção `acessos`, o campo `lastSeen` e a leitura das estatísticas pelo admin.
+
+## Aviso para todas as lojas
+
+No painel do administrador, aba **Início**, o cartão **📣 Aviso para as lojas** publica um recado para todas as lojas.
+
+- **Tipos:** Novidade, Informação, Manutenção ou Importante.
+- **Botão com link:** opcional.
+- **Quem vê:** lojas e equipes, ou só os donos das lojas.
+- **Validade:** de 1 a 30 dias, ou até você tirar do ar.
+
+O aviso aparece no topo do painel da loja. Vendedores e representantes também veem o aviso no catálogo, mas nunca no modo apresentação. Os clientes nunca veem.
+
+Cada pessoa fecha o aviso em **Entendi**. O tipo **Importante** não tem esse botão e fica visível até sair do ar.
+
+> Requer publicar o `firestore.rules` atualizado, que traz a coleção `avisos`.

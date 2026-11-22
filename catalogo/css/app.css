@@ -668,3 +668,30 @@ dialog.dlg-new{width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 32px)
   .todo-list li>.btn{margin-left:40px}
   .stat .stat-go{opacity:1}
 }
+
+/* ---------- aviso do administrador ---------- */
+.aviso-banner{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);border-left:4px solid var(--accent);background:linear-gradient(90deg,#ff6a361f,#ff6a3608);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;animation:av-in .4s ease-out}
+.aviso-banner[hidden]{display:none}
+@keyframes av-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.aviso-banner.t-info{border-left-color:#5aa9ff;background:linear-gradient(90deg,#5aa9ff1f,#5aa9ff08)}
+.aviso-banner.t-manutencao{border-left-color:var(--warn);background:linear-gradient(90deg,#ffc24b1f,#ffc24b08)}
+.aviso-banner.t-importante{border-left-color:var(--bad);background:linear-gradient(90deg,#ff5a5a24,#ff5a5a08)}
+.aviso-banner .av-ic{font-size:22px;line-height:1.2;flex:none}
+.aviso-banner .av-body{flex:1;min-width:0}
+.aviso-banner small{display:block;color:var(--muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.aviso-banner b{display:block;font-size:15.5px;margin:2px 0}
+.aviso-banner p{margin:2px 0 0;font-size:14px;white-space:pre-line;overflow-wrap:anywhere}
+.aviso-banner .av-link{display:inline-block;margin-top:8px;font-weight:700;color:var(--accent);text-decoration:none}
+.aviso-banner .av-close{flex:none;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer}
+.aviso-card{margin-bottom:18px}
+.aviso-card .aviso-banner{margin-bottom:10px;animation:none}
+.av-empty{color:var(--muted);font-size:13.5px;margin:0}
+.av-status{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.av-more{margin:4px 0 12px}
+.av-more summary{cursor:pointer;color:var(--muted);font-weight:700;font-size:13px}
+.av-link-row,.av-opts{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.av-link-row{margin-top:10px}
+.av-opts{grid-template-columns:1.6fr 1fr}
+#av-preview{margin:0;animation:none}
+#dlg-aviso textarea{resize:vertical}
+@media(max-width:560px){.av-link-row,.av-opts{grid-template-columns:1fr}.aviso-banner{flex-wrap:wrap}.aviso-banner .av-close{margin-left:34px}}

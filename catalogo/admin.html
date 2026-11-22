@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Administração | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611221500">
+<link rel="stylesheet" href="css/app.css?v=202611221600">
 </head>
 <body>
 <header class="topbar">
@@ -30,6 +30,11 @@
     <section class="card todo" aria-labelledby="todo-title">
       <h2 id="todo-title">Para fazer agora</h2>
       <ul class="todo-list" id="todo"><li class="hint">Carregando…</li></ul>
+    </section>
+
+    <section class="card aviso-card" id="aviso-card" aria-labelledby="aviso-title">
+      <div class="card-head"><h2 id="aviso-title">📣 Aviso para as lojas</h2><button type="button" class="btn sm primary" id="aviso-new">Novo aviso</button></div>
+      <div id="aviso-current"><p class="hint">Carregando…</p></div>
     </section>
 
     <section class="stats" aria-label="Resumo das lojas">
@@ -134,6 +139,38 @@
   </div>
 </main>
 
+<!-- Aviso para as lojas -->
+<dialog id="dlg-aviso" class="dlg-new" aria-labelledby="dav-title">
+  <form method="dialog" id="aviso-form">
+    <div class="dlg-new-head"><div><h2 id="dav-title">Aviso para as lojas</h2><p class="hint">Aparece no topo do painel de cada loja até ela clicar em "Entendi".</p></div>
+      <button type="button" class="btn sm ghost" id="aviso-close" aria-label="Fechar">✕</button></div>
+    <label>Tipo</label>
+    <div class="quick" id="av-tipo" role="radiogroup" aria-label="Tipo do aviso">
+      <button type="button" data-tipo="novidade" class="on">🎉 Novidade</button>
+      <button type="button" data-tipo="info">ℹ️ Informação</button>
+      <button type="button" data-tipo="manutencao">🛠️ Manutenção</button>
+      <button type="button" data-tipo="importante">⚠️ Importante</button>
+    </div>
+    <div class="field" style="margin-top:14px"><label for="av-titulo">Título</label><input id="av-titulo" maxlength="70" placeholder="Ex.: Agora tem variação de cor nos produtos!"></div>
+    <div class="field"><label for="av-texto">Mensagem</label><textarea id="av-texto" rows="3" maxlength="300" required placeholder="Ex.: Edite o produto e escolha as cores que vêm sortidas na caixa."></textarea><p class="hint" id="av-count">0/300</p></div>
+    <details class="av-more"><summary>Adicionar um botão com link (opcional)</summary>
+      <div class="av-link-row">
+        <div class="field"><label for="av-ltxt">Texto do botão</label><input id="av-ltxt" maxlength="30" placeholder="Saiba mais"></div>
+        <div class="field"><label for="av-lurl">Link</label><input id="av-lurl" type="url" placeholder="https://…"></div>
+      </div>
+    </details>
+    <div class="av-opts">
+      <div class="field"><label for="av-publico">Quem vê</label>
+        <select id="av-publico"><option value="todos">Lojas e equipes (vendedores e representantes)</option><option value="donos">Só os donos das lojas</option></select></div>
+      <div class="field"><label for="av-dias">Fica no ar por</label>
+        <select id="av-dias"><option value="1">1 dia</option><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="30">30 dias</option><option value="0">Até eu tirar</option></select></div>
+    </div>
+    <label>Pré-visualização</label>
+    <div class="aviso-banner t-novidade" id="av-preview"></div>
+    <div class="dialog-actions"><button type="button" class="btn ghost" id="aviso-cancel">Cancelar</button><button type="submit" class="btn primary" id="aviso-pub">Publicar para as lojas</button></div>
+  </form>
+</dialog>
+
 <!-- Nova loja -->
 <dialog id="dlg-new" class="dlg-new" aria-labelledby="new-title">
   <div class="dlg-new-head"><div><h2 id="new-title">Nova loja</h2><p class="hint">Crie a conta e defina por quanto tempo o catálogo fica no ar.</p></div>
@@ -221,10 +258,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611221500"></script>
-<script src="js/db.js?v=202611221500"></script>
-<script src="js/common.js?v=202611221500"></script>
-<script src="js/pix.js?v=202611221500"></script>
-<script src="js/admin.js?v=202611221500"></script>
+<script src="config.js?v=202611221600"></script>
+<script src="js/db.js?v=202611221600"></script>
+<script src="js/common.js?v=202611221600"></script>
+<script src="js/pix.js?v=202611221600"></script>
+<script src="js/admin.js?v=202611221600"></script>
 </body>
 </html>
