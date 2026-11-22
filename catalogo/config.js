@@ -36,7 +36,7 @@ window.CATALOGO_CONFIG = {
   // Nome e cidade como estão no banco (sem acento, até 25 e 15 letras).
   pix: {
     chave: "45854113805",   // CPF
-    nome: "MARCOS VITAL",
+    nome: "MARCOS VITAL TERTO",
     cidade: "SAO PAULO"
   },
 
