@@ -141,7 +141,7 @@
       ${tag(p)}${isNew(p) ? `<span class="new-tag" aria-label="Novidade">NOVO</span>` : ""}
       <button class="open" data-code="${esc(p.code)}" aria-label="Ver detalhes de ${esc(p.name || p.code)}">
         ${U.imgTag(p, 500, "ph")}
-        <div class="body"><span class="code-row"><span class="code">Cód. ${esc(p.code)}</span>${U.boxBadge(p)}</span><span class="name">${esc(p.name || "Produto")}</span>${priceHtml(p)}</div>
+        <div class="body"><span class="code-row"><span class="code">Cód. ${esc(p.code)}</span>${U.boxBadge(p)}</span><span class="name">${esc(p.name || "Produto")}</span>${U.colorDots(p, 6)}${priceHtml(p)}</div>
       </button>
       <div class="buy" data-buy="${esc(p.code)}">${buyInner(String(p.code))}</div>
     </article>`;
@@ -347,7 +347,7 @@
       if (unit == null) noPrice = true; else total += unit * cart[c];
       return `<li data-code="${esc(c)}">
         ${U.imgTag(p, 160, "c-img")}
-        <div class="c-info"><span class="code-row"><small>Cód. ${esc(c)}</small>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Produto")}</b>
+        <div class="c-info"><span class="code-row"><small>Cód. ${esc(c)}</small>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Produto")}</b>${U.colorDots(p, 8, "sm")}
           <span>${unit != null ? U.money(unit) + " un." : canSee ? "Sem preço" : ""}</span>
           ${boxOf(c) ? `<span class="c-box">${boxesTxt(c, cart[c])} = ${cart[c]} unidades</span>` : ""}
           <div class="qty sm"><button type="button" data-step="-1" aria-label="${boxOf(c) ? "Tirar uma caixa" : "Diminuir"}">−</button><input type="number" min="1" step="1" value="${boxesOf(c, cart[c])}" aria-label="Caixas de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Colocar mais uma caixa">+</button><span class="qty-unit">cx</span></div>
@@ -460,7 +460,7 @@
     const rows = Object.keys(cart).map((c) => {
       const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
       if (unit != null) total += unit * q;
-      return `• ${qtyTxt(c, q)} — Cód. ${c} — ${p.name || ""}${unit != null ? ` — ${U.money(unit * q)}` : " (sem preço)"}`;
+      return `• ${qtyTxt(c, q)} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}${unit != null ? ` — ${U.money(unit * q)}` : " (sem preço)"}`;
     });
     const obs = $("#c-obs").value.trim();
     return [
@@ -480,7 +480,7 @@
     const number = Orcamento.newNumber();
     try {
       const items = quoteItems().map(({ p, qty, unit }) => ({
-        code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "", boxQty: p.boxQty || null, isNew: !!p.isNew,
+        code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "", boxQty: p.boxQty || null, isNew: !!p.isNew, colors: p.colors || [],
         price: p.price ?? null, promoPrice: p.promoPrice ?? null, qty, unit
       }));
       Object.keys(cart).forEach((c) => track("o", codeKey(c), 1, true)); flushStats();
@@ -547,7 +547,7 @@
     }
     try { localStorage.setItem("cat_cliente", JSON.stringify(cust)); } catch { /* ignore */ }
     const boxTxt = (c) => (byCode.get(c).boxQty ? ` (cx ${byCode.get(c).boxQty})` : "");
-    const lines = Object.keys(cart).map((c) => `• ${qtyTxt(c, cart[c])} — Cód. ${c} — ${byCode.get(c).name || ""}`);
+    const lines = Object.keys(cart).map((c) => { const p = byCode.get(c); return `• ${qtyTxt(c, cart[c])} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}`; });
     const obs = $("#c-obs").value.trim();
     const hi = sellerName() ? `Olá, ${sellerName()}!` : "Olá!";
     const msg = [
@@ -600,6 +600,7 @@
     $("#d-name").textContent = p.name || "Produto";
     $("#d-price").outerHTML = priceHtml(p, "d-price");
     $("#d-desc").textContent = p.description || "";
+    $("#d-colors").innerHTML = U.colorList(p);
     $("#d-qty").value = 1;
     $("#d-unit").textContent = "cx";
     $("#d-boxhint").hidden = !p.boxQty;

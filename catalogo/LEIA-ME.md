@@ -23,7 +23,7 @@ No modo local, os dados ficam **apenas no navegador** em que foram criados. Use 
 ## Planilha do Excel
 
 Colunas reconhecidas (a ordem não importa; só **Código** é obrigatória):
-`Código`, `Nome`, `Descrição`, `Categoria`, `Preço`, `Preço promocional`, `Qtd. por caixa`, `Tag`, `Link da imagem`.
+`Código`, `Nome`, `Descrição`, `Categoria`, `Preço`, `Preço promocional`, `Qtd. por caixa`, `Tag`, `Cores`, `Link da imagem`.
 Use **Baixar modelo** no painel. Na importação, o cliente escolhe entre atualizar/adicionar ou substituir tudo.
 Um produto com preço promocional menor que o preço aparece com o selo **PROMO -X%** pulsando ao lado da foto.
 
@@ -144,3 +144,11 @@ Fluxo:
 O sistema não confirma o Pix sozinho (isso exige um intermediador e servidor). A confirmação é sua, no banco.
 
 **Importante:** publique de novo o `firestore.rules` (coleção `pedidos`).
+
+## Cores do produto (variações sortidas)
+
+- No editor do produto, campo **Cores**: digite separado por vírgula ("Azul, Rosa, Verde") ou toque nas cores mais comuns.
+- Na planilha, coluna **`Cores`** (também aceita `Cor`, `Cores sortidas`, `Variação`, `Variações`). Separadores aceitos: vírgula, ponto e vírgula, barra ou "e". Sem a coluna, as cores já cadastradas são mantidas.
+- O sistema reconhece cerca de 80 nomes de cores em português (e códigos como `#ff0000`); "Sortido"/"Colorido" vira um círculo multicolor. Cor desconhecida aparece com listras.
+- No catálogo: bolinhas de cor no anúncio e, na página do produto, a lista "Cores sortidas na caixa" (quando o produto tem Qtd. por caixa) ou "Cores disponíveis".
+- Também aparece no carrinho, nas mensagens de WhatsApp, na página e no PDF do orçamento e na exportação do Excel.
