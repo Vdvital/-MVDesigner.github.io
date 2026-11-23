@@ -51,6 +51,11 @@
     });
     return { pub, prices };
   }
+  /** Aplica o fator de preço da loja na tabela de preços (o preço cadastrado continua guardado sem fator). */
+  function withFator(prices, aj) {
+    if (!window.U || !U.fatorAtivo(aj)) return prices;
+    return Object.fromEntries(Object.entries(prices).map(([k, v]) => [k, { ...v, price: U.aplicaFator(v.price, aj), promoPrice: U.aplicaFator(v.promoPrice, aj) }]));
+  }
   function mergePrices(products, prices) {
     return (products || []).map((p) => {
       const pr = (prices && prices[String(p.code)]) || {};
@@ -275,6 +280,11 @@
       }
     },
     async getAviso() { return this._read("cat_aviso", null); },
+    async getAjustes(slug) { return (this._read("cat_ajustes", {})[slug]) || null; },
+    async saveAjustes(aj) {
+      const me = await this.current(); if (!me || me.role !== "user") throw new Error("Só a loja pode mudar o fator de preço.");
+      const all = this._read("cat_ajustes", {}); all[me.slug] = { ...aj, updatedAt: Date.now() }; this._write("cat_ajustes", all);
+    },
     async saveAviso(a) { this._write("cat_aviso", a); },
     async listAcessos(days) {
       const all = this._read("cat_acessos", {});
@@ -298,7 +308,7 @@
       const c = this._catBySlug(slug);
       const legacy = {};
       (c?.products || []).forEach((p) => { if ("price" in p) legacy[p.code] = { price: p.price, promoPrice: p.promoPrice }; });
-      return { ...legacy, ...(this._prices()[slug] || {}) };
+      return withFator({ ...legacy, ...(this._prices()[slug] || {}) }, await this.getAjustes(slug));
     },
 
     async listCatalogStats() {
@@ -528,6 +538,15 @@
         await this.db.collection("acessos").doc(day).set({ day, n: inc(1), u: { [me.uid]: inc(1) } }, { merge: true });
       }
     },
+    async getAjustes(slug) {
+      await this._ready;
+      try { const s = await this._cat(slug).collection("private").doc("ajustes").get(); return s.exists ? s.data() : null; }
+      catch { return null; }
+    },
+    async saveAjustes(aj) {
+      const me = await this.current(); if (!me || me.role !== "user") throw new Error("Só a loja pode mudar o fator de preço.");
+      await this._cat(me.slug).collection("private").doc("ajustes").set({ fator: Number(aj.fator) || 1, arred: aj.arred || "centavo", updatedAt: Date.now() });
+    },
     async getAviso() {
       const s = await this.db.collection("avisos").doc("atual").get();
       return s.exists ? s.data() : null;
@@ -577,7 +596,7 @@
         const c = (await this._cat(slug).get()).data();
         const legacy = {};
         (c?.products || []).forEach((p) => { if ("price" in p) legacy[p.code] = { price: p.price, promoPrice: p.promoPrice }; });
-        return { ...legacy, ...items };
+        return withFator({ ...legacy, ...items }, await this.getAjustes(slug));
       } catch { return null; } // sem permissão
     },
 
@@ -600,7 +619,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats", "getAviso", "saveAviso"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats", "getAviso", "saveAviso", "getAjustes", "saveAjustes"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");

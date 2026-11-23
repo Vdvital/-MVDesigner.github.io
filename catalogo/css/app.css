@@ -695,3 +695,25 @@ dialog.dlg-new{width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 32px)
 #av-preview{margin:0;animation:none}
 #dlg-aviso textarea{resize:vertical}
 @media(max-width:560px){.av-link-row,.av-opts{grid-template-columns:1fr}.aviso-banner{flex-wrap:wrap}.aviso-banner .av-close{margin-left:34px}}
+
+/* ---------- fator de preço ---------- */
+.fator-btn.on{border-color:var(--ok);color:var(--ok)}
+.fator-base{display:block;color:var(--muted);font-size:11px;font-weight:600}
+.fator-hint{color:var(--ok)}
+dialog.dlg-fator{width:min(520px,calc(100vw - 24px))}
+.fat-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.fat-x{font-size:30px;font-weight:800;color:var(--accent);line-height:1}
+.fat-row input{font-size:26px;font-weight:800;max-width:160px;padding:8px 12px}
+#fat-pct{min-height:18px}
+#fat-arred{flex-wrap:wrap}
+.fat-prev{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:6px 12px;font-size:13.5px}
+.fat-prev table{width:100%}
+.fat-prev th,.fat-prev td{padding:7px 4px;border-bottom:1px solid var(--line)}
+.fat-prev tr:last-child td{border-bottom:0}
+.fat-prev td:first-child{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){
+  .fat-prev table,.fat-prev tbody,.fat-prev tr,.fat-prev td{display:revert}
+  .fat-prev thead{display:table-header-group}
+  .fat-prev tr{border:0;padding:0;margin:0}
+  .fat-prev td{padding:7px 4px}
+}

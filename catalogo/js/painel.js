@@ -9,6 +9,8 @@
   let cat = await DB.getMyCatalog(me);
   if (!cat) { toast("Catálogo não encontrado. Fale com o administrador.", "err"); return; }
   let store = { ...cat.store }, products = cat.products || [];
+  var ajustes = null; // fator de preço (var: usado por funções que podem rodar antes desta linha)
+  try { ajustes = await DB.getAjustes(me.slug); } catch { ajustes = null; }
 
   const link = `${new URL("loja.html", location.href).href}?loja=${encodeURIComponent(me.slug)}`;
   $("#me-email").textContent = me.email;
@@ -338,7 +340,7 @@
         <span class="flags">${off ? `<span class="flag">-${off}%</span>` : p.tagPromo ? `<span class="flag">PROMO</span>` : ""}${p.isNew ? `<span class="flag new">NOVO</span>` : ""}</span>
         ${!(p.images?.length || p.imageUrl) ? `<span class="nophoto">sem foto</span>` : ""}
         <div class="info"><span class="code-row"><span class="code">${esc(p.code)}</span>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Sem nome")}</b>${U.colorDots(p, 6, "sm")}
-        <span>${off ? `<s class="code">${U.money(p.price)}</s> ${U.money(p.promoPrice)}` : U.money(p.price) || "<span class='code'>sem preço</span>"}</span></div>
+        <span>${off ? `<s class="code">${U.money(U.aplicaFator(p.price, ajustes))}</s> ${U.money(U.aplicaFator(p.promoPrice, ajustes))}` : U.money(U.aplicaFator(p.price, ajustes)) || "<span class='code'>sem preço</span>"}${U.fatorAtivo(ajustes) && p.price != null ? `<small class="fator-base">cadastrado ${U.money(off ? p.promoPrice : p.price)} · ${U.fatorTxt(ajustes.fator)}</small>` : ""}</span></div>
         <span class="edit" aria-hidden="true">Editar ✎</span>
       </button>`;
     }).join("") + (list.length > 400 ? `<p class="hint">Mostrando 400 de ${list.length}. Use a busca.</p>` : "") : empty;
@@ -399,6 +401,7 @@
     $("#pe-cat").value = p.category;
     $("#pe-price").value = p.price != null ? String(p.price).replace(".", ",") : "";
     $("#pe-promo").value = p.promoPrice != null ? String(p.promoPrice).replace(".", ",") : "";
+    fatorHints();
     $("#pe-img").value = p.imageUrl || "";
     $("#pe-box").value = p.boxQty || "";
     $("#pe-new").checked = !!p.isNew;
@@ -511,6 +514,63 @@
     const b = e.target.closest("[data-copy]"); if (!b) return;
     try { await navigator.clipboard.writeText(b.dataset.copy); toast("Link do orçamento copiado."); } catch { prompt("Copie o link:", b.dataset.copy); }
   });
+
+  /* ---------- fator de preço ---------- */
+  function fatorHints() {
+    [["#pe-price", "#pe-price-f"], ["#pe-promo", "#pe-promo-f"]].forEach(([inp, out]) => {
+      const v = U.parseMoney($(inp).value);
+      const on = U.fatorAtivo(ajustes) && v != null;
+      $(out).hidden = !on;
+      if (on) $(out).textContent = `No catálogo: ${U.money(U.aplicaFator(v, ajustes))} (${U.fatorTxt(ajustes.fator)})`;
+    });
+  }
+  ["#pe-price", "#pe-promo"].forEach((s) => $(s).addEventListener("input", fatorHints));
+  function paintFatorBtn() {
+    const b = $("#fator-open");
+    b.textContent = U.fatorAtivo(ajustes) ? `× Fator ${U.fatorTxt(ajustes.fator)} ligado` : "× Fator de preço";
+    b.classList.toggle("on", U.fatorAtivo(ajustes));
+  }
+  paintFatorBtn();
+  const dlgFator = $("#dlg-fator");
+  let fatArred = "centavo";
+  const fatValor = () => { const n = Number(String($("#fat-valor").value).replace(",", ".")); return n > 0 ? n : null; };
+  function fatPreview() {
+    const f = fatValor(), aj = { fator: f || 1, arred: fatArred };
+    $$("#fat-quick [data-f]").forEach((b) => b.classList.toggle("on", Number(b.dataset.f) === f));
+    $$("#fat-arred [data-a]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.a === fatArred)));
+    $("#fat-pct").textContent = !f ? "Digite um número maior que zero. Ex.: 2 ou 2,5." : f === 1 ? "1× = sem fator: o catálogo mostra o preço cadastrado."
+      : f > 1 ? `O preço no catálogo fica ${Math.round((f - 1) * 100)}% acima do cadastrado.` : `O preço no catálogo fica ${Math.round((1 - f) * 100)}% abaixo do cadastrado.`;
+    const sample = products.filter((p) => p.price != null).slice(0, 4);
+    $("#fat-prev").innerHTML = sample.length ? `<table><thead><tr><th>Produto</th><th class="num">Cadastrado</th><th class="num">No catálogo</th></tr></thead><tbody>${sample.map((p) => {
+      const base = U.discount(p) ? p.promoPrice : p.price;
+      return `<tr><td>${esc(p.name || p.code)}</td><td class="num">${U.money(base)}</td><td class="num"><b>${U.money(U.aplicaFator(base, aj))}</b></td></tr>`;
+    }).join("")}</tbody></table>`
+      : `<p class="hint">Exemplo: um produto de ${U.money(10)} fica ${U.money(U.aplicaFator(10, aj))}.</p>`;
+    $("#fat-save").disabled = !f;
+  }
+  $("#fator-open").onclick = () => {
+    $("#fat-valor").value = U.fatorAtivo(ajustes) ? String(ajustes.fator).replace(".", ",") : "";
+    fatArred = (ajustes && ajustes.arred) || "centavo";
+    $("#fat-off").hidden = !U.fatorAtivo(ajustes);
+    fatPreview(); dlgFator.showModal(); setTimeout(() => $("#fat-valor").focus(), 50);
+  };
+  $("#fat-valor").addEventListener("input", fatPreview);
+  $$("#fat-quick [data-f]").forEach((b) => b.addEventListener("click", () => { $("#fat-valor").value = b.dataset.f.replace(".", ","); fatPreview(); }));
+  $$("#fat-arred [data-a]").forEach((b) => b.addEventListener("click", () => { fatArred = b.dataset.a; fatPreview(); }));
+  $("#fat-cancel").onclick = () => dlgFator.close();
+  async function saveFator(aj, msg) {
+    try {
+      await DB.saveAjustes(aj); ajustes = aj;
+      dlgFator.close(); paintFatorBtn(); renderProducts(); toast(msg);
+    } catch (e) { toast(e.message, "err"); }
+  }
+  $("#fator-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const f = fatValor(); if (!f) return;
+    if (f > 20 && !confirm(`Multiplicar os preços por ${U.fatorTxt(f)}? Confira se é isso mesmo.`)) return;
+    saveFator({ fator: f, arred: fatArred }, f === 1 ? "Fator desligado: o catálogo mostra o preço cadastrado." : `Pronto! O catálogo agora mostra os preços ${U.fatorTxt(f)}.`);
+  });
+  $("#fat-off").onclick = () => saveFator({ fator: 1, arred: "centavo" }, "Fator desligado: o catálogo mostra o preço cadastrado.");
 
   /* ---------- painel "Mais procurados" ---------- */
   var dashDays = 30, dashData = null, dashLimit = 10; // var: a aba pode abrir pelo endereço antes desta linha

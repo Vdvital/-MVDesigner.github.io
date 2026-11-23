@@ -192,3 +192,14 @@ O aviso aparece no topo do painel da loja. Vendedores e representantes também v
 Cada pessoa fecha o aviso em **Entendi**. O tipo **Importante** não tem esse botão e fica visível até sair do ar.
 
 > Requer publicar o `firestore.rules` atualizado, que traz a coleção `avisos`.
+
+## Fator de preço
+
+No painel da loja, aba **Produtos**, o botão **× Fator de preço** multiplica todos os preços. Por exemplo, com fator 2× um produto cadastrado por R$ 10 aparece por R$ 20.
+
+- **Onde vale:** no catálogo, no carrinho e no orçamento. O preço promocional também é multiplicado.
+- **Arredondamento:** sem arredondar, terminar em ,90 ou valor inteiro.
+- **Preço cadastrado:** continua guardado sem fator, e é ele que vai na planilha Excel.
+- **Desligar:** o botão **Desligar fator** volta a mostrar os preços como foram cadastrados.
+
+O fator fica em `catalogs/{loja}/private/ajustes`, protegido pelas mesmas regras dos preços.
