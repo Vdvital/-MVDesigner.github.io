@@ -284,7 +284,7 @@
     if (await save("Dados da loja salvos!")) $("#store-dirty").hidden = true;
   });
   $("#store-form").addEventListener("input", (e) => { if (e.target.type !== "file") $("#store-dirty").hidden = false; });
-  window.addEventListener("beforeunload", (e) => { if (!$("#store-dirty").hidden) { e.preventDefault(); e.returnValue = ""; } });
+  window.addEventListener("beforeunload", (e) => { if (!$("#store-dirty").hidden || !$("#min-dirty").hidden) { e.preventDefault(); e.returnValue = ""; } });
 
   $("#contacts-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -514,6 +514,49 @@
     const b = e.target.closest("[data-copy]"); if (!b) return;
     try { await navigator.clipboard.writeText(b.dataset.copy); toast("Link do orçamento copiado."); } catch { prompt("Copie o link:", b.dataset.copy); }
   });
+
+  /* ---------- pedido mínimo ---------- */
+  let minTipo = (store.minimo && store.minimo.tipo) || "valor";
+  const minNum = () => { const v = $("#min-valor").value; return minTipo === "valor" ? U.parseMoney(v) : Math.floor(Number(String(v).replace(",", "."))) || null; };
+  const minState = () => ({ ativo: $("#min-on").checked, tipo: minTipo, valor: minNum() || 0, msg: $("#min-msg").value.trim(), topo: $("#min-topo").checked, equipe: $("#min-equipe").checked });
+  function minPaint() {
+    const m = minState();
+    $$("#min-tipo [data-t]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === minTipo)));
+    $("#min-fields").disabled = !m.ativo;
+    $("#min-fields").classList.toggle("off", !m.ativo);
+    $("#min-valor-label").textContent = { valor: "Valor mínimo (R$)", caixas: "Mínimo de caixas", pecas: "Mínimo de peças", itens: "Mínimo de produtos diferentes" }[minTipo];
+    $("#min-valor").placeholder = minTipo === "valor" ? "500,00" : "10";
+    $("#min-valor").inputMode = minTipo === "valor" ? "decimal" : "numeric";
+    $("#min-msg").placeholder = `Ex.: ${U.minimoTxt({ ...m, msg: "", valor: m.valor || (minTipo === "valor" ? 500 : 10) })}`;
+    $("#min-note").textContent = minTipo === "valor"
+      ? "Como o cliente não vê preços, o valor aparece como aviso para ele; quem é bloqueado pelo valor é a equipe ao montar o orçamento (se marcado abaixo)."
+      : minTipo === "caixas" ? "Produtos sem quantidade por caixa contam 1 caixa por unidade do carrinho." : "";
+    const demo = { ...m, valor: m.valor || (minTipo === "valor" ? 500 : 10) };
+    const atual = minTipo === "valor" ? demo.valor * 0.6 : Math.max(1, Math.round(demo.valor * 0.6));
+    const c = U.minimoCheck(demo, { valor: atual, valorOk: true, caixas: atual, pecas: atual, itens: atual });
+    $("#min-prev").innerHTML = `<div class="mb"><div class="mb-top"><b>${esc(U.minimoTxt(demo))}</b><span>${U.minimoQtd(demo, atual)} de ${U.minimoQtd(demo, demo.valor)}</span></div>
+      <div class="mb-bar"><i style="width:${c.pct}%"></i></div><small>Faltam <b>${U.minimoQtd(demo, c.falta)}</b> para enviar o pedido.</small></div>`;
+  }
+  function minLoad() {
+    const m = store.minimo || {};
+    $("#min-on").checked = !!m.ativo;
+    $("#min-valor").value = m.valor ? (m.tipo === "valor" ? String(m.valor).replace(".", ",") : String(m.valor)) : "";
+    $("#min-msg").value = m.msg || "";
+    $("#min-topo").checked = m.topo !== false;
+    $("#min-equipe").checked = !!m.equipe;
+    minPaint();
+  }
+  $$("#min-tipo [data-t]").forEach((b) => b.addEventListener("click", () => { minTipo = b.dataset.t; $("#min-valor").value = ""; minPaint(); $("#min-dirty").hidden = false; $("#min-valor").focus(); }));
+  $("#min-form").addEventListener("input", () => { minPaint(); $("#min-dirty").hidden = false; });
+  $("#min-on").addEventListener("change", () => { minPaint(); $("#min-dirty").hidden = false; if ($("#min-on").checked) $("#min-valor").focus(); });
+  $("#min-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const m = minState();
+    if (m.ativo && !(m.valor > 0)) { $("#min-valor").focus(); return toast(minTipo === "valor" ? "Informe o valor mínimo. Ex.: 500,00" : "Informe a quantidade mínima.", "err"); }
+    store.minimo = m;
+    if (await save(m.ativo ? `Pedido mínimo salvo: ${U.minimoQtd(m, m.valor)}.` : "Pedido mínimo desligado.")) $("#min-dirty").hidden = true;
+  });
+  minLoad();
 
   /* ---------- fator de preço ---------- */
   function fatorHints() {

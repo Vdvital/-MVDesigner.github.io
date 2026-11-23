@@ -108,6 +108,8 @@
   $("#store-name").textContent = store.name || "Catálogo";
   $("#foot-name").textContent = store.name || "";
   $("#store-about").textContent = store.about || "";
+  const minimo = U.minimoAtivo(store.minimo) ? store.minimo : null;
+  if (minimo && minimo.topo !== false) { $("#min-chip").hidden = false; $("#min-chip").textContent = "🧾 " + U.minimoTxt(minimo); }
   const intl = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
   const sellers = [...(store.team || []), ...(store.sellers || [])].map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
   const wa = intl(store.whatsapp) || (sellers[0] && sellers[0].wa) || "";
@@ -369,6 +371,42 @@
       $("#cart-send").disabled = !wa;
       $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
     }
+    paintMinimo(codes, total, noPrice);
+  }
+
+  /* ---------- pedido mínimo ---------- */
+  var minCheck = { ativo: false, ok: true };
+  function cartTotals(codes, total, noPrice) {
+    return {
+      valor: total, valorOk: canSee && !noPrice,
+      caixas: codes.reduce((n, c) => n + (boxOf(c) ? cart[c] / boxOf(c) : cart[c]), 0),
+      pecas: codes.reduce((n, c) => n + cart[c], 0),
+      itens: codes.length
+    };
+  }
+  // a equipe só é barrada se a loja marcou "equipe também respeita o mínimo"
+  const minBloqueia = () => !!minimo && (!canSee || !!minimo.equipe);
+  function paintMinimo(codes, total, noPrice) {
+    const box = $("#min-box");
+    if (!minimo || !codes.length) { box.hidden = true; minCheck = { ativo: false, ok: true }; $("#cb-label").textContent = "Finalizar pedido"; return; }
+    minCheck = U.minimoCheck(minimo, cartTotals(codes, total, noPrice));
+    box.hidden = false;
+    box.classList.toggle("ok", minCheck.ok && !minCheck.semPreco);
+    if (minCheck.semPreco) {
+      box.innerHTML = `<div class="mb-top"><b>🧾 ${esc(U.minimoTxt(minimo))}</b></div><small>O vendedor confirma o valor do pedido pelo WhatsApp.</small>`;
+    } else if (minCheck.ok) {
+      box.innerHTML = `<div class="mb-top"><b>✓ Pedido mínimo atingido</b><span>${U.minimoQtd(minimo, minCheck.atual)}</span></div><div class="mb-bar"><i style="width:100%"></i></div>`;
+    } else {
+      box.innerHTML = `<div class="mb-top"><b>${esc(U.minimoTxt(minimo))}</b><span>${U.minimoQtd(minimo, minCheck.atual)} de ${U.minimoQtd(minimo, minCheck.alvo)}</span></div>
+        <div class="mb-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(minCheck.pct)}"><i style="width:${minCheck.pct}%"></i></div>
+        <small>Faltam <b>${U.minimoQtd(minimo, minCheck.falta)}</b> para ${canSee ? "fechar o pedido mínimo" : "enviar o pedido"}.</small>`;
+    }
+    const falta = !minCheck.ok && !minCheck.semPreco;
+    $("#cb-label").textContent = falta ? `Faltam ${U.minimoQtd(minimo, minCheck.falta)}` : "Finalizar pedido";
+    if (falta && minBloqueia()) {
+      $("#cart-send").disabled = true;
+      $("#cart-send").textContent = `Pedido mínimo: faltam ${U.minimoQtd(minimo, minCheck.falta)}`;
+    }
   }
   if (canSee) {
     $("#cart-hint").textContent = myWa
@@ -530,6 +568,11 @@
 
   $("#cart-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (minimo && !minCheck.ok && !minCheck.semPreco) {
+      if (minBloqueia()) return U.toast(`Pedido mínimo: faltam ${U.minimoQtd(minimo, minCheck.falta)}.`, "err");
+      // equipe liberada: avisa antes de mandar abaixo do mínimo
+      if (!confirm(`Este pedido está abaixo do mínimo da loja (${U.minimoTxt(minimo)}). Enviar mesmo assim?`)) return;
+    }
     const cust = readCustomer();
     if (!cust) return;
     if (canSee) {

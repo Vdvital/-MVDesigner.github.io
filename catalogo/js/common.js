@@ -52,6 +52,31 @@
     return Math.round(x * 100) / 100;
   };
   U.fatorTxt = (n) => `${String(Number(n)).replace(".", ",")}×`;
+  /* ---------- Pedido mínimo da loja ---------- */
+  U.MIN_TIPOS = {
+    valor: { label: "Valor em R$", um: "", fmt: (n) => U.money(n) },
+    caixas: { label: "Caixas", um: ["caixa", "caixas"] },
+    pecas: { label: "Peças (unidades)", um: ["peça", "peças"] },
+    itens: { label: "Produtos diferentes", um: ["produto diferente", "produtos diferentes"] }
+  };
+  U.minimoAtivo = (m) => !!m && m.ativo && Number(m.valor) > 0 && !!U.MIN_TIPOS[m.tipo];
+  U.minimoQtd = (m, n) => {
+    const t = U.MIN_TIPOS[m.tipo]; n = Number(n);
+    if (m.tipo === "valor") return U.money(n);
+    const v = Number.isInteger(n) ? n : Math.ceil(n);
+    return `${v.toLocaleString("pt-BR")} ${v === 1 ? t.um[0] : t.um[1]}`;
+  };
+  /** Texto curto: "Pedido mínimo: 10 caixas". Usa a mensagem da loja se houver. */
+  U.minimoTxt = (m) => (m.msg && m.msg.trim()) || `Pedido mínimo: ${U.minimoQtd(m, m.valor)}`;
+  /** Confere o carrinho. tot = { valor, valorOk, caixas, pecas, itens } */
+  U.minimoCheck = (m, tot) => {
+    if (!U.minimoAtivo(m)) return { ativo: false, ok: true };
+    const alvo = Number(m.valor);
+    if (m.tipo === "valor" && !tot.valorOk) return { ativo: true, ok: true, semPreco: true, alvo };
+    const atual = Number(tot[m.tipo] || 0);
+    const falta = Math.max(0, alvo - atual);
+    return { ativo: true, ok: falta <= 1e-9, falta, atual, alvo, pct: Math.min(100, (atual / alvo) * 100) };
+  };
   U.money = (n) => (n == null || n === "" ? "" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
   U.date = (ms) => (ms ? new Date(ms).toLocaleDateString("pt-BR") : "—");
   U.dateTime = (ms) => (ms ? new Date(ms).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "nunca");

@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611231000">
+<link rel="stylesheet" href="css/app.css?v=202611231100">
 </head>
 <body>
 <header class="topbar">
@@ -114,6 +114,35 @@
           </div>
           <div class="field"><label for="s-accent">Cor de destaque</label><input id="s-accent" type="color" style="height:44px;padding:4px"></div>
           <div class="save-row"><span class="dirty" id="store-dirty" hidden>Alterações não salvas</span><button class="btn primary">Salvar dados da loja</button></div>
+        </form>
+      </section>
+
+      <!-- PEDIDO MÍNIMO -->
+      <section class="card min-card" aria-labelledby="min-title">
+        <div class="min-head">
+          <div><h2 id="min-title">Pedido mínimo</h2><p class="sub">Defina o mínimo para o cliente enviar um pedido. O carrinho mostra quanto falta.</p></div>
+          <label class="switch"><input type="checkbox" id="min-on"><span aria-hidden="true"></span><b>Ativar</b></label>
+        </div>
+        <form id="min-form" class="min-form">
+          <fieldset id="min-fields">
+            <label>O mínimo é contado em</label>
+            <div class="seg min-tipo" id="min-tipo" role="radiogroup" aria-label="Tipo do pedido mínimo">
+              <button type="button" data-t="valor" aria-pressed="true">💰 Valor em R$</button>
+              <button type="button" data-t="caixas" aria-pressed="false">📦 Caixas</button>
+              <button type="button" data-t="pecas" aria-pressed="false">🔢 Peças</button>
+              <button type="button" data-t="itens" aria-pressed="false">🧾 Produtos diferentes</button>
+            </div>
+            <div class="row">
+              <div class="field"><label for="min-valor" id="min-valor-label">Valor mínimo (R$)</label><input id="min-valor" inputmode="decimal" placeholder="500,00"></div>
+              <div class="field"><label for="min-msg">Mensagem (opcional)</label><input id="min-msg" maxlength="120" placeholder="Ex.: Pedido mínimo de R$ 500,00 para faturamento"></div>
+            </div>
+            <p class="hint" id="min-note"></p>
+            <label class="check"><input type="checkbox" id="min-topo" checked> Mostrar o pedido mínimo no topo do catálogo</label>
+            <label class="check"><input type="checkbox" id="min-equipe"> Vendedores e representantes também precisam respeitar o mínimo</label>
+            <label style="margin-top:12px">Como o cliente vê no carrinho</label>
+            <div class="min-prev" id="min-prev"></div>
+          </fieldset>
+          <div class="save-row"><span class="dirty" id="min-dirty" hidden>Alterações não salvas</span><button class="btn primary">Salvar pedido mínimo</button></div>
         </form>
       </section>
   </div>
@@ -354,10 +383,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611231000"></script>
-<script src="js/db.js?v=202611231000"></script>
-<script src="js/common.js?v=202611231000"></script>
-<script src="js/pix.js?v=202611231000"></script>
-<script src="js/painel.js?v=202611231000"></script>
+<script src="config.js?v=202611231100"></script>
+<script src="js/db.js?v=202611231100"></script>
+<script src="js/common.js?v=202611231100"></script>
+<script src="js/pix.js?v=202611231100"></script>
+<script src="js/painel.js?v=202611231100"></script>
 </body>
 </html>

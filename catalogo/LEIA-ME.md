@@ -203,3 +203,19 @@ No painel da loja, aba **Produtos**, o botão **× Fator de preço** multiplica 
 - **Desligar:** o botão **Desligar fator** volta a mostrar os preços como foram cadastrados.
 
 O fator fica em `catalogs/{loja}/private/ajustes`, protegido pelas mesmas regras dos preços.
+
+## Pedido mínimo
+
+No painel da loja, aba **Minha loja**, o cartão **Pedido mínimo** define o mínimo para enviar um pedido.
+
+**Opções:**
+- **Ativar ou desligar** o pedido mínimo.
+- **Tipo do mínimo:** valor em R$, caixas, peças ou produtos diferentes.
+- **Mensagem própria** (opcional).
+- **Mostrar no topo do catálogo.**
+- **Exigir também da equipe:** vendedores e representantes também precisam respeitar o mínimo.
+
+**Como funciona no carrinho:**
+- O carrinho mostra uma barra com quanto falta. Enquanto o mínimo não for atingido, o botão de enviar fica bloqueado.
+- **Mínimo em R$:** como o cliente não vê preços, para ele aparece só o aviso. A trava vale para a equipe, que vê os preços.
+- **Equipe sem a trava:** se a opção "exigir também da equipe" estiver desmarcada, a equipe pode enviar abaixo do mínimo, mas o sistema pede confirmação antes.
