@@ -353,3 +353,10 @@ dialog::backdrop{background:#000a}
 .min-box .mb-bar i{display:block;height:100%;background:var(--accent);border-radius:8px;transition:width .3s}
 .min-box.ok .mb-bar i{background:#1f9d55}
 .min-box small{color:var(--muted)}
+
+/* preço unitário e valor da caixa */
+.price .per{font-size:12px;font-weight:700;color:var(--muted);margin-left:2px;letter-spacing:0}
+.price .boxprice{flex-basis:100%;font-size:12.5px;color:#6b4519;background:#fbf1e4;border-radius:8px;padding:4px 8px;margin-top:2px;width:fit-content}
+.price .boxprice b{font-weight:800}
+.d-info .price .boxprice{font-size:14px;padding:6px 10px}
+.c-cx{color:var(--ink)}
