@@ -129,9 +129,11 @@
   const priceHtml = (p, id = "") => {
     const off = U.discount(p), attr = id ? ` id="${id}"` : "";
     if (!canSee) return `<div class="price"${attr}><span class="ask">Preço sob consulta</span></div>`;
-    if (off) return `<div class="price"${attr}><span class="old">${U.money(p.price)}</span><span class="now promo">${U.money(p.promoPrice)}</span></div>`;
-    const v = unitPrice(p);
-    return `<div class="price"${attr}>${v != null ? `<span class="now">${U.money(v)}</span>` : `<span class="code">Consulte</span>`}</div>`;
+    const v = unitPrice(p), bq = Number(p.boxQty) || 0;
+    const un = bq ? `<span class="per">/un</span>` : "";
+    const cx = bq && v != null ? `<span class="boxprice">Caixa c/ ${bq} un: <b>${U.money(v * bq)}</b></span>` : "";
+    if (off) return `<div class="price"${attr}><span class="old">${U.money(p.price)}</span><span class="now promo">${U.money(p.promoPrice)}${un}</span>${cx}</div>`;
+    return `<div class="price"${attr}>${v != null ? `<span class="now">${U.money(v)}${un}</span>${cx}` : `<span class="code">Consulte</span>`}</div>`;
   };
   const tag = (p) => {
     if (!isPromo(p)) return "";
@@ -352,7 +354,7 @@
       return `<li data-code="${esc(c)}">
         ${U.imgTag(p, 160, "c-img")}
         <div class="c-info"><span class="code-row"><small>Cód. ${esc(c)}</small>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Produto")}</b>${U.colorDots(p, 8, "sm")}
-          <span>${unit != null ? U.money(unit) + " un." : canSee ? "Sem preço" : ""}</span>
+          <span>${unit != null ? (boxOf(c) ? `${U.money(unit)} un. × ${boxOf(c)} = <b class="c-cx">${U.money(unit * boxOf(c))} a caixa</b>` : U.money(unit) + " un.") : canSee ? "Sem preço" : ""}</span>
           ${boxOf(c) ? `<span class="c-box">${boxesTxt(c, cart[c])} = ${cart[c]} unidades</span>` : ""}
           <div class="qty sm"><button type="button" data-step="-1" aria-label="${boxOf(c) ? "Tirar uma caixa" : "Diminuir"}">−</button><input type="number" min="1" step="1" value="${boxesOf(c, cart[c])}" aria-label="Caixas de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Colocar mais uma caixa">+</button><span class="qty-unit">cx</span></div>
         </div>
@@ -500,7 +502,7 @@
     const rows = Object.keys(cart).map((c) => {
       const p = byCode.get(c), unit = unitPrice(p), q = cart[c];
       if (unit != null) total += unit * q;
-      return `• ${qtyTxt(c, q)} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}${unit != null ? ` — ${U.money(unit * q)}` : " (sem preço)"}`;
+      return `• ${qtyTxt(c, q)} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}${unit != null ? ` — ${U.money(unit)} un.${boxOf(c) ? ` (cx ${U.money(unit * boxOf(c))})` : ""} — *${U.money(unit * q)}*` : " (sem preço)"}`;
     });
     const obs = $("#c-obs").value.trim();
     return [
