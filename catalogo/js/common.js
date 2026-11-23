@@ -41,6 +41,17 @@
     const n = parseFloat(s);
     return isFinite(n) ? n : null;
   };
+  /** Fator de preço da loja: preço do catálogo = preço cadastrado × fator, com arredondamento opcional. */
+  U.FATOR_PADRAO = { fator: 1, arred: "centavo" };
+  U.fatorAtivo = (aj) => !!aj && Number(aj.fator) > 0 && Number(aj.fator) !== 1;
+  U.aplicaFator = (v, aj) => {
+    if (v == null || v === "" || !U.fatorAtivo(aj)) return v;
+    const x = Number(v) * Number(aj.fator);
+    if (aj.arred === "inteiro") return Math.ceil(x - 1e-9);
+    if (aj.arred === "90") { const f = Math.floor(x); return x - f <= 0.9 + 1e-9 ? f + 0.9 : f + 1.9; }
+    return Math.round(x * 100) / 100;
+  };
+  U.fatorTxt = (n) => `${String(Number(n)).replace(".", ",")}×`;
   U.money = (n) => (n == null || n === "" ? "" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
   U.date = (ms) => (ms ? new Date(ms).toLocaleDateString("pt-BR") : "—");
   U.dateTime = (ms) => (ms ? new Date(ms).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "nunca");
