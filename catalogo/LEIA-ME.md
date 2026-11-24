@@ -232,3 +232,12 @@ Quando o cliente toca em **Consultar preço pelo WhatsApp**, o sistema salva o p
 **No painel da loja:** os pedidos dos clientes aparecem na aba **Orçamentos** com a etiqueta "Pedido do cliente".
 
 > Requer publicar o `firestore.rules` atualizado. A nova regra deixa o cliente, sem login, criar o pedido da loja ativa.
+
+### Retirada em mãos
+
+No cartão **Pedido mínimo**, marque **Oferecer retirada em mãos com outro valor mínimo**. Defina o mínimo da retirada e, se quiser, o endereço e o horário.
+
+- **No carrinho:** o cliente escolhe **🚚 Entrega** ou **🏪 Retirada em mãos**, e o mínimo muda conforme a escolha.
+- **Sem mínimo:** use 0 para a retirada não ter mínimo.
+- **No pedido:** a forma de recebimento vai na mensagem do WhatsApp, no PDF e no orçamento.
+- **No topo do catálogo:** aparecem os dois mínimos.
