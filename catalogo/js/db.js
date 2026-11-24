@@ -63,6 +63,17 @@
       return { ...p, price: pr.price ?? p.price ?? null, promoPrice: pr.promoPrice ?? p.promoPrice ?? null };
     });
   }
+  /** Preços públicos (quando a loja escolhe mostrar preços a todos): já com o fator de preço. */
+  function publicStore(store, prices, aj) {
+    const { precosPublicos, ...rest } = store || {};
+    if (!rest.mostrarPrecos) return rest;
+    const out = {};
+    Object.entries(prices || {}).forEach(([code, v]) => {
+      const p = window.U ? U.aplicaFator(v.price, aj) : v.price, q = window.U ? U.aplicaFator(v.promoPrice, aj) : v.promoPrice;
+      if (p != null || q != null) out[code] = { p: p ?? null, q: q ?? null };
+    });
+    return { ...rest, precosPublicos: out };
+  }
   /** Garante que nenhum preço saia na versão pública (também para dados antigos). */
   function stripPublic(cat) {
     if (!cat) return cat;
@@ -220,7 +231,7 @@
       const st = accessStatus(c);
       if (st !== "ativo") throw new Error(denyMessage(st));
       const { pub, prices } = splitProducts(products);
-      c.store = store; c.products = pub; c.updatedAt = Date.now();
+      c.store = publicStore(store, prices, await this.getAjustes(c.slug)); c.products = pub; c.updatedAt = Date.now();
       this._write("cat_catalogs", cats);
       const all = this._prices(); all[c.slug] = prices; this._write("cat_prices", all);
       return { ...c, products };
@@ -495,7 +506,7 @@
 
     async saveMyCatalog(profile, { store, products }) {
       const { pub, prices } = splitProducts(products);
-      const data = { store, products: pub, updatedAt: Date.now() };
+      const data = { store: publicStore(store, prices, await this.getAjustes(profile.slug)), products: pub, updatedAt: Date.now() };
       if (new Blob([JSON.stringify(data)]).size > 950000) throw new Error("Catálogo grande demais para salvar (limite ~1 MB). Use uma capa menor.");
       try {
         await this._priceDoc(profile.slug).set({ items: prices, updatedAt: Date.now() });

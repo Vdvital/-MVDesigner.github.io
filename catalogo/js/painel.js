@@ -502,7 +502,7 @@
         <td><b>${esc(q.client || "—")}</b><div class="muted">${esc([q.clientDoc, q.clientPhone].filter(Boolean).join(" · "))}</div></td>
         <td>${esc((q.seller && q.seller.name) || q.sellerName || "—")}<div class="muted">${esc((q.seller && q.seller.role) || "")}</div></td>
         <td>${(q.items || []).length}<div class="muted">${units} un</div></td>
-        <td><b>${q.tipo === "consulta" ? "A consultar" : U.money(qTotal(q)) || "—"}</b></td>
+        <td><b>${q.tipo === "consulta" && !qTotal(q) ? "A consultar" : U.money(qTotal(q)) || "—"}</b></td>
         <td class="actions">
           <a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir PDF</a>
           ${wa ? `<a class="btn sm wa" href="${esc(wa)}" target="_blank" rel="noopener">Enviar ao cliente</a>` : ""}
@@ -515,6 +515,24 @@
     const b = e.target.closest("[data-copy]"); if (!b) return;
     try { await navigator.clipboard.writeText(b.dataset.copy); toast("Link do orçamento copiado."); } catch { prompt("Copie o link:", b.dataset.copy); }
   });
+
+  /* ---------- mostrar preços para os clientes (Sim/Não) ---------- */
+  function paintShowPrices() {
+    const on = !!store.mostrarPrecos;
+    $$("#sp-seg [data-v]").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.v === "sim") === on)));
+    $("#sp-sub").innerHTML = on
+      ? `<b class="ok-txt">Sim:</b> qualquer pessoa que abrir o catálogo vê os preços${U.fatorAtivo(ajustes) ? ` (com o fator ${U.fatorTxt(ajustes.fator)})` : ""} e o pedido vai com os valores e o total.`
+      : `<b>Não:</b> só você e a sua equipe veem os preços. O cliente vê "Preço sob consulta".`;
+  }
+  $$("#sp-seg [data-v]").forEach((b) => b.addEventListener("click", async () => {
+    const on = b.dataset.v === "sim";
+    if (on === !!store.mostrarPrecos) return;
+    if (on && !(await U.ask({ title: "Mostrar preços para todos?", text: "Qualquer pessoa com o link do catálogo vai ver os preços. Você pode voltar para \"Não\" quando quiser.", ok: "Sim, mostrar preços" }))) return;
+    store.mostrarPrecos = on;
+    if (!(await save(on ? "Pronto! Os clientes agora veem os preços." : "Preços escondidos: o cliente vê \"Preço sob consulta\"."))) store.mostrarPrecos = !on;
+    paintShowPrices();
+  }));
+  paintShowPrices();
 
   /* ---------- pedido mínimo ---------- */
   let minTipo = (store.minimo && store.minimo.tipo) || "valor";
@@ -620,7 +638,8 @@
   async function saveFator(aj, msg) {
     try {
       await DB.saveAjustes(aj); ajustes = aj;
-      dlgFator.close(); paintFatorBtn(); renderProducts(); toast(msg);
+      if (store.mostrarPrecos) await save(); // refaz os preços que os clientes veem
+      dlgFator.close(); paintFatorBtn(); renderProducts(); paintShowPrices(); toast(msg);
     } catch (e) { toast(e.message, "err"); }
   }
   $("#fator-form").addEventListener("submit", (e) => {
