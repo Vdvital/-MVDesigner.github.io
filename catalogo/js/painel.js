@@ -485,11 +485,12 @@
       if (since && (q.createdAt || 0) < since) return false;
       return !term || [q.number, q.client, q.clientDoc, q.clientPhone, sname].some((v) => String(v || "").toLowerCase().includes(term));
     });
-    const sum = list.reduce((t, q) => t + qTotal(q), 0);
+    const orc = list.filter((q) => q.tipo !== "consulta"), peds = list.length - orc.length;
+    const sum = orc.reduce((t, q) => t + qTotal(q), 0);
     $("#qh-stats").innerHTML = `
-      <div><small>Orçamentos</small><b>${list.length}</b></div>
+      <div><small>Orçamentos${peds ? ` · ${peds} pedidos de clientes` : ""}</small><b>${list.length}</b></div>
       <div><small>Valor somado</small><b>${U.money(sum) || "R$ 0,00"}</b></div>
-      <div><small>Ticket médio</small><b>${list.length ? U.money(sum / list.length) : "—"}</b></div>`;
+      <div><small>Ticket médio</small><b>${orc.length ? U.money(sum / orc.length) : "—"}</b></div>`;
     const base = new URL("orcamento.html", location.href).href;
     $("#qh-list").innerHTML = list.length ? list.map((q) => {
       const link = `${base}?id=${encodeURIComponent(q.id)}`;
@@ -497,11 +498,11 @@
       const wa = phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(`Olá! Segue o orçamento ${q.number} — ${store.name || ""}:\n${link}`)}` : "";
       const units = (q.items || []).reduce((t, it) => t + it.qty, 0);
       return `<tr>
-        <td><b>${esc(q.number)}</b><div class="muted">${U.dateTime(q.createdAt)}</div></td>
+        <td><b>${esc(q.number)}</b>${q.tipo === "consulta" ? ` <span class="pill expirando" title="Enviado pelo cliente no Consultar preço">Pedido do cliente</span>` : ""}<div class="muted">${U.dateTime(q.createdAt)}</div></td>
         <td><b>${esc(q.client || "—")}</b><div class="muted">${esc([q.clientDoc, q.clientPhone].filter(Boolean).join(" · "))}</div></td>
         <td>${esc((q.seller && q.seller.name) || q.sellerName || "—")}<div class="muted">${esc((q.seller && q.seller.role) || "")}</div></td>
         <td>${(q.items || []).length}<div class="muted">${units} un</div></td>
-        <td><b>${U.money(qTotal(q)) || "—"}</b></td>
+        <td><b>${q.tipo === "consulta" ? "A consultar" : U.money(qTotal(q)) || "—"}</b></td>
         <td class="actions">
           <a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir PDF</a>
           ${wa ? `<a class="btn sm wa" href="${esc(wa)}" target="_blank" rel="noopener">Enviar ao cliente</a>` : ""}

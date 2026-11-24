@@ -76,6 +76,13 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.ownerUid == catalog(request.resource.data.slug).uid
         && (isAdmin() || ownsCatalog(request.resource.data.slug) || isTeamOf(request.resource.data.slug));
+      // pedido do cliente pelo "Consultar preço": sem login, só para loja ativa, sem total
+      allow create: if request.resource.data.tipo == 'consulta'
+        && !('createdBy' in request.resource.data)
+        && request.resource.data.keys().hasOnly(['tipo', 'slug', 'ownerUid', 'number', 'client', 'clientDoc', 'clientPhone', 'obs', 'items', 'store', 'seller', 'createdAt'])
+        && request.resource.data.items is list && request.resource.data.items.size() <= 300
+        && request.resource.data.ownerUid == catalog(request.resource.data.slug).uid
+        && catalogActive(request.resource.data.slug);
       allow update, delete: if isAdmin();
     }
 

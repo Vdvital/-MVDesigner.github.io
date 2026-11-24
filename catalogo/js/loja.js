@@ -605,9 +605,51 @@
       location.href.split("#")[0]
     ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n").trim();
     Object.keys(cart).forEach((c) => track("o", codeKey(c), 1, true)); flushStats();
-    const url = waLink(msg, sellerWa());
-    if (!window.open(url, "_blank")) location.href = url;
+    // abre a aba já no clique (o navegador bloqueia abrir depois de esperar) e salva o pedido para gerar o PDF
+    const win = window.open("", "_blank");
+    const btn = $("#cart-send"); const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Preparando o pedido…";
+    const number = Orcamento.newNumber();
+    let link = "";
+    try {
+      const id = await DB.savePedidoCliente({
+        slug, ownerUid: cat.uid, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs,
+        items: Object.keys(cart).map((c) => { const p = byCode.get(c); return {
+          code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "",
+          boxQty: p.boxQty || null, isNew: !!p.isNew, colors: p.colors || [], qty: cart[c], unit: null }; }),
+        store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36", logo: store.logo || "" },
+        seller: { name: sellerName() || store.name || "Atendimento", role: "Atendimento", whatsapp: sellerWa() || "" }
+      });
+      link = new URL(`orcamento.html?id=${encodeURIComponent(id)}`, location.href).href;
+    } catch { link = ""; } // sem o PDF, a lista segue no texto da mensagem
+    const full = link ? msg.replace(location.href.split("#")[0], `📄 *PDF do pedido ${number}:*\n${link}`) : msg;
+    const url = waLink(full, sellerWa());
+    if (win && !win.closed) win.location.href = url; else location.href = url;
+    btn.disabled = false; btn.textContent = label;
+    if (link) offerClientPdf(cust, number);
   });
+
+  /** No celular: deixa o PDF do pedido pronto para mandar como arquivo também. */
+  async function offerClientPdf(cust, number) {
+    try {
+      const out = await Orcamento.build({
+        store, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), number, tipo: "consulta",
+        items: Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: null })),
+        seller: { name: sellerName() || store.name || "Atendimento", role: "Atendimento", whatsapp: sellerWa() || "" }
+      });
+      if (pdf && pdf.url) URL.revokeObjectURL(pdf.url);
+      const file = new File([out.blob], out.filename, { type: "application/pdf" });
+      pdf = { file, url: URL.createObjectURL(out.blob), summary: `Pedido ${number} — ${store.name || ""}` };
+      const canShareFile = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+      $("#pdf-share").hidden = !canShareFile;
+      $("#pdf-download").href = pdf.url; $("#pdf-download").download = out.filename;
+      $("#pdf-name").textContent = out.filename;
+      $("#pdf-tip").textContent = canShareFile
+        ? "O link do PDF já foi na mensagem. Se quiser mandar o arquivo também, toque em \"Enviar PDF\"."
+        : "O link do PDF já foi na mensagem. Se quiser, baixe uma cópia aqui.";
+      $("#pdf-ready").hidden = false;
+    } catch { /* o link já foi na mensagem */ }
+  }
   updateCart();
 
   /* ---------- detalhe ---------- */
