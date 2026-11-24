@@ -241,3 +241,20 @@ No cartão **Pedido mínimo**, marque **Oferecer retirada em mãos com outro val
 - **Sem mínimo:** use 0 para a retirada não ter mínimo.
 - **No pedido:** a forma de recebimento vai na mensagem do WhatsApp, no PDF e no orçamento.
 - **No topo do catálogo:** aparecem os dois mínimos.
+
+## Mostrar preços para os clientes (Sim/Não)
+
+No painel da loja, aba **Minha loja**, o cartão **Mostrar preços para os clientes** controla quem vê os preços.
+
+**Com "Não"** (padrão): só a loja e a equipe veem os preços. O cliente vê "Preço sob consulta".
+
+**Com "Sim":**
+- Qualquer pessoa que abrir o catálogo vê os preços, já com o fator de preço.
+- O preço da caixa também aparece.
+- O carrinho mostra o total.
+- O botão vira **Enviar pedido pelo WhatsApp**, e a mensagem e o PDF levam valores e total.
+
+**Detalhes técnicos:**
+- Os preços públicos ficam em `store.precosPublicos`, no documento público do catálogo. Eles são refeitos sempre que a loja salva ou muda o fator.
+- Com "Não", esse campo é apagado.
+- O modo apresentação da equipe continua sem preços.

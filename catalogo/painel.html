@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611241600">
+<link rel="stylesheet" href="css/app.css?v=202611241800">
 </head>
 <body>
 <header class="topbar">
@@ -115,6 +115,18 @@
           <div class="field"><label for="s-accent">Cor de destaque</label><input id="s-accent" type="color" style="height:44px;padding:4px"></div>
           <div class="save-row"><span class="dirty" id="store-dirty" hidden>Alterações não salvas</span><button class="btn primary">Salvar dados da loja</button></div>
         </form>
+      </section>
+
+      <!-- PREÇOS PARA OS CLIENTES -->
+      <section class="card show-prices" aria-labelledby="sp-title">
+        <div class="min-head">
+          <div><h2 id="sp-title">Mostrar preços para os clientes</h2>
+            <p class="sub" id="sp-sub">Hoje só você e a sua equipe veem os preços. O cliente vê "Preço sob consulta".</p></div>
+          <div class="seg yesno" id="sp-seg" role="radiogroup" aria-label="Mostrar preços para os clientes">
+            <button type="button" data-v="nao" aria-pressed="true">Não</button>
+            <button type="button" data-v="sim" aria-pressed="false">Sim</button>
+          </div>
+        </div>
       </section>
 
       <!-- PEDIDO MÍNIMO -->
@@ -400,10 +412,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611241600"></script>
-<script src="js/db.js?v=202611241600"></script>
-<script src="js/common.js?v=202611241600"></script>
-<script src="js/pix.js?v=202611241600"></script>
-<script src="js/painel.js?v=202611241600"></script>
+<script src="config.js?v=202611241800"></script>
+<script src="js/db.js?v=202611241800"></script>
+<script src="js/common.js?v=202611241800"></script>
+<script src="js/pix.js?v=202611241800"></script>
+<script src="js/painel.js?v=202611241800"></script>
 </body>
 </html>

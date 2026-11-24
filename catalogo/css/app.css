@@ -747,3 +747,8 @@ dialog.dlg-fator{width:min(520px,calc(100vw - 24px))}
 
 .ret-tipo-row{margin-top:10px}
 .ret-tipo-row .seg{flex-wrap:wrap}
+
+.show-prices{margin-top:18px}
+.seg.yesno button{min-width:64px;font-size:14px}
+.seg.yesno button[data-v=sim][aria-pressed=true]{background:var(--ok);color:#0b2a17}
+.ok-txt{color:var(--ok)}

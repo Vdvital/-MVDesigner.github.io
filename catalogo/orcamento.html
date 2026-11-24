@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <meta name="robots" content="noindex">
 <title>Pedido</title>
-<link rel="stylesheet" href="css/loja.css?v=202611241600">
+<link rel="stylesheet" href="css/loja.css?v=202611241800">
 <style>
   .q-wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px}
   .q-head{background:var(--accent);color:#111;border-radius:18px;padding:22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -58,10 +58,10 @@
   <p class="q-note">Preços e disponibilidade sujeitos a confirmação no fechamento do pedido.</p>
 </main>
 
-<script src="config.js?v=202611241600"></script>
-<script src="js/db.js?v=202611241600"></script>
-<script src="js/common.js?v=202611241600"></script>
-<script src="js/orcamento.js?v=202611241600"></script>
+<script src="config.js?v=202611241800"></script>
+<script src="js/db.js?v=202611241800"></script>
+<script src="js/common.js?v=202611241800"></script>
+<script src="js/orcamento.js?v=202611241800"></script>
 <script>
 (async () => {
   const { $, esc } = U;
@@ -79,10 +79,11 @@
   document.documentElement.style.setProperty("--accent", accent);
   const rgb = parseInt(accent.replace("#", ""), 16);
   if ((0.299 * (rgb >> 16 & 255) + 0.587 * (rgb >> 8 & 255) + 0.114 * (rgb & 255)) <= 160) $("#q-head").classList.add("dark");
-  const consulta = q.tipo === "consulta";
-  const kind = consulta ? "Pedido" : "Orçamento";
+  const pedido = q.tipo === "consulta";
+  const consulta = pedido && !(q.items || []).some((it) => it.unit != null); // pedido sem preços
+  const kind = pedido ? "Pedido" : "Orçamento";
   document.title = `${kind} ${q.number} — ${q.store.name}`;
-  document.querySelector(".q-brand small").textContent = consulta ? "Pedido · preço a consultar" : "Orçamento";
+  document.querySelector(".q-brand small").textContent = consulta ? "Pedido · preço a consultar" : pedido ? "Pedido" : "Orçamento";
   const created = new Date(q.createdAt || Date.now());
   $("#q-store").textContent = q.store.name || "Catálogo";
   $("#q-number").textContent = `Nº ${q.number}`;
@@ -91,8 +92,8 @@
   $("#q-client-sub").textContent = [q.clientDoc && `${U.docLabel(q.clientDoc)} ${q.clientDoc}`, q.clientPhone].filter(Boolean).join(" · ");
   $("#q-seller-role").textContent = q.seller.role || "Vendedor";
   $("#q-seller").textContent = q.seller.name;
-  $("#q-valid").textContent = consulta ? "Preço a consultar" : new Date(created.getTime() + 7 * 86400000).toLocaleDateString("pt-BR");
-  if (consulta) $("#q-valid").previousElementSibling.textContent = "Situação";
+  $("#q-valid").textContent = consulta ? "Preço a consultar" : pedido ? "Aguardando confirmação" : new Date(created.getTime() + 7 * 86400000).toLocaleDateString("pt-BR");
+  if (pedido) $("#q-valid").previousElementSibling.textContent = "Situação";
 
   let total = 0, units = 0;
   $("#q-items").innerHTML = q.items.map((it) => {
@@ -104,7 +105,8 @@
   }).join("");
   $("#q-count").textContent = `${q.items.length} produtos · ${units} unidades`;
   $("#q-total").textContent = consulta ? "Preço a consultar" : U.money(total);
-  if (consulta) { $("#q-total").style.fontSize = "18px"; $("#q-pdf").textContent = "Baixar PDF do pedido"; }
+  if (consulta) $("#q-total").style.fontSize = "18px";
+  if (pedido) $("#q-pdf").textContent = "Baixar PDF do pedido";
   if (q.obs) { $("#q-obs").hidden = false; $("#q-obs").textContent = "Obs.: " + q.obs; }
   $("#loading").hidden = true; $("#app").hidden = false;
 
@@ -128,7 +130,7 @@
       const a = document.createElement("a"); a.href = url; a.download = f.name; document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.parentNode.removeChild(a); }, 2000);
     } catch (e) { U.toast(e.message, "err"); }
-    btn.disabled = false; btn.textContent = consulta ? "Baixar PDF do pedido" : "Baixar PDF do orçamento";
+    btn.disabled = false; btn.textContent = pedido ? "Baixar PDF do pedido" : "Baixar PDF do orçamento";
   };
   // No celular: depois de gerar, dá para mandar o arquivo direto ao cliente
   try {

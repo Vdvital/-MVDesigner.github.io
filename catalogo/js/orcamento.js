@@ -89,8 +89,9 @@
     const contacts = [o.store.whatsapp && `WhatsApp ${phone(o.store.whatsapp)}`, o.store.instagram && `@${o.store.instagram}`].filter(Boolean).join("   ·   ");
     if (contacts) doc.text(contacts, tx, 24);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
-    const consulta = o.tipo === "consulta";
-    doc.text(consulta ? "PEDIDO" : "ORÇAMENTO", W - M, 15, { align: "right" });
+    const pedido = o.tipo === "consulta"; // veio do cliente pelo catálogo
+    const consulta = pedido && !o.items.some((it) => it.unit != null); // sem nenhum preço
+    doc.text(pedido ? "PEDIDO" : "ORÇAMENTO", W - M, 15, { align: "right" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
     doc.text(`Nº ${o.number}`, W - M, 21.5, { align: "right" });
     doc.text(`Emitido em ${fmtDate(now)}`, W - M, 26.5, { align: "right" });
@@ -115,6 +116,7 @@
       o.clientPhone ? `WhatsApp ${o.clientPhone}` : ""]);
     block(M + colW + 4, o.seller.role || "Vendedor", [o.seller.name, o.seller.whatsapp ? `WhatsApp ${phone(o.seller.whatsapp)}` : ""]);
     if (consulta) block(M + 2 * (colW + 4), "Situação", ["Preço a consultar", "O vendedor responde pelo WhatsApp"]);
+    else if (pedido) block(M + 2 * (colW + 4), "Situação", ["Aguardando confirmação", "O vendedor confirma pelo WhatsApp"]);
     else block(M + 2 * (colW + 4), "Validade", [fmtDate(valid), "7 dias a partir da emissão"]);
     y += BH + 8;
 
@@ -203,11 +205,11 @@
       doc.setDrawColor(...line); doc.setLineWidth(0.3); doc.line(M, H - 16, W - M, H - 16);
       doc.setTextColor(...muted); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
       doc.text("Preços e disponibilidade sujeitos a confirmação no fechamento do pedido.", M, H - 10.5);
-      doc.text(`${o.store.name || ""} · ${consulta ? "Pedido" : "Orçamento"} ${o.number} · Página ${i} de ${pages}`, W - M, H - 10.5, { align: "right" });
+      doc.text(`${o.store.name || ""} · ${pedido ? "Pedido" : "Orçamento"} ${o.number} · Página ${i} de ${pages}`, W - M, H - 10.5, { align: "right" });
     }
 
     const safe = (o.client || "cliente").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
-    return { blob: doc.output("blob"), filename: `${consulta ? "Pedido" : "Orcamento"}-${o.number}-${safe}.pdf`, total };
+    return { blob: doc.output("blob"), filename: `${pedido ? "Pedido" : "Orcamento"}-${o.number}-${safe}.pdf`, total };
   }
 
   const newNumber = () => {

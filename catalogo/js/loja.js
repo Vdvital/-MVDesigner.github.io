@@ -27,23 +27,29 @@
   const pageUrl = (extra) => `${location.origin}${location.pathname}?loja=${encodeURIComponent(slug)}${extra || ""}`;
   let prices = null;
   if (isStaff && !presentation) { try { prices = await DB.getPrices(slug); } catch { prices = null; } }
-  const canSee = !!prices;
+  const canSee = !!prices; // equipe logada (orçamento, preços completos)
+  // a loja pode escolher mostrar os preços para todos os clientes (nunca no modo apresentação)
+  const pubPrices = !canSee && !presentation && store.mostrarPrecos && store.precosPublicos ? store.precosPublicos : null;
+  const showPrices = canSee || !!pubPrices;
   if (canSee) products = products.map((p) => ({ ...p, ...(prices[String(p.code)] || {}) }));
+  else if (pubPrices) products = products.map((p) => { const x = pubPrices[String(p.code)]; return x ? { ...p, price: x.p ?? null, promoPrice: x.q ?? null } : p; });
   document.body.classList.toggle("staff", canSee);
   if (isStaff) {
     $("#staff-bar").hidden = false;
     if (!presentation && viewer.role !== "admin") U.showAviso($("#aviso-banner"), viewer);
     $("#staff-who").textContent = `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`;
     $("#staff-msg").textContent = presentation ? "Modo apresentação: é assim que o cliente vê (sem preços)."
-      : canSee ? "Só você vê os preços. O link enviado ao cliente abre sem preços." : "Não foi possível carregar os preços.";
+      : !canSee ? "Não foi possível carregar os preços."
+      : store.mostrarPrecos ? "Os preços estão visíveis para todos os clientes." : "Só você vê os preços. O link enviado ao cliente abre sem preços.";
     const mode = $("#staff-mode");
     mode.hidden = false;
     mode.textContent = presentation ? "Mostrar preços" : "Ver como o cliente";
     mode.href = presentation ? pageUrl() : pageUrl("&apresentacao=1");
     $("#staff-copy").hidden = false;
+    if (store.mostrarPrecos) $("#staff-copy").textContent = "Copiar link do catálogo";
     $("#staff-copy").onclick = async () => {
       const link = pageUrl();
-      try { await navigator.clipboard.writeText(link); U.toast("Link copiado. O cliente abre o catálogo SEM preços. Você vê os preços porque está logado(a)."); }
+      try { await navigator.clipboard.writeText(link); U.toast(store.mostrarPrecos ? "Link copiado. Os clientes veem os preços." : "Link copiado. O cliente abre o catálogo SEM preços. Você vê os preços porque está logado(a)."); }
       catch { prompt("Copie o link para clientes (sem preços):", link); }
     };
     // envia o link pelo WhatsApp: quem abre não está logado, então não vê preço
@@ -139,12 +145,12 @@
   if (wa) { const f = $("#wa-float"); f.hidden = false; f.href = waLink("Olá! Vi o catálogo e tenho uma dúvida."); }
 
   /* ---------- preço ---------- */
-  const unitPrice = (p) => (!canSee ? null : U.discount(p) ? p.promoPrice : p.price ?? p.promoPrice ?? null);
-  const isPromo = (p) => (canSee ? U.discount(p) > 0 || !!p.tagPromo : !!p.promo);
+  const unitPrice = (p) => (!showPrices ? null : U.discount(p) ? p.promoPrice : p.price ?? p.promoPrice ?? null);
+  const isPromo = (p) => (showPrices ? U.discount(p) > 0 || !!p.tagPromo : !!p.promo);
   const isNew = (p) => !!p.isNew;
   const priceHtml = (p, id = "") => {
     const off = U.discount(p), attr = id ? ` id="${id}"` : "";
-    if (!canSee) return `<div class="price"${attr}><span class="ask">Preço sob consulta</span></div>`;
+    if (!showPrices) return `<div class="price"${attr}><span class="ask">Preço sob consulta</span></div>`;
     const v = unitPrice(p), bq = Number(p.boxQty) || 0;
     const un = bq ? `<span class="per">/un</span>` : "";
     const cx = bq && v != null ? `<span class="boxprice">Caixa c/ ${bq} un: <b>${U.money(v * bq)}</b></span>` : "";
@@ -372,7 +378,7 @@
       return `<li data-code="${esc(c)}">
         ${U.imgTag(p, 160, "c-img")}
         <div class="c-info"><span class="code-row"><small>Cód. ${esc(c)}</small>${U.boxBadge(p, "sm")}</span><b>${esc(p.name || "Produto")}</b>${U.colorDots(p, 8, "sm")}
-          <span>${unit != null ? (boxOf(c) ? `${U.money(unit)} un. × ${boxOf(c)} = <b class="c-cx">${U.money(unit * boxOf(c))} a caixa</b>` : U.money(unit) + " un.") : canSee ? "Sem preço" : ""}</span>
+          <span>${unit != null ? (boxOf(c) ? `${U.money(unit)} un. × ${boxOf(c)} = <b class="c-cx">${U.money(unit * boxOf(c))} a caixa</b>` : U.money(unit) + " un.") : showPrices ? "Preço sob consulta" : ""}</span>
           ${boxOf(c) ? `<span class="c-box">${boxesTxt(c, cart[c])} = ${cart[c]} unidades</span>` : ""}
           <div class="qty sm"><button type="button" data-step="-1" aria-label="${boxOf(c) ? "Tirar uma caixa" : "Diminuir"}">−</button><input type="number" min="1" step="1" value="${boxesOf(c, cart[c])}" aria-label="Caixas de ${esc(p.name || c)}"><button type="button" data-step="1" aria-label="Colocar mais uma caixa">+</button><span class="qty-unit">cx</span></div>
         </div>
@@ -381,7 +387,7 @@
     }).join("");
     $("#cart-empty").hidden = codes.length > 0;
     $("#cart-form").hidden = !codes.length;
-    $("#cart-total-row").hidden = !canSee;
+    $("#cart-total-row").hidden = !showPrices;
     $("#cart-total").textContent = U.money(total) + (noPrice ? " +" : "");
     if (canSee) {
       // equipe: monta o orçamento com preços e escolhe o contato no WhatsApp
@@ -389,7 +395,7 @@
       $("#cart-send").textContent = "Enviar orçamento ao meu WhatsApp";
     } else {
       $("#cart-send").disabled = !wa;
-      $("#cart-send").textContent = wa ? "Consultar preço pelo WhatsApp" : "Loja sem WhatsApp cadastrado";
+      $("#cart-send").textContent = !wa ? "Loja sem WhatsApp cadastrado" : pubPrices ? "Enviar pedido pelo WhatsApp" : "Consultar preço pelo WhatsApp";
     }
     paintMinimo(codes, total, noPrice);
   }
@@ -398,7 +404,7 @@
   var minCheck = { ativo: false, ok: true };
   function cartTotals(codes, total, noPrice) {
     return {
-      valor: total, valorOk: canSee && !noPrice,
+      valor: total, valorOk: showPrices && !noPrice,
       caixas: codes.reduce((n, c) => n + (boxOf(c) ? cart[c] / boxOf(c) : cart[c]), 0),
       pecas: codes.reduce((n, c) => n + cart[c], 0),
       itens: codes.length
@@ -505,6 +511,7 @@
   $("#cart-close").onclick = () => drawer.close();
   drawer.addEventListener("click", (e) => { if (e.target === drawer) drawer.close(); });
   /* ---------- dados do cliente: nome, CNPJ e contato ---------- */
+  if (pubPrices) $("#cart-hint").textContent = "Envie o pedido e o vendedor confirma pelo WhatsApp.";
   if (!canSee) {
     // o comprador não precisa digitar de novo na próxima compra
     try {
@@ -631,12 +638,19 @@
     }
     try { localStorage.setItem("cat_cliente", JSON.stringify(cust)); } catch { /* ignore */ }
     const boxTxt = (c) => (byCode.get(c).boxQty ? ` (cx ${byCode.get(c).boxQty})` : "");
-    const lines = Object.keys(cart).map((c) => { const p = byCode.get(c); return `• ${qtyTxt(c, cart[c])} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}`; });
+    let total = 0, semPreco = false;
+    const lines = Object.keys(cart).map((c) => {
+      const p = byCode.get(c), unit = unitPrice(p);
+      if (unit != null) total += unit * cart[c]; else semPreco = true;
+      const val = pubPrices ? (unit != null ? ` — ${U.money(unit)} un.${boxOf(c) ? ` (cx ${U.money(unit * boxOf(c))})` : ""} — *${U.money(unit * cart[c])}*` : " (preço a consultar)") : "";
+      return `• ${qtyTxt(c, cart[c])} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}${val}`;
+    });
     const obs = obsFull();
     const hi = sellerName() ? `Olá, ${sellerName()}!` : "Olá!";
     const msg = [
-      `${hi} Gostaria de *consultar o preço* destes produtos do catálogo *${store.name || ""}*:`, "",
+      pubPrices ? `${hi} Gostaria de fazer este *pedido* no catálogo *${store.name || ""}*:` : `${hi} Gostaria de *consultar o preço* destes produtos do catálogo *${store.name || ""}*:`, "",
       ...lines, "",
+      pubPrices ? `*Total: ${U.money(total)}${semPreco ? " + itens a consultar" : ""}*` : "",
       ...customerLines(cust),
       msgObs(),
       location.href.split("#")[0]
@@ -653,7 +667,7 @@
         slug, ownerUid: cat.uid, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs,
         items: Object.keys(cart).map((c) => { const p = byCode.get(c); return {
           code: String(p.code), name: p.name || "", category: p.category || "", images: (p.images || []).slice(0, 1), imageUrl: p.imageUrl || "",
-          boxQty: p.boxQty || null, isNew: !!p.isNew, colors: p.colors || [], qty: cart[c], unit: null }; }),
+          boxQty: p.boxQty || null, isNew: !!p.isNew, colors: p.colors || [], qty: cart[c], unit: pubPrices ? unitPrice(p) ?? null : null }; }),
         store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36", logo: store.logo || "" },
         seller: { name: sellerName() || store.name || "Atendimento", role: "Atendimento", whatsapp: sellerWa() || "" }
       });
@@ -671,7 +685,7 @@
     try {
       const out = await Orcamento.build({
         store, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: obsFull(), number, tipo: "consulta",
-        items: Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: null })),
+        items: Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: pubPrices ? unitPrice(byCode.get(c)) ?? null : null })),
         seller: { name: sellerName() || store.name || "Atendimento", role: "Atendimento", whatsapp: sellerWa() || "" }
       });
       if (pdf && pdf.url) URL.revokeObjectURL(pdf.url);
