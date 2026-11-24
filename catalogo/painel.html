@@ -4,7 +4,7 @@
 <script>try{if(sessionStorage.getItem("cat_transition"))document.documentElement.classList.add("tr-pending")}catch(e){}</script><style>html.tr-pending body{opacity:0;animation:tr-safe 0s 2.5s forwards}@keyframes tr-safe{to{opacity:1}}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111112">
 <title>Meu catálogo | Catálogo Online</title>
-<link rel="stylesheet" href="css/app.css?v=202611241200">
+<link rel="stylesheet" href="css/app.css?v=202611241400">
 </head>
 <body>
 <header class="topbar">
@@ -141,11 +141,20 @@
             <label class="check"><input type="checkbox" id="min-equipe"> Vendedores e representantes também precisam respeitar o mínimo</label>
             <div class="ret-card">
               <label class="check"><input type="checkbox" id="min-ret"> <span>🏪 Oferecer <b>retirada em mãos</b> com outro valor mínimo</span></label>
+              <div class="ret-tipo-row" id="min-ret-tipo-box" hidden>
+                <label>Mínimo da retirada contado em</label>
+                <div class="seg" id="min-ret-tipo" role="radiogroup" aria-label="Tipo do mínimo da retirada">
+                  <button type="button" data-t="valor" aria-pressed="true">💰 Valor em R$</button>
+                  <button type="button" data-t="caixas" aria-pressed="false">📦 Caixas</button>
+                  <button type="button" data-t="pecas" aria-pressed="false">🔢 Peças</button>
+                  <button type="button" data-t="itens" aria-pressed="false">🧾 Produtos</button>
+                </div>
+              </div>
               <div class="row" id="min-ret-box" hidden>
                 <div class="field"><label for="min-ret-valor" id="min-ret-label">Mínimo para retirada</label><input id="min-ret-valor" inputmode="decimal" placeholder="200,00"></div>
                 <div class="field"><label for="min-ret-info">Endereço ou instruções (opcional)</label><input id="min-ret-info" maxlength="160" placeholder="Ex.: Rua das Flores, 120 — seg. a sex., 9h às 17h"></div>
               </div>
-              <p class="hint" id="min-ret-hint" hidden>No carrinho o cliente escolhe <b>Entrega</b> ou <b>Retirada em mãos</b>, e o mínimo muda conforme a escolha. Use 0 para retirada sem mínimo.</p>
+              <p class="hint" id="min-ret-hint" hidden>No carrinho o cliente escolhe <b>Entrega</b> ou <b>Retirada em mãos</b>, e o mínimo muda conforme a escolha. Use 0 para retirada sem mínimo. Com mínimo em R$, quem vê preços (a equipe) é barrado pelo valor; para o cliente, que não vê preços, o valor aparece como aviso e o vendedor confirma.</p>
             </div>
             <label style="margin-top:12px">Como o cliente vê no carrinho</label>
             <div class="min-prev" id="min-prev"></div>
@@ -391,10 +400,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=202611241200"></script>
-<script src="js/db.js?v=202611241200"></script>
-<script src="js/common.js?v=202611241200"></script>
-<script src="js/pix.js?v=202611241200"></script>
-<script src="js/painel.js?v=202611241200"></script>
+<script src="config.js?v=202611241400"></script>
+<script src="js/db.js?v=202611241400"></script>
+<script src="js/common.js?v=202611241400"></script>
+<script src="js/pix.js?v=202611241400"></script>
+<script src="js/painel.js?v=202611241400"></script>
 </body>
 </html>

@@ -111,7 +111,7 @@
   const minimo = U.minimoAtivo(store.minimo) ? store.minimo : null;
   if (minimo && minimo.topo !== false) {
     $("#min-chip").hidden = false;
-    $("#min-chip").textContent = "🧾 " + U.minimoTxt(minimo) + (U.retiradaAtiva(minimo) ? ` · Retirada em mãos: ${Number(minimo.retirada.valor) > 0 ? U.minimoQtd(minimo, minimo.retirada.valor) : "sem mínimo"}` : "");
+    $("#min-chip").textContent = "🧾 " + U.minimoTxt(minimo) + (U.retiradaAtiva(minimo) ? ` · Retirada em mãos: ${U.retiradaMin(minimo).valor > 0 ? U.minimoQtd(U.retiradaMin(minimo), U.retiradaMin(minimo).valor) : "sem mínimo"}` : "");
   }
   // forma de recebimento (entrega ou retirada em mãos) — muda o pedido mínimo
   var receb = "entrega";
@@ -347,6 +347,8 @@
   }
 
   function updateCart() {
+    // tira o foco do campo de quantidade antes de redesenhar (evita redesenhar duas vezes ao mesmo tempo)
+    const fa = document.activeElement; if (fa && fa.tagName === "INPUT" && fa.closest("#cart-list")) fa.blur();
     const codes = Object.keys(cart);
     refreshBuy();
     if ($("#pdf-ready")) $("#pdf-ready").hidden = true; // carrinho mudou: gerar de novo
@@ -406,7 +408,7 @@
     rb.hidden = !codes.length || !U.retiradaAtiva(minimo);
     if (!rb.hidden) {
       $("#receb-ent-min").textContent = `Mínimo: ${U.minimoQtd(minimo, minimo.valor)}`;
-      $("#receb-ret-min").textContent = Number(minimo.retirada.valor) > 0 ? `Mínimo: ${U.minimoQtd(minimo, minimo.retirada.valor)}` : "Sem mínimo";
+      { const r = U.retiradaMin(minimo); $("#receb-ret-min").textContent = r.valor > 0 ? `Mínimo: ${U.minimoQtd(r, r.valor)}` : "Sem mínimo"; }
       $$('#receb-box input[name="receb"]').forEach((r) => { r.checked = r.value === receb; });
       const info = receb === "retirada" && minimo.retirada.info;
       $("#receb-info").hidden = !info; if (info) $("#receb-info").textContent = "📍 " + info;

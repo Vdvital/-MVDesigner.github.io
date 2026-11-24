@@ -744,3 +744,6 @@ dialog.dlg-fator{width:min(520px,calc(100vw - 24px))}
 .ret-card{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
 .ret-card .check{margin-top:0}
 .ret-card .row{margin-top:10px}
+
+.ret-tipo-row{margin-top:10px}
+.ret-tipo-row .seg{flex-wrap:wrap}

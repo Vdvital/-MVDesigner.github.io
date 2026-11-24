@@ -69,8 +69,13 @@
   U.faltaPal = (m, n) => (m.tipo !== "valor" && Math.ceil(n) === 1 ? "Falta" : "Faltam");
   U.retiradaAtiva = (m) => U.minimoAtivo(m) && !!m.retirada && m.retirada.ativo && Number(m.retirada.valor) >= 0;
   /** Mínimo que vale para a forma de recebimento escolhida ("entrega" ou "retirada"). */
-  U.minimoPara = (m, receb) => (receb === "retirada" && U.retiradaAtiva(m)
-    ? { ...m, valor: Number(m.retirada.valor), msg: `Retirada em mãos: mínimo de ${U.minimoQtd(m, m.retirada.valor)}` } : m);
+  /** Regra da retirada: tipo próprio (valor em R$, caixas…) e valor. */
+  U.retiradaMin = (m) => ({ tipo: (m.retirada && m.retirada.tipo) || m.tipo, valor: Number(m.retirada && m.retirada.valor) || 0 });
+  U.minimoPara = (m, receb) => {
+    if (receb !== "retirada" || !U.retiradaAtiva(m)) return m;
+    const r = U.retiradaMin(m);
+    return { ...m, tipo: r.tipo, valor: r.valor, msg: `Retirada em mãos: mínimo de ${U.minimoQtd(r, r.valor)}` };
+  };
   /** Texto curto: "Pedido mínimo: 10 caixas". Usa a mensagem da loja se houver. */
   U.minimoTxt = (m) => (m.msg && m.msg.trim()) || `Pedido mínimo: ${U.minimoQtd(m, m.valor)}`;
   /** Confere o carrinho. tot = { valor, valorOk, caixas, pecas, itens } */

@@ -519,9 +519,10 @@
   /* ---------- pedido mínimo ---------- */
   let minTipo = (store.minimo && store.minimo.tipo) || "valor";
   const minNum = () => { const v = $("#min-valor").value; return minTipo === "valor" ? U.parseMoney(v) : Math.floor(Number(String(v).replace(",", "."))) || null; };
-  const retNum = () => { const v = $("#min-ret-valor").value.trim(); if (v === "") return null; return minTipo === "valor" ? U.parseMoney(v) : Math.floor(Number(v.replace(",", "."))); };
+  let retTipo = (store.minimo && store.minimo.retirada && store.minimo.retirada.tipo) || "valor";
+  const retNum = () => { const v = $("#min-ret-valor").value.trim(); if (v === "") return null; return retTipo === "valor" ? U.parseMoney(v) : Math.floor(Number(v.replace(",", "."))); };
   const minState = () => ({ ativo: $("#min-on").checked, tipo: minTipo, valor: minNum() || 0, msg: $("#min-msg").value.trim(), topo: $("#min-topo").checked, equipe: $("#min-equipe").checked,
-    retirada: { ativo: $("#min-ret").checked, valor: retNum() ?? 0, info: $("#min-ret-info").value.trim() } });
+    retirada: { ativo: $("#min-ret").checked, tipo: retTipo, valor: retNum() ?? 0, info: $("#min-ret-info").value.trim() } });
   function minPaint() {
     const m = minState();
     $$("#min-tipo [data-t]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === minTipo)));
@@ -530,10 +531,11 @@
     $("#min-valor-label").textContent = { valor: "Valor mínimo (R$)", caixas: "Mínimo de caixas", pecas: "Mínimo de peças", itens: "Mínimo de produtos diferentes" }[minTipo];
     $("#min-valor").placeholder = minTipo === "valor" ? "500,00" : "10";
     $("#min-valor").inputMode = minTipo === "valor" ? "decimal" : "numeric";
-    $("#min-ret-box").hidden = $("#min-ret-hint").hidden = !$("#min-ret").checked;
-    $("#min-ret-label").textContent = { valor: "Mínimo para retirada (R$)", caixas: "Mínimo de caixas para retirada", pecas: "Mínimo de peças para retirada", itens: "Mínimo de produtos para retirada" }[minTipo];
-    $("#min-ret-valor").placeholder = minTipo === "valor" ? "200,00" : "3";
-    $("#min-ret-valor").inputMode = minTipo === "valor" ? "decimal" : "numeric";
+    $("#min-ret-box").hidden = $("#min-ret-hint").hidden = $("#min-ret-tipo-box").hidden = !$("#min-ret").checked;
+    $$("#min-ret-tipo [data-t]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === retTipo)));
+    $("#min-ret-label").textContent = { valor: "Valor mínimo para retirada (R$)", caixas: "Mínimo de caixas para retirada", pecas: "Mínimo de peças para retirada", itens: "Mínimo de produtos para retirada" }[retTipo];
+    $("#min-ret-valor").placeholder = retTipo === "valor" ? "200,00" : "3";
+    $("#min-ret-valor").inputMode = retTipo === "valor" ? "decimal" : "numeric";
     $("#min-msg").placeholder = `Ex.: ${U.minimoTxt({ ...m, msg: "", valor: m.valor || (minTipo === "valor" ? 500 : 10) })}`;
     $("#min-note").textContent = minTipo === "valor"
       ? "Como o cliente não vê preços, o valor aparece como aviso para ele; quem é bloqueado pelo valor é a equipe ao montar o orçamento (se marcado abaixo)."
@@ -553,18 +555,20 @@
     $("#min-equipe").checked = !!m.equipe;
     const r = m.retirada || {};
     $("#min-ret").checked = !!r.ativo;
-    $("#min-ret-valor").value = r.ativo || r.valor ? (m.tipo === "valor" ? String(r.valor ?? "").replace(".", ",") : String(r.valor ?? "")) : "";
+    retTipo = r.tipo || (r.ativo ? m.tipo : "valor") || "valor";
+    $("#min-ret-valor").value = r.ativo || r.valor ? (retTipo === "valor" ? String(r.valor ?? "").replace(".", ",") : String(r.valor ?? "")) : "";
     $("#min-ret-info").value = r.info || "";
     minPaint();
   }
-  $$("#min-tipo [data-t]").forEach((b) => b.addEventListener("click", () => { minTipo = b.dataset.t; $("#min-valor").value = ""; $("#min-ret-valor").value = ""; minPaint(); $("#min-dirty").hidden = false; $("#min-valor").focus(); }));
+  $$("#min-tipo [data-t]").forEach((b) => b.addEventListener("click", () => { minTipo = b.dataset.t; $("#min-valor").value = ""; minPaint(); $("#min-dirty").hidden = false; $("#min-valor").focus(); }));
+  $$("#min-ret-tipo [data-t]").forEach((b) => b.addEventListener("click", () => { retTipo = b.dataset.t; $("#min-ret-valor").value = ""; minPaint(); $("#min-dirty").hidden = false; $("#min-ret-valor").focus(); }));
   $("#min-form").addEventListener("input", () => { minPaint(); $("#min-dirty").hidden = false; });
   $("#min-on").addEventListener("change", () => { minPaint(); $("#min-dirty").hidden = false; if ($("#min-on").checked) $("#min-valor").focus(); });
   $("#min-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const m = minState();
     if (m.ativo && !(m.valor > 0)) { $("#min-valor").focus(); return toast(minTipo === "valor" ? "Informe o valor mínimo. Ex.: 500,00" : "Informe a quantidade mínima.", "err"); }
-    if (m.ativo && m.retirada.ativo && retNum() == null) { $("#min-ret-valor").focus(); return toast("Informe o mínimo para retirada em mãos (pode ser 0).", "err"); }
+    if (m.ativo && m.retirada.ativo && retNum() == null) { $("#min-ret-valor").focus(); return toast(retTipo === "valor" ? "Informe o valor mínimo para retirada. Ex.: 200,00 (ou 0 para sem mínimo)" : "Informe o mínimo para retirada em mãos (pode ser 0).", "err"); }
     store.minimo = m;
     if (await save(m.ativo ? `Pedido mínimo salvo: ${U.minimoQtd(m, m.valor)}.` : "Pedido mínimo desligado.")) $("#min-dirty").hidden = true;
   });
