@@ -89,7 +89,8 @@
     const contacts = [o.store.whatsapp && `WhatsApp ${phone(o.store.whatsapp)}`, o.store.instagram && `@${o.store.instagram}`].filter(Boolean).join("   ·   ");
     if (contacts) doc.text(contacts, tx, 24);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
-    doc.text("ORÇAMENTO", W - M, 15, { align: "right" });
+    const consulta = o.tipo === "consulta";
+    doc.text(consulta ? "PEDIDO" : "ORÇAMENTO", W - M, 15, { align: "right" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
     doc.text(`Nº ${o.number}`, W - M, 21.5, { align: "right" });
     doc.text(`Emitido em ${fmtDate(now)}`, W - M, 26.5, { align: "right" });
@@ -113,7 +114,8 @@
       o.clientDoc ? `${docNum.length === 11 ? "CPF" : "CNPJ"} ${o.clientDoc}` : "",
       o.clientPhone ? `WhatsApp ${o.clientPhone}` : ""]);
     block(M + colW + 4, o.seller.role || "Vendedor", [o.seller.name, o.seller.whatsapp ? `WhatsApp ${phone(o.seller.whatsapp)}` : ""]);
-    block(M + 2 * (colW + 4), "Validade", [fmtDate(valid), "7 dias a partir da emissão"]);
+    if (consulta) block(M + 2 * (colW + 4), "Situação", ["Preço a consultar", "O vendedor responde pelo WhatsApp"]);
+    else block(M + 2 * (colW + 4), "Validade", [fmtDate(valid), "7 dias a partir da emissão"]);
     y += BH + 8;
 
     /* tabela */
@@ -177,8 +179,8 @@
     doc.text(`${o.items.length} ${o.items.length === 1 ? "produto" : "produtos"} · ${units} ${units === 1 ? "unidade" : "unidades"}`, bx + 5, y + 7);
     doc.setTextColor(...ink); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
     doc.text("TOTAL", bx + 5, y + 18);
-    doc.setFontSize(17); doc.setTextColor(...(isLight(accent) ? ink : accent));
-    doc.text(money(total), bx + boxW - 5, y + 19, { align: "right" });
+    doc.setFontSize(consulta ? 12 : 17); doc.setTextColor(...(isLight(accent) ? ink : accent));
+    doc.text(consulta ? "A consultar" : money(total), bx + boxW - 5, y + 19, { align: "right" });
 
     /* observações */
     let oy = y;
@@ -189,7 +191,7 @@
       doc.setTextColor(...ink); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
       doc.text(doc.splitTextToSize(o.obs, obsW), M, oy + 10.5);
     }
-    if (o.items.some((it) => it.unit == null)) {
+    if (!consulta && o.items.some((it) => it.unit == null)) {
       doc.setTextColor(...muted); doc.setFontSize(8);
       doc.text("Itens sem preço serão confirmados pelo vendedor.", M, y + 30);
     }
@@ -201,11 +203,11 @@
       doc.setDrawColor(...line); doc.setLineWidth(0.3); doc.line(M, H - 16, W - M, H - 16);
       doc.setTextColor(...muted); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
       doc.text("Preços e disponibilidade sujeitos a confirmação no fechamento do pedido.", M, H - 10.5);
-      doc.text(`${o.store.name || ""} · Orçamento ${o.number} · Página ${i} de ${pages}`, W - M, H - 10.5, { align: "right" });
+      doc.text(`${o.store.name || ""} · ${consulta ? "Pedido" : "Orçamento"} ${o.number} · Página ${i} de ${pages}`, W - M, H - 10.5, { align: "right" });
     }
 
     const safe = (o.client || "cliente").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
-    return { blob: doc.output("blob"), filename: `Orcamento-${o.number}-${safe}.pdf`, total };
+    return { blob: doc.output("blob"), filename: `${consulta ? "Pedido" : "Orcamento"}-${o.number}-${safe}.pdf`, total };
   }
 
   const newNumber = () => {

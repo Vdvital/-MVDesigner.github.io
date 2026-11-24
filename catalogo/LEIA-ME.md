@@ -219,3 +219,16 @@ No painel da loja, aba **Minha loja**, o cartão **Pedido mínimo** define o mí
 - O carrinho mostra uma barra com quanto falta. Enquanto o mínimo não for atingido, o botão de enviar fica bloqueado.
 - **Mínimo em R$:** como o cliente não vê preços, para ele aparece só o aviso. A trava vale para a equipe, que vê os preços.
 - **Equipe sem a trava:** se a opção "exigir também da equipe" estiver desmarcada, a equipe pode enviar abaixo do mínimo, mas o sistema pede confirmação antes.
+
+## PDF do pedido no "Consultar preço"
+
+Quando o cliente toca em **Consultar preço pelo WhatsApp**, o sistema salva o pedido sem preços e coloca na mensagem o link **📄 PDF do pedido**. No celular, o carrinho também oferece **Enviar PDF** para mandar o arquivo direto.
+
+**O PDF e a página do link:**
+- O documento aparece como **PEDIDO**, e não como orçamento.
+- Mostra cliente, CNPJ, contato, produtos, caixas e cores.
+- No lugar do preço aparece **"Preço a consultar"**.
+
+**No painel da loja:** os pedidos dos clientes aparecem na aba **Orçamentos** com a etiqueta "Pedido do cliente".
+
+> Requer publicar o `firestore.rules` atualizado. A nova regra deixa o cliente, sem login, criar o pedido da loja ativa.

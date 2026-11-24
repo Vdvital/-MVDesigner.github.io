@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff">
 <meta name="robots" content="noindex">
-<title>Orçamento</title>
-<link rel="stylesheet" href="css/loja.css?v=202611231200">
+<title>Pedido</title>
+<link rel="stylesheet" href="css/loja.css?v=202611241000">
 <style>
   .q-wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px}
   .q-head{background:var(--accent);color:#111;border-radius:18px;padding:22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -58,10 +58,10 @@
   <p class="q-note">Preços e disponibilidade sujeitos a confirmação no fechamento do pedido.</p>
 </main>
 
-<script src="config.js?v=202611231200"></script>
-<script src="js/db.js?v=202611231200"></script>
-<script src="js/common.js?v=202611231200"></script>
-<script src="js/orcamento.js?v=202611231200"></script>
+<script src="config.js?v=202611241000"></script>
+<script src="js/db.js?v=202611241000"></script>
+<script src="js/common.js?v=202611241000"></script>
+<script src="js/orcamento.js?v=202611241000"></script>
 <script>
 (async () => {
   const { $, esc } = U;
@@ -79,7 +79,10 @@
   document.documentElement.style.setProperty("--accent", accent);
   const rgb = parseInt(accent.replace("#", ""), 16);
   if ((0.299 * (rgb >> 16 & 255) + 0.587 * (rgb >> 8 & 255) + 0.114 * (rgb & 255)) <= 160) $("#q-head").classList.add("dark");
-  document.title = `Orçamento ${q.number} — ${q.store.name}`;
+  const consulta = q.tipo === "consulta";
+  const kind = consulta ? "Pedido" : "Orçamento";
+  document.title = `${kind} ${q.number} — ${q.store.name}`;
+  document.querySelector(".q-brand small").textContent = consulta ? "Pedido · preço a consultar" : "Orçamento";
   const created = new Date(q.createdAt || Date.now());
   $("#q-store").textContent = q.store.name || "Catálogo";
   $("#q-number").textContent = `Nº ${q.number}`;
@@ -88,7 +91,8 @@
   $("#q-client-sub").textContent = [q.clientDoc && `${U.docLabel(q.clientDoc)} ${q.clientDoc}`, q.clientPhone].filter(Boolean).join(" · ");
   $("#q-seller-role").textContent = q.seller.role || "Vendedor";
   $("#q-seller").textContent = q.seller.name;
-  $("#q-valid").textContent = new Date(created.getTime() + 7 * 86400000).toLocaleDateString("pt-BR");
+  $("#q-valid").textContent = consulta ? "Preço a consultar" : new Date(created.getTime() + 7 * 86400000).toLocaleDateString("pt-BR");
+  if (consulta) $("#q-valid").previousElementSibling.textContent = "Situação";
 
   let total = 0, units = 0;
   $("#q-items").innerHTML = q.items.map((it) => {
@@ -99,7 +103,8 @@
       <div class="sub">${sub != null ? U.money(sub) : "—"}</div></div>`;
   }).join("");
   $("#q-count").textContent = `${q.items.length} produtos · ${units} unidades`;
-  $("#q-total").textContent = U.money(total);
+  $("#q-total").textContent = consulta ? "Preço a consultar" : U.money(total);
+  if (consulta) { $("#q-total").style.fontSize = "18px"; $("#q-pdf").textContent = "Baixar PDF do pedido"; }
   if (q.obs) { $("#q-obs").hidden = false; $("#q-obs").textContent = "Obs.: " + q.obs; }
   $("#loading").hidden = true; $("#app").hidden = false;
 
@@ -108,7 +113,7 @@
   async function getPdf() {
     if (file) return file;
     const out = await Orcamento.build({
-      store: q.store, client: q.client, clientDoc: q.clientDoc, clientPhone: q.clientPhone, obs: q.obs, number: q.number, seller: q.seller,
+      store: q.store, client: q.client, clientDoc: q.clientDoc, clientPhone: q.clientPhone, obs: q.obs, number: q.number, seller: q.seller, tipo: q.tipo,
       items: q.items.map((it) => ({ p: it, qty: it.qty, unit: it.unit }))
     });
     file = new File([out.blob], out.filename, { type: "application/pdf" });
@@ -123,7 +128,7 @@
       const a = document.createElement("a"); a.href = url; a.download = f.name; document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.parentNode.removeChild(a); }, 2000);
     } catch (e) { U.toast(e.message, "err"); }
-    btn.disabled = false; btn.textContent = "Baixar PDF do orçamento";
+    btn.disabled = false; btn.textContent = consulta ? "Baixar PDF do pedido" : "Baixar PDF do orçamento";
   };
   // No celular: depois de gerar, dá para mandar o arquivo direto ao cliente
   try {

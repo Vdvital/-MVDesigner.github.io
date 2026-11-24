@@ -228,6 +228,13 @@
 
     async getCatalogBySlug(slug) { return stripPublic(this._catBySlug(slug)); },
 
+    async savePedidoCliente(q) {
+      const all = this._read("cat_quotes", {});
+      const id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      all[id] = { ...q, tipo: "consulta", createdAt: Date.now() };
+      this._write("cat_quotes", all);
+      return id;
+    },
     async saveQuote(q) {
       const all = this._read("cat_quotes", {});
       const id = "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
@@ -502,6 +509,11 @@
       return s.exists ? stripPublic(s.data()) : null;
     },
 
+    async savePedidoCliente(q) {
+      await this._ready;
+      const ref = await this.db.collection("quotes").add({ ...q, tipo: "consulta", createdAt: Date.now() });
+      return ref.id;
+    },
     async saveQuote(q) {
       await this._ready;
       const u = this.auth.currentUser;
@@ -619,7 +631,7 @@
   };
   ["login", "logout", "current", "listUsers", "createUser", "updateUser", "deleteUser",
    "createMember", "listMembers", "updateMember", "deleteMember",
-   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats", "getAviso", "saveAviso", "getAjustes", "saveAjustes"].forEach((fn) => {
+   "setMyWhatsapp", "saveQuote", "getQuote", "listQuotes", "track", "getStats", "createPedido", "pedidoPago", "listPedidos", "updatePedido", "deletePedido", "getMyCatalog", "saveMyCatalog", "getCatalogBySlug", "getPrices", "listCatalogStats", "sendReset", "seen", "listAcessos", "listAllStats", "getAviso", "saveAviso", "getAjustes", "saveAjustes", "savePedidoCliente"].forEach((fn) => {
     window.DB[fn] = async (...args) => {
       await window.DB.init();
       if (!impl[fn]) throw new Error("Função indisponível neste modo.");
