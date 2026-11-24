@@ -34,18 +34,22 @@
     $("#staff-bar").hidden = false;
     if (!presentation && viewer.role !== "admin") U.showAviso($("#aviso-banner"), viewer);
     $("#staff-who").textContent = `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`;
-    $("#staff-msg").textContent = presentation ? "Modo apresentação: sem preços na tela."
-      : canSee ? "Você está vendo os preços." : "Não foi possível carregar os preços.";
+    $("#staff-msg").textContent = presentation ? "Modo apresentação: é assim que o cliente vê (sem preços)."
+      : canSee ? "Só você vê os preços. O link enviado ao cliente abre sem preços." : "Não foi possível carregar os preços.";
     const mode = $("#staff-mode");
     mode.hidden = false;
-    mode.textContent = presentation ? "Mostrar preços" : "Modo apresentação";
+    mode.textContent = presentation ? "Mostrar preços" : "Ver como o cliente";
     mode.href = presentation ? pageUrl() : pageUrl("&apresentacao=1");
     $("#staff-copy").hidden = false;
     $("#staff-copy").onclick = async () => {
       const link = pageUrl();
-      try { await navigator.clipboard.writeText(link); U.toast("Link para clientes copiado (sem preços)."); }
+      try { await navigator.clipboard.writeText(link); U.toast("Link copiado. O cliente abre o catálogo SEM preços. Você vê os preços porque está logado(a)."); }
       catch { prompt("Copie o link para clientes (sem preços):", link); }
     };
+    // envia o link pelo WhatsApp: quem abre não está logado, então não vê preço
+    const wa = $("#staff-wa"); wa.hidden = false;
+    wa.href = `https://wa.me/?text=${encodeURIComponent(`Olá! Confira nosso catálogo${store.name ? " *" + store.name + "*" : ""}: ${pageUrl()}`)}`;
+    wa.title = "O cliente abre o catálogo sem preços";
     $("#staff-logout").onclick = (e) => U.logout(e.currentTarget, "reload");
     if (viewer.role === "user" || viewer.role === "admin") {
       $("#staff-panel").hidden = false;
