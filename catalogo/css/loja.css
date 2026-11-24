@@ -373,3 +373,4 @@ dialog::backdrop{background:#000a}
 .receb-opts input:checked+span{border-color:var(--ink);background:#f6f5f2;box-shadow:inset 0 0 0 1px var(--ink)}
 .receb-opts input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
 .receb-info{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.staff-actions #staff-wa{background:#25d366;border-color:#25d366;color:#08311a}
