@@ -109,7 +109,19 @@
   $("#foot-name").textContent = store.name || "";
   $("#store-about").textContent = store.about || "";
   const minimo = U.minimoAtivo(store.minimo) ? store.minimo : null;
-  if (minimo && minimo.topo !== false) { $("#min-chip").hidden = false; $("#min-chip").textContent = "🧾 " + U.minimoTxt(minimo); }
+  if (minimo && minimo.topo !== false) {
+    $("#min-chip").hidden = false;
+    $("#min-chip").textContent = "🧾 " + U.minimoTxt(minimo) + (U.retiradaAtiva(minimo) ? ` · Retirada em mãos: ${Number(minimo.retirada.valor) > 0 ? U.minimoQtd(minimo, minimo.retirada.valor) : "sem mínimo"}` : "");
+  }
+  // forma de recebimento (entrega ou retirada em mãos) — muda o pedido mínimo
+  var receb = "entrega";
+  try { if (localStorage.getItem("cat_receb_" + slug) === "retirada") receb = "retirada"; } catch { /* ignore */ }
+  const minAtual = () => (minimo ? U.minimoPara(minimo, receb) : null);
+  const recebTxt = () => (U.retiradaAtiva(minimo) ? (receb === "retirada" ? "🏪 Retirada em mãos" : "🚚 Entrega") : "");
+  /** Observação que vai na mensagem e no PDF: forma de recebimento + o que o cliente escreveu. */
+  /** Linhas para a mensagem do WhatsApp: recebimento em destaque e a observação do cliente. */
+  const msgObs = () => [recebTxt() && `*Recebimento:* ${recebTxt()}`, $("#c-obs").value.trim() && `Obs.: ${$("#c-obs").value.trim()}`].filter(Boolean).join("\n");
+  const obsFull = () => [recebTxt() && `Recebimento: ${recebTxt().replace(/^\S+\s/, "")}`, $("#c-obs").value.trim()].filter(Boolean).join("\n");
   const intl = (n) => { n = String(n || "").replace(/\D/g, ""); return n ? (n.length <= 11 ? "55" + n : n) : ""; };
   const sellers = [...(store.team || []), ...(store.sellers || [])].map((s) => ({ name: s.name || "Vendedor", wa: intl(s.whatsapp) })).filter((s) => s.wa);
   const wa = intl(store.whatsapp) || (sellers[0] && sellers[0].wa) || "";
@@ -390,7 +402,19 @@
   const minBloqueia = () => !!minimo && (!canSee || !!minimo.equipe);
   function paintMinimo(codes, total, noPrice) {
     const box = $("#min-box");
-    if (!minimo || !codes.length) { box.hidden = true; minCheck = { ativo: false, ok: true }; $("#cb-label").textContent = "Finalizar pedido"; return; }
+    const rb = $("#receb-box");
+    rb.hidden = !codes.length || !U.retiradaAtiva(minimo);
+    if (!rb.hidden) {
+      $("#receb-ent-min").textContent = `Mínimo: ${U.minimoQtd(minimo, minimo.valor)}`;
+      $("#receb-ret-min").textContent = Number(minimo.retirada.valor) > 0 ? `Mínimo: ${U.minimoQtd(minimo, minimo.retirada.valor)}` : "Sem mínimo";
+      $$('#receb-box input[name="receb"]').forEach((r) => { r.checked = r.value === receb; });
+      const info = receb === "retirada" && minimo.retirada.info;
+      $("#receb-info").hidden = !info; if (info) $("#receb-info").textContent = "📍 " + info;
+    }
+    const minimoEf = minAtual();
+    if (!minimoEf || !codes.length) { box.hidden = true; minCheck = { ativo: false, ok: true }; $("#cb-label").textContent = "Finalizar pedido"; return; }
+    { const minimo = minimoEf; // daqui para baixo vale o mínimo da forma de recebimento escolhida
+    if (!(Number(minimo.valor) > 0)) { box.hidden = true; minCheck = { ativo: false, ok: true }; $("#cb-label").textContent = "Finalizar pedido"; return; }
     minCheck = U.minimoCheck(minimo, cartTotals(codes, total, noPrice));
     box.hidden = false;
     box.classList.toggle("ok", minCheck.ok && !minCheck.semPreco);
@@ -401,15 +425,22 @@
     } else {
       box.innerHTML = `<div class="mb-top"><b>${esc(U.minimoTxt(minimo))}</b><span>${U.minimoQtd(minimo, minCheck.atual)} de ${U.minimoQtd(minimo, minCheck.alvo)}</span></div>
         <div class="mb-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(minCheck.pct)}"><i style="width:${minCheck.pct}%"></i></div>
-        <small>Faltam <b>${U.minimoQtd(minimo, minCheck.falta)}</b> para ${canSee ? "fechar o pedido mínimo" : "enviar o pedido"}.</small>`;
+        <small>${U.faltaPal(minimo, minCheck.falta)} <b>${U.minimoQtd(minimo, minCheck.falta)}</b> para ${canSee ? "fechar o pedido mínimo" : "enviar o pedido"}.</small>`;
     }
     const falta = !minCheck.ok && !minCheck.semPreco;
-    $("#cb-label").textContent = falta ? `Faltam ${U.minimoQtd(minimo, minCheck.falta)}` : "Finalizar pedido";
+    $("#cb-label").textContent = falta ? `${U.faltaPal(minimo, minCheck.falta)} ${U.minimoQtd(minimo, minCheck.falta)}` : "Finalizar pedido";
     if (falta && minBloqueia()) {
       $("#cart-send").disabled = true;
-      $("#cart-send").textContent = `Pedido mínimo: faltam ${U.minimoQtd(minimo, minCheck.falta)}`;
+      $("#cart-send").textContent = `Pedido mínimo: ${U.faltaPal(minimo, minCheck.falta).toLowerCase()} ${U.minimoQtd(minimo, minCheck.falta)}`;
+    }
     }
   }
+  $("#receb-box").addEventListener("change", (e) => {
+    if (e.target.name !== "receb") return;
+    receb = e.target.value;
+    try { localStorage.setItem("cat_receb_" + slug, receb); } catch { /* ignore */ }
+    updateCart();
+  });
   if (canSee) {
     $("#cart-hint").textContent = myWa
       ? `O orçamento vai para o seu WhatsApp: ${fmtPhone(myWa)}.`
@@ -504,11 +535,11 @@
       if (unit != null) total += unit * q;
       return `• ${qtyTxt(c, q)} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}${unit != null ? ` — ${U.money(unit)} un.${boxOf(c) ? ` (cx ${U.money(unit * boxOf(c))})` : ""} — *${U.money(unit * q)}*` : " (sem preço)"}`;
     });
-    const obs = $("#c-obs").value.trim();
+    const obs = obsFull();
     return [
       `*Orçamento ${number} — ${store.name || "Catálogo"}*`, ...customerLines(cust), "",
       ...rows, "", `*Total: ${U.money(total)}*`,
-      obs ? `Obs.: ${obs}` : null,
+      msgObs() || null,
       "", `${DB.ROLE_LABEL[viewer.role] || ""}: ${viewer.name}`
     ].filter((l) => l !== null).join("\n").trim();
   }
@@ -527,7 +558,7 @@
       }));
       Object.keys(cart).forEach((c) => track("o", codeKey(c), 1, true)); flushStats();
       const id = await DB.saveQuote({
-        slug, ownerUid: cat.uid, sellerName: viewer.name, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), items,
+        slug, ownerUid: cat.uid, sellerName: viewer.name, number, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: obsFull(), items,
         store: { name: store.name || "", whatsapp: store.whatsapp || "", instagram: store.instagram || "", accent: store.accent || "#ff6a36", logo: store.logo || "" },
         seller: sellerInfo()
       });
@@ -547,7 +578,7 @@
   async function makePdf(cust, number) {
     try {
       const items = quoteItems();
-      const out = await Orcamento.build({ store, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), items, number, seller: sellerInfo() });
+      const out = await Orcamento.build({ store, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: obsFull(), items, number, seller: sellerInfo() });
       if (pdf && pdf.url) URL.revokeObjectURL(pdf.url);
       const file = new File([out.blob], out.filename, { type: "application/pdf" });
       pdf = { file, url: URL.createObjectURL(out.blob), summary: quoteSummary(cust, number) };
@@ -571,9 +602,9 @@
   $("#cart-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (minimo && !minCheck.ok && !minCheck.semPreco) {
-      if (minBloqueia()) return U.toast(`Pedido mínimo: faltam ${U.minimoQtd(minimo, minCheck.falta)}.`, "err");
+      if (minBloqueia()) return U.toast(`Pedido mínimo: ${U.faltaPal(minimo, minCheck.falta).toLowerCase()} ${U.minimoQtd(minimo, minCheck.falta)}.`, "err");
       // equipe liberada: avisa antes de mandar abaixo do mínimo
-      if (!confirm(`Este pedido está abaixo do mínimo da loja (${U.minimoTxt(minimo)}). Enviar mesmo assim?`)) return;
+      if (!confirm(`Este pedido está abaixo do mínimo da loja (${U.minimoTxt(minAtual())}). Enviar mesmo assim?`)) return;
     }
     const cust = readCustomer();
     if (!cust) return;
@@ -595,13 +626,13 @@
     try { localStorage.setItem("cat_cliente", JSON.stringify(cust)); } catch { /* ignore */ }
     const boxTxt = (c) => (byCode.get(c).boxQty ? ` (cx ${byCode.get(c).boxQty})` : "");
     const lines = Object.keys(cart).map((c) => { const p = byCode.get(c); return `• ${qtyTxt(c, cart[c])} — Cód. ${c} — ${p.name || ""}${(p.colors || []).length ? ` (cores: ${p.colors.join(", ")})` : ""}`; });
-    const obs = $("#c-obs").value.trim();
+    const obs = obsFull();
     const hi = sellerName() ? `Olá, ${sellerName()}!` : "Olá!";
     const msg = [
       `${hi} Gostaria de *consultar o preço* destes produtos do catálogo *${store.name || ""}*:`, "",
       ...lines, "",
       ...customerLines(cust),
-      obs ? `Obs.: ${obs}` : "",
+      msgObs(),
       location.href.split("#")[0]
     ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n").trim();
     Object.keys(cart).forEach((c) => track("o", codeKey(c), 1, true)); flushStats();
@@ -633,7 +664,7 @@
   async function offerClientPdf(cust, number) {
     try {
       const out = await Orcamento.build({
-        store, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: $("#c-obs").value.trim(), number, tipo: "consulta",
+        store, client: cust.name, clientDoc: cust.doc, clientPhone: cust.phone, obs: obsFull(), number, tipo: "consulta",
         items: Object.keys(cart).map((c) => ({ p: byCode.get(c), qty: cart[c], unit: null })),
         seller: { name: sellerName() || store.name || "Atendimento", role: "Atendimento", whatsapp: sellerWa() || "" }
       });

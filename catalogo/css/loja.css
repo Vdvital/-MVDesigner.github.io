@@ -360,3 +360,16 @@ dialog::backdrop{background:#000a}
 .price .boxprice b{font-weight:800}
 .d-info .price .boxprice{font-size:14px;padding:6px 10px}
 .c-cx{color:var(--ink)}
+
+/* forma de recebimento */
+.receb{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 8px;background:#fff}
+.receb legend{font-size:13px;font-weight:800;padding:0 4px}
+.receb-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.receb-opts label{position:relative;cursor:pointer;margin:0}
+.receb-opts input{position:absolute;opacity:0}
+.receb-opts span{display:block;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;transition:border-color .15s,background .15s}
+.receb-opts b{display:block;font-size:13.5px}
+.receb-opts small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.receb-opts input:checked+span{border-color:var(--ink);background:#f6f5f2;box-shadow:inset 0 0 0 1px var(--ink)}
+.receb-opts input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.receb-info{margin:8px 0 0;font-size:12.5px;color:var(--muted)}

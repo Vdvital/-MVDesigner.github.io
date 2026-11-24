@@ -740,3 +740,7 @@ dialog.dlg-fator{width:min(520px,calc(100vw - 24px))}
 .min-prev .mb-bar{height:8px;border-radius:8px;background:#e6e4df;overflow:hidden;margin:8px 0 6px}
 .min-prev .mb-bar i{display:block;height:100%;background:#ff6a36;border-radius:8px}
 .min-prev small{color:#6d6c70}
+
+.ret-card{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+.ret-card .check{margin-top:0}
+.ret-card .row{margin-top:10px}
